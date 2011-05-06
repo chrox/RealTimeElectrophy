@@ -8,7 +8,11 @@ import datetime
 
 import OpenGL.GL as gl
 import pygame
+
+import VisionEgg
+VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 import VisionEgg.Core
+from VisionEgg.FlowControl import Presentation
 from VisionEgg.MoreStimuli import Target2D
 
 from LightStim import SCREENWIDTH,SCREENHEIGHT,sec2vsync,deg2pix
@@ -23,19 +27,25 @@ else:
     DT = None
 
 class FrameControl(object):
-    """ per frame visual stimulus generator"""
+    """ Per frame visual stimulus generator"""
     def __init__(self, static, dynamic, variables, runs=None, blanksweeps=None):
-        self.static = static # StaticParams object
-        self.dynamic = dynamic # DynamicParams object
-        self.variables = variables # Variables object
-        self.runs = runs # Runs object
-        self.blanksweeps = blanksweeps # BlankSweeps object
+#        self.static = static # StaticParams object
+#        self.dynamic = dynamic # DynamicParams object
+#        self.variables = variables # Variables object
+#        self.runs = runs # Runs object
+#        self.blanksweeps = blanksweeps # BlankSweeps object
+
+        # key state global variables
+        self.up = 0
+        self.down = 0
+        self.left = 0
+        self.right = 0
         
-        self.sweeptable = SweepTable(experiment=self)
-        self.st = self.sweeptable.data # synonym, used a lot by Experiment subclasses
+        self.sweeptable = SweepTable(static, dynamic, variables, runs, blanksweeps)
+#        self.st = self.sweeptable.data # synonym, used a lot by Experiment subclasses
         
-        self.xorig = deg2pix(self.static.xorigDeg) + SCREENWIDTH / 2 # do this once, since it's static, save time in main loop
-        self.yorig = deg2pix(self.static.yorigDeg) + SCREENHEIGHT / 2
+        self.xorig = deg2pix(self.sweeptable.static.origDeg[0]) + SCREENWIDTH / 2  # do this once, since it's static, save time in main loop
+        self.yorig = deg2pix(self.sweeptable.static.origDeg[1]) + SCREENHEIGHT / 2
     
     def createscreen(self):
         # Init OpenGL graphics screen
@@ -44,14 +54,15 @@ class FrameControl(object):
         pygame.display.init()
         dispinfo = pygame.display.Info()
         pygame.display.quit()
-        VisionEgg.config.VISIONEGG_GUI_INIT=1
-        VisionEgg.config.VISIONEGG_HIDE_MOUSE=0 # make sure mouse is visible
+        # Make sure that SDL_VIDEO_WINDOW_POS takes effect.
+        VisionEgg.config.VISIONEGG_FRAMELESS_WINDOW = 0
         system = platform.system()
         if system == 'Linux':
-            os.environ['SDL_VIDEO_WINDOW_POS']="%u,0" %(200)
+            #os.environ['SDL_VIDEO_WINDOW_POS']="%u,0" %(dispinfo.current_w - 800)
+            os.environ['SDL_VIDEO_WINDOW_POS']="%u,0" %(0)
         else:
             os.environ['SDL_VIDEO_WINDOW_POS']="%u,0" %(dispinfo.current_w)
-        self.screen = VisionEgg.Core.Screen(size=(800,600), frameless=True, hide_mouse=False, alpha_bits=8)
+        self.screen = VisionEgg.Core.Screen(size=(800,600), frameless=True, hide_mouse=True, alpha_bits=8)
         
     def createstimuli(self):
         """Creates the VisionEgg stimuli objects common to all Experiment subclasses"""
@@ -100,16 +111,40 @@ class FrameControl(object):
     def saveparams(self):
         pass
     
+    def keydown(self,event):
+        if event.key == pygame.locals.K_ESCAPE:
+            self.quit(event)
+        elif event.key == pygame.locals.K_UP:
+            self.up = 1
+        elif event.key == pygame.locals.K_DOWN:
+            self.down = 1
+        elif event.key == pygame.locals.K_RIGHT:
+            self.right = 1
+        elif event.key == pygame.locals.K_LEFT:
+            self.left = 1
+            
+    def keyup(self,event):
+        if event.key == pygame.locals.K_UP:
+            self.up = 0
+        elif event.key == pygame.locals.K_DOWN:
+            self.down = 0
+        elif event.key == pygame.locals.K_RIGHT:
+            self.right = 0
+        elif event.key == pygame.locals.K_LEFT:
+            self.left = 0
+            
+    def quit(self,event):
+        self.presentation.parameters.go_duration = (0,'frames')
+
     def go(self):
         self.createscreen()
         self.createstimuli()
         self.createviewport()
         
         #set background color before real sweep
-        bgb = self.sweeptable.data.bgbrightness[0] # get it for sweep table index 0
+        bgb = self.sweeptable.static.bgbrightness # get it for sweep table index 0
         self.bgp.color = bgb, bgb, bgb, 1.0 # set bg colour, do this now so it's correct for the pre-exp delay
-        if DTBOARDINSTALLED: DT.initBoard()
-        """Does nswaps buffer swaps, each followed by a glFlush call
+        """Does 2 buffer swaps, each followed by a glFlush call
         This ensures that all following swap_buffers+glFlush call pairs
         return on the vsync pulse from the video card. This is a workaround
         for strange OpenGL behaviour. See Sol Simpson's 2007-01-29 post on
@@ -118,19 +153,18 @@ class FrameControl(object):
             VisionEgg.Core.swap_buffers() # returns immediately
             gl.glFlush() # if this is the first buffer swap, returns immediately, otherwise waits for next vsync pulse from video card
             
-        self.quit = False # init quit signal
-        self.pause = False # init pause signal
-        self.paused = False # remembers whether this experiment has been paused
-        self.startdatetime = datetime.datetime.now()
-        self.starttime = time.clock() # precision timestamp
+        self.presentation = Presentation(go_duration=('forever',''),viewports=[self.viewport])
+        self.presentation.parameters.handle_event_callbacks = [(pygame.locals.QUIT, self.quit),
+                                       (pygame.locals.KEYDOWN, self.keydown),
+                                       (pygame.locals.KEYUP, self.keyup)]
+        self.add_controller()
         # Do pre-experiment delay
-        self.staticscreen(sec2vsync(self.static.presweepSec))
+        #self.staticscreen(sec2vsync(self.sweeptable.static.presweepSec))
         
-        self.sweep()
+        self.presentation.go()
         
         # Do post-experiment delay
-        self.staticscreen(sec2vsync(self.static.postsweepSec))
-        self.stoptime = time.clock() # precision timestamp
-        self.stopdatetime = datetime.datetime.now()
+        #self.staticscreen(sec2vsync(self.sweeptable.static.postsweepSec))
+        
         self.saveparams()
         self.screen.close()

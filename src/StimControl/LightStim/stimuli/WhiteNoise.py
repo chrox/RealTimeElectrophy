@@ -8,13 +8,17 @@ import pygame
 import OpenGL.GL as gl
 
 import VisionEgg
+import VisionEgg.FlowControl
+import VisionEgg.ParameterTypes as ve_types
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
 
-from LightStim import deg2pix,sec2intvsync
+from LightStim import SCREENWIDTH,SCREENHEIGHT,sec2vsync,deg2pix
 from LightStim.FrameControl import FrameControl,DT
 from LightStim.SweepStamp import DTBOARDINSTALLED,MAXPOSTABLEINT,SWEEP
 from LightStim.stimuli.CheckBoard import CheckBoard
+
+from LightStim.FrameController import SweepStampController,SweepTableController
 
 
 class RFModel(object):
@@ -29,27 +33,114 @@ class RFModel(object):
         else:
             return min(0,self.gabor_func(xpos,ypos)) 
 
+class DTSweepStampController(SweepStampController):
+    """Digital output for triggering and frame timing verification 
+    """
+    def __init__(self,sweeptable):
+        VisionEgg.FlowControl.Controller.__init__(self,
+                                           return_type=ve_types.NoneType,
+                                           eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
+        if DTBOARDINSTALLED: DT.initBoard()
+        self.st = sweeptable.data
+        self.st_iterator = iter(sweeptable.i)
+    def during_go_eval(self):
+        if DTBOARDINSTALLED: DT.setBitsNoDelay(SWEEP)
+        index = self.st_iterator.next()
+        """ 
+            16-bits stimuli representation code will be posted to DT port
+                000 1 111111 111111
+                 |  |    |      |-----y index  
+                 |  |    |------------x index
+                 |  |-----------------contrast
+                 |--------------------reserved 
+        """
+        postval = (self.st.contrast[index]<<12) + (self.st.posindex[index][0]<<6) + self.st.posindex[index][1]
+        if DTBOARDINSTALLED: DT.postInt16NoDelay(postval) # post value to port, no delay
+        
+class PositionController(SweepTableController):
+    def __init__(self,sweeptable):
+        VisionEgg.FlowControl.Controller.__init__(self,
+                                           return_type=ve_types.Sequence2,
+                                           eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
+        self.st = sweeptable.data
+        self.st_iterator = iter(sweeptable.i)
+        self.static = sweeptable.static #shorthand
+    def during_go_eval(self):
+        """Update target position, given sweep table index index"""
+        index = self.st_iterator.next()
+        """
+        grid index diagram posindex
+             ___________
+            |0,0|1,0|2,0|
+            |___|___|___|
+            |0,1|1,1|2,1|
+            |___|___|___|
+            |0,2|1,2|2,2|
+            |___|___|___|
+        """
+        #print self.st.posindex[index][0], self.st.posindex[index][1]
+        xposdeg = self.static.center[0]-self.static.size[0]/2 + \
+                    self.st.posindex[index][1]*self.static.gridcell[0]+self.static.widthDeg/2
+        yposdeg = self.static.center[1]+self.static.size[1]/2 - \
+                    self.st.posindex[index][0]*self.static.gridcell[1]-self.static.heightDeg/2
+        xorig = deg2pix(self.static.origDeg[0]) + SCREENWIDTH / 2 
+        yorig = deg2pix(self.static.origDeg[1]) + SCREENHEIGHT / 2
+        return (xorig+deg2pix(xposdeg),yorig+deg2pix(yposdeg))
+    
+class ContrastController(SweepTableController):
+    def __init__(self,sweeptable):
+        VisionEgg.FlowControl.Controller.__init__(self,
+                                           return_type=ve_types.Sequence4,
+                                           eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
+        self.st = sweeptable.data
+        self.st_iterator = iter(sweeptable.i)
+        self.static = sweeptable.static #shorthand
+    def during_go_eval(self):
+        """Update target contrast, given sweep table index index"""
+        index = self.st_iterator.next()
+        if self.st.contrast[index] == 0:
+            return (0.0, 0.0, 0.0, 1.0)
+        else:
+            return (1.0, 1.0, 1.0, 1.0)
+
+class CBColorController(SweepTableController):
+    def __init__(self,cbp,sweeptable):
+        VisionEgg.FlowControl.Controller.__init__(self,
+                                           return_type=ve_types.NoneType,
+                                           eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
+        self.st = sweeptable.data
+        self.st_iterator = iter(sweeptable.i)
+        self.static = sweeptable.static #shorthand
+        self.cbp = cbp
+        self.receptive_field = RFModel()
+    def during_go_eval(self): 
+        """update checkboard color index"""
+        index = self.st_iterator.next()
+        xindex, yindex = self.st.posindex[index][0], self.st.posindex[index][1]
+        m, n = self.static.griddim[0], self.static.griddim[1]
+        xpos = xindex/m*8 - 4
+        ypos = 4 - yindex/n*8
+        color_increment = self.receptive_field.response(xpos,ypos,self.st.contrast[index])
+        self.cbp.colorindex[self.st.posindex[index][0],self.st.posindex[index][1]] += color_increment
+
 class WhiteNoise(FrameControl):
     """WhiteNoise experiment"""
     def __init__(self, *args, **kwargs):
         super(WhiteNoise, self).__init__(*args, **kwargs)
-        if 'fixationspotDeg' not in self.dynamic.keys(): # most WhiteNoise scripts won't bother specifying it
-            self.dynamic.fixationspotDeg = False # default to off
-        self.receptive_field = RFModel()
         self.savedpost = []
 
     def createstimuli(self):
         """Creates the VisionEgg stimuli objects for this Experiment subclass"""
         super(WhiteNoise, self).createstimuli()
         
-        position = (self.xorig+deg2pix(self.static.center[0]),self.yorig+deg2pix(self.static.center[1]))
+        position = (self.xorig+deg2pix(self.sweeptable.static.center[0]),self.yorig+deg2pix(self.sweeptable.static.center[1]))
         
-        self.targetstimulus = Target2D(position = position, # init to orig
+        self.targetstimulus = Target2D(position = position,
                                        color = (0.0, 0.0, 0.0, 1.0),
-                                       orientation = self.static.orientation,
+                                       orientation = self.sweeptable.static.orientation,
                                        anchor = 'center',
-                                       size = (deg2pix(self.static.widthDeg), deg2pix(self.static.heightDeg)),
-                                       on = False)
+                                       size = (deg2pix(self.sweeptable.static.widthDeg), deg2pix(self.sweeptable.static.heightDeg)),
+                                       on = True)
         self.fixationspot = FixationSpot(position=(self.xorig, self.yorig),
                                                  anchor='center',
                                                  color=(1.0, 0.0, 0.0, 1.0),
@@ -59,11 +150,11 @@ class WhiteNoise(FrameControl):
         self.checkboard = CheckBoard(position = position,
                                      orientation = 0.0,
                                      anchor='center',
-                                     size = (deg2pix(self.static.size[0]),deg2pix(self.static.size[1])),
-                                     grid = self.static.griddim,
+                                     size = (deg2pix(self.sweeptable.static.size[0]),deg2pix(self.sweeptable.static.size[1])),
+                                     grid = self.sweeptable.static.griddim,
                                      drawline = False,
-                                     cellcolor = self.static.cbcolormap,
-                                     on = self.static.checkbdon)
+                                     cellcolor = self.sweeptable.static.cbcolormap,
+                                     on = self.sweeptable.static.checkbdon)
 
         self.tsp = self.targetstimulus.parameters # synonym
         self.fsp = self.fixationspot.parameters
@@ -71,69 +162,16 @@ class WhiteNoise(FrameControl):
         # last entry will be topmost layer in viewport
         self.stimuli = (self.background, self.checkboard, self.targetstimulus, self.fixationspot)
 
-    def updateparams(self, i):
-        """Updates stimulus parameters, given sweep table index i"""
-        if i == None: # do a blank sweep
-            self.tsp.on = False # turn off the stimulus, leave all other parameters unchanged
-            self.postval = MAXPOSTABLEINT # posted to DT port to indicate a blank sweep
-            self.nvsyncs = sec2intvsync(self.blanksweeps.sec) # this many vsyncs for this sweep
-            self.npostvsyncs = 0 # this many post-sweep vsyncs for this sweep, blank sweeps have no post-sweep delay
-        else: # not a blank sweep
-            self.tsp.on = True # ensure texture stimulus is on
-            """ 
-            16-bits stimuli representation code will be posted to DT port
-                000 1 111111 111111
-                 |  |    |      |-----y index  
-                 |  |    |------------x index
-                 |  |-----------------contrast
-                 |--------------------reserved 
-            """
-            self.postval = (self.st.contrast[i]<<12) + (self.st.posindex[i][0]<<6) + self.st.posindex[i][1]
-            self.nvsyncs = sec2intvsync(self.st.sweepSec[i]) # vsyncs for one sweep
-            self.npostvsyncs = sec2intvsync(self.st.postsweepSec[i]) # post-sweep vsyncs for one sweep
-
-            # Update targetstimulus position
-            """
-            grid index diagram posindex
-                 ___________
-                |0,0|1,0|2,0|
-                |___|___|___|
-                |0,1|1,1|2,1|
-                |___|___|___|
-                |0,2|1,2|2,2|
-                |___|___|___|
-            """
-            #print self.st.posindex[i][0], self.st.posindex[i][1]
-            xposdeg = self.static.center[0]-self.static.size[0]/2 + \
-                        self.st.posindex[i][1]*self.static.gridcell[0]+self.static.widthDeg/2
-            yposdeg = self.static.center[1]+self.static.size[1]/2 - \
-                        self.st.posindex[i][0]*self.static.gridcell[1]-self.static.heightDeg/2
-            self.tsp.position = self.xorig+deg2pix(xposdeg),self.yorig+deg2pix(yposdeg)
-            if self.st.contrast[i] == 0:
-                self.tsp.color = (0.0, 0.0, 0.0, 1.0)
-            else:
-                self.tsp.color = (1.0, 1.0, 1.0, 1.0)
-            # Update background parameters
-            self.bgp.color = self.st.bgbrightness[i], self.st.bgbrightness[i], self.st.bgbrightness[i], 1.0
-
-            # Update fixationspot
-            self.fsp.position = self.xorig+deg2pix(self.st.fsxposDeg[i]), self.yorig+deg2pix(self.st.fsyposDeg[i])
-            self.fsp.on = bool(self.st.fixationspotOn[i])
-            self.fsp.size = deg2pix(self.st.fixationspotDeg[i]), deg2pix(self.st.fixationspotDeg[i])
-            
-            # update checkboard color index
-            xindex, yindex = self.st.posindex[i][0], self.st.posindex[i][1]
-            m, n = self.static.griddim[0], self.static.griddim[1]
-            xpos = xindex/m*8 - 4
-            ypos = 4 - yindex/n*8
-#            if self.st.contrast[i] == 0:
-#                contrast = -1
-#            else:
-#                contrast = 1
-            color_increment = self.receptive_field.response(xpos,ypos,self.st.contrast[i])
-            self.cbp.colorindex[self.st.posindex[i][0],self.st.posindex[i][1]] += color_increment
-            # hopefully, calcs didn't take much time. If so, then sync up to the next vsync before starting the sweep
-    
+    def add_controller(self):
+        dt_controller = DTSweepStampController(sweeptable=self.sweeptable)
+        position_controller = PositionController(sweeptable=self.sweeptable)
+        contrast_controller = ContrastController(sweeptable=self.sweeptable)
+        cbcolour_controller = CBColorController(cbp=self.cbp, sweeptable=self.sweeptable)
+        self.presentation.add_controller(None,None,dt_controller)
+        self.presentation.add_controller(self.targetstimulus,'position',position_controller)
+        self.presentation.add_controller(self.targetstimulus,'color',contrast_controller)
+        self.presentation.add_controller(None,None,cbcolour_controller)
+        
     def saveparams(self):
         import time,os
         import pickle
@@ -155,44 +193,4 @@ class WhiteNoise(FrameControl):
             txt_output.write('\t'+str(val>>12)+'\t\t'+str((val&0xFC0)>>6)+\
                              '\t\t'+str(val&0x3F)+'\t\t'+str(val)+'\n')
         txt_output.close()
-            
-    def sweep(self):
-        """Run the main stimulus loop for this Experiment subclass
-        make screen.get_framebuffer_as_array for all Experiment classes more easily
-        available from outside of dimstim (for analysis in neuropy) so you can
-        grab the frame buffer data at any timepoint (and use for, say, revcorr)
-        """
-        for ii, i in enumerate(self.sweeptable.i):
-            self.updateparams(i)
-            # Set sweep bit high, do the sweep
-            if DTBOARDINSTALLED: DT.setBitsNoDelay(SWEEP) # set sweep bit high, no delay
-            for dummy_vsynci in xrange(self.nvsyncs): # nvsyncs depends on if this is a blank sweep or not
-                for event in pygame.event.get(): # for all events in the event queue
-                    if event.type == pygame.locals.KEYDOWN:
-                        if event.key == pygame.locals.K_ESCAPE:
-                            self.quit = True
-                        if event.key == pygame.locals.K_PAUSE:
-                            self.pause = not self.pause # toggle pause
-                            self.paused = True # remember that a pause happened
-                if self.quit:
-                    break # out of vsync loop
-                if DTBOARDINSTALLED: DT.postInt16NoDelay(self.postval) # post value to port, no delay
-                self.savedpost.append(self.postval)
-                self.screen.clear()
-                self.viewport.draw()
-                VisionEgg.Core.swap_buffers() # returns immediately
-                gl.glFlush() # waits for next vsync pulse from video card
-                #self.vsynctimer.tick()
-                #self.nvsyncsdisplayed += 1 # increment
-
-            # Sweep's done, turn off the texture stimulus, do the postsweep delay, clear sweep bit low
-            self.tsp.on = False
-            self.staticscreen(nvsyncs=self.npostvsyncs) # clears sweep bit low when done
-
-            if self.quit:
-                self.ii = ii + 1 - 1 # dec for accurate count of nsweeps successfully displayed
-                break # out of sweep loop
-
-        self.ii = ii + 1 # nsweeps successfully displayed
-        self.checkboard.save()
         

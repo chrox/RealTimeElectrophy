@@ -1,8 +1,16 @@
-#!/usr/bin/env python
-"""  """
-# Copyright (c) 2009-2010 HuangXin.  Distributed under the terms
-# of the GNU Lesser General Public License (LGPL).
+# The LightStim: SweepTable
+#
+# Copyright (C) 2010-2011 Huang Xin
+# 
+#
+# Distributed under the terms of the GNU Lesser General Public License
+# (LGPL). See LICENSE.TXT that came with this file.
 
+"""
+
+This module contains the SweepTable class. 
+
+"""
 from copy import copy
 import cStringIO
 import numpy as np
@@ -47,11 +55,12 @@ class SweepTable(object):
     into these combinations, based on shuffle/random flags for each Dimension, the number of runs,
     whether each run is reshuffled, with optional BlankSweeps inserted at the (potentially shuffled)
     intervals requested"""
-    def __init__(self, experiment):
-        self.experiment = experiment
-        self.build()
-
-    def build(self):
+    def __init__(self, static, dynamic, variables, runs=None, blanksweeps=None):
+        self.static = static # StaticParams object
+        self.dynamic = dynamic # DynamicParams object
+        self.variables = variables # Variables object
+        self.runs = runs # Runs object
+        self.blanksweeps = blanksweeps # BlankSweeps object
         """Build the sweep table.
 
         A Variable's dim value relative to the dim values of all the other
@@ -63,8 +72,6 @@ class SweepTable(object):
         same dim value are part of the same Dimension, are shuffled/randomized
         together, and must therefore be of the same length and have the same
         shuffle and random flags"""
-
-        e = self.experiment # synonym
 
         # Build the dimensions
         self.builddimensions()
@@ -90,27 +97,27 @@ class SweepTable(object):
 
         # For convenience in the main stimulus loop, add the non-varying dynamic params to self.data
         nvals = max(nvals, 1) # make sure the sweep table has at least one entry
-        for paramname, paramval in e.dynamic.iteritems():
+        for paramname, paramval in self.dynamic.iteritems():
             if paramname not in self.data:
                 self.data[paramname] = np.tile(paramval, nvals) # paramval was already checked to be a scalar in Experiment.check()
 
         # Do the Dimension shuffling/randomizing by generating appropriate sweep table indices
         self.i = self.geti() # get 1 Run's worth of sweep table indices, shuffling/randomizing variables that need it
-        if e.runs:
-            if e.runs.reshuffle:
-                for dummy in range(1, e.runs.n):
+        if self.runs:
+            if self.runs.reshuffle:
+                for dummy in range(1, self.runs.n):
                     self.i = np.append(self.i, self.geti()) # add another Run's worth of indices, reshuffling/rerandomizing Dimensions that need it
             else:
-                self.i = np.tile(self.i, e.runs.n) # create n identical Runs worth of indices
+                self.i = np.tile(self.i, self.runs.n) # create n identical Runs worth of indices
 
         # Add BlankSweeps to the sweep table indices
-        if e.blanksweeps:
+        if self.blanksweeps:
             nsweeps = len(self.i)
-            insertioni = range(e.blanksweeps.T-1, nsweeps, e.blanksweeps.T-1) # where to insert each blank sweep, not quite right
+            insertioni = range(self.blanksweeps.T-1, nsweeps, self.blanksweeps.T-1) # where to insert each blank sweep, not quite right
             for ii, ipoint in enumerate(insertioni):
                 insertioni[ii] += ii # fix it by incrementing each insertion point by its position in insertioni to account for all the preceding blank sweeps
 
-            if e.blanksweeps.shuffle:
+            if self.blanksweeps.shuffle:
                 samplespace = range(nsweeps + len(insertioni)) # range of possible indices to insert at
                 np.random.shuffle(samplespace) # shuffle them in place
                 insertioni = samplespace[:len(insertioni)] # pick the fist len(insertioni) entries in samplespace
@@ -123,15 +130,14 @@ class SweepTable(object):
 
     def builddimensions(self):
         """Build the Dimension objects from the Experiment Variables"""
-        e = self.experiment # synonym
 
         # find unique dimension values across variables. Dim values could be 0, 5, 5, 5, 2, 666, -74,...
-        dims = list(np.unique([ var.dim for var in e.variables ])) # np.unique returns sorted values
+        dims = list(np.unique([ var.dim for var in self.variables ])) # np.unique returns sorted values
 
         # renumber dimension values to be consecutive 0-based
         newdims = range(len(dims)) # 0-based consecutive dim values
         old2new = dict(zip(dims, newdims)) # maps from old dim values to new ones
-        for var in e.variables:
+        for var in self.variables:
             var.dim = old2new[var.dim] # overwrite each Variable's old dim value with the new one
 
         # use newdims to init a list of Dimensions, each with an empty Variables object
@@ -141,7 +147,7 @@ class SweepTable(object):
             self.dimensions.append(d)
 
         # now assign each Variable object to the appropriate Dimension object
-        for var in e.variables:
+        for var in self.variables:
             d = self.dimensions[var.dim] # get the Dimension object
             d.variables[var.name] = var # assign the Variable to the Dimension's Variables
             d.shuffle = var.shuffle # set the Dimension's shuffle and random flags according to this Variable
