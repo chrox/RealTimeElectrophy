@@ -18,9 +18,9 @@ exp_times = 1
 # for every grid cell
 stim_times = 2
 # pre-experiment duration to display blank screen (sec)
-static.preframesweepSec = 1.0
+static.preframesweepSec = 3.0
 # post-experiment duration to display blank screen (sec)
-static.postframesweepSec = 5.0
+static.postframesweepSec = 3.0
 """Screen settings"""
 static.origDeg = (0, 0)
 """Grid settings"""
