@@ -5,12 +5,14 @@ from __future__ import division
 import numpy as np
 np.seterr(all='raise') # raise all numpy errors (like 1/0), don't just warn
 
+import pickle
+
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
 
 import FrameControl
 from SweepStamp import DT,DTBOARDINSTALLED,SWEEP
-from SweepController import SweepTableController
+from SweepController import SweepTableController,SaveParamsController
 from LightStim import SCREENWIDTH,SCREENHEIGHT,deg2pix
 
 from CheckBoard import CheckBoard
@@ -103,6 +105,35 @@ class CheckBoardController(SweepTableController):
         color_increment = self.receptive_field.response(xpos,ypos,self.st.contrast[index])
         self.cbp.colorindex[self.st.posindex[index][0],self.st.posindex[index][1]] += color_increment
 
+class SavePosParamsController(SaveParamsController):
+    """ Use Every_Frame evaluation controller in case of real time sweep table modification
+    """
+    def __init__(self,sweeptable,file_prefix='whitenoise'):
+        super(SavePosParamsController, self).__init__(sweeptable,file_prefix='whitenoise')
+        self.file_header = 'Sparse White Noise parameters for every sweep.\n contrast xindex  yindex   postval\n'
+        self.file_saved = False
+    def during_go_eval(self):
+        index = self.next_index()
+        if index == None: return
+        postval = (self.st.contrast[index]<<12) + (self.st.posindex[index][0]<<6) + self.st.posindex[index][1]
+        self.savedpost.append(postval)
+    def between_go_eval(self):
+        if self.file_saved:
+            return
+        #pickle save
+        pkl_output = open(self.file_name + '.pkl','wb')
+        pickle.dump(self.savedpost, pkl_output)
+        pkl_output.close()
+        #text save
+        txt_output = open(self.file_name + '.txt','w')
+        txt_output.write(self.file_header)
+        for val in self.savedpost:
+            txt_output.write('\t'+str(val>>12)+'\t\t'+str((val&0xFC0)>>6)+\
+                             '\t\t'+str(val&0x3F)+'\t\t'+str(val)+'\n')
+        txt_output.close()
+        self.file_saved = True
+        
+
 class WhiteNoise(FrameControl.FrameSweep):
     """WhiteNoise experiment"""
     def __init__(self, *args, **kwargs):
@@ -144,34 +175,13 @@ class WhiteNoise(FrameControl.FrameSweep):
 
     def add_stimulus_controllers(self):
         dt_controller = DTSweepStampController(sweeptable=self.sweeptable)
+        save_params_controller = SavePosParamsController(sweeptable=self.sweeptable)
         target_controller = TargetController(tsp=self.tsp, sweeptable=self.sweeptable)
         checkboard_controller = CheckBoardController(cbp=self.cbp, sweeptable=self.sweeptable)
         self.add_controller(None,None,dt_controller)
+        self.add_controller(None,None,save_params_controller)
         self.add_controller(None,None,target_controller)
         self.add_controller(None,None,checkboard_controller)
     
     def remove_stimulus_controllers(self):
         pass
-        
-    def saveparams(self):
-        import time,os
-        import pickle
-        (year,month,day,hour24,min,sec) = time.localtime(time.time())[:6]
-        trial_time_str = "%04d%02d%02d_%02d%02d%02d"%(year,month,day,hour24,min,sec)
-        save_dir = os.path.abspath(os.curdir)+ os.path.sep + 'params'
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-        file_name = save_dir + os.path.sep + 'whitenoise' + trial_time_str
-        #pickle save
-        pkl_output = open(file_name + '.pkl','wb')
-        pickle.dump(self.savedpost, pkl_output)
-        pkl_output.close()
-        #text save
-        txt_output = open(file_name + '.txt','w')
-        txt_output.write("""Sparse White Noise parameters for every sweep.\n""")
-        txt_output.write("""contrast xindex  yindex   postval\n""")
-        for val in self.savedpost:
-            txt_output.write('\t'+str(val>>12)+'\t\t'+str((val&0xFC0)>>6)+\
-                             '\t\t'+str(val&0x3F)+'\t\t'+str(val)+'\n')
-        txt_output.close()
-        

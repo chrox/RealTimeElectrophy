@@ -39,3 +39,23 @@ class SweepTableController(VisionEgg.FlowControl.Controller):
     def between_go_eval(self):
         pass
     
+class SaveParamsController(SweepTableController):
+    """ Use Every_Frame evaluation controller in case of real time sweep table modification
+    """
+    def __init__(self,sweeptable,file_prefix):
+        super(SaveParamsController, self).__init__(sweeptable=sweeptable)
+        self.savedpost = []
+        self.file_prefix = file_prefix
+        import time,os
+        (year,month,day,hour24,min,sec) = time.localtime(time.time())[:6]
+        trial_time_str = "%04d%02d%02d_%02d%02d%02d"%(year,month,day,hour24,min,sec)
+        save_dir = os.path.abspath(os.curdir)+ os.path.sep + 'params'
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        self.file_name = save_dir + os.path.sep + self.file_prefix + trial_time_str
+        
+    def during_go_eval(self):
+        pass
+    def between_go_eval(self):
+        pass
+        

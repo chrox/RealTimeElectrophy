@@ -75,11 +75,11 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
     def createviewport(self):
         self.viewport = VisionEgg.Core.Viewport(screen=self.screen, stimuli=self.stimuli)
     
-    def saveparams(self):
-        """Called by FrameSweep. Save stimulus parameters when exits FrameSweep go loop.
-
-        Override this method in subclasses."""
-        raise RuntimeError("%s: Definition of saveparams() in abstract base class FrameSweep must be overriden."%(str(self),))
+#    def saveparams(self):
+#        """Called by FrameSweep. Save stimulus parameters when exits FrameSweep go loop.
+#
+#        Override this method in subclasses."""
+#        raise RuntimeError("%s: Definition of saveparams() in abstract base class FrameSweep must be overriden."%(str(self),))
     
     def keydown_callback(self,event):
         if event.key == pygame.locals.K_ESCAPE:
@@ -132,7 +132,6 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.parameters.go_duration = (self.sweeptable.static.postframesweepSec, 'seconds')
         super(FrameSweep, self).go()
         
-        self.saveparams()
         self.screen.close()
 
 class QuitSweepController(SweepTableController):
