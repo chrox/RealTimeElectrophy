@@ -4,21 +4,19 @@ from __future__ import division
 
 import numpy as np
 np.seterr(all='raise') # raise all numpy errors (like 1/0), don't just warn
+
 import pygame
 import OpenGL.GL as gl
-
-import VisionEgg
-import VisionEgg.FlowControl
-import VisionEgg.ParameterTypes as ve_types
+import VisionEgg.Core
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
 
-from LightStim import SCREENWIDTH,SCREENHEIGHT,sec2vsync,deg2pix
-from LightStim.FrameControl import FrameControl,DT
-from LightStim.SweepStamp import DTBOARDINSTALLED,MAXPOSTABLEINT,SWEEP
-from LightStim.stimuli.CheckBoard import CheckBoard
+import FrameControl
+from SweepStamp import DT,DTBOARDINSTALLED,SWEEP
+from SweepController import SweepStampController,SweepTableController
+from LightStim import SCREENWIDTH,SCREENHEIGHT,sec2vsync,sec2intvsync,deg2pix
 
-from LightStim.FrameController import SweepStampController,SweepTableController
+from CheckBoard import CheckBoard
 
 
 class RFModel(object):
@@ -37,15 +35,11 @@ class DTSweepStampController(SweepStampController):
     """Digital output for triggering and frame timing verification 
     """
     def __init__(self,sweeptable):
-        VisionEgg.FlowControl.Controller.__init__(self,
-                                           return_type=ve_types.NoneType,
-                                           eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
+        super(DTSweepStampController, self).__init__(sweeptable=sweeptable)
         if DTBOARDINSTALLED: DT.initBoard()
-        self.st = sweeptable.data
-        self.st_iterator = iter(sweeptable.i)
     def during_go_eval(self):
         if DTBOARDINSTALLED: DT.setBitsNoDelay(SWEEP)
-        index = self.st_iterator.next()
+        index = self.tableindex.next()
         """ 
             16-bits stimuli representation code will be posted to DT port
                 000 1 111111 111111
@@ -57,17 +51,20 @@ class DTSweepStampController(SweepStampController):
         postval = (self.st.contrast[index]<<12) + (self.st.posindex[index][0]<<6) + self.st.posindex[index][1]
         if DTBOARDINSTALLED: DT.postInt16NoDelay(postval) # post value to port, no delay
         
-class PositionController(SweepTableController):
-    def __init__(self,sweeptable):
-        VisionEgg.FlowControl.Controller.__init__(self,
-                                           return_type=ve_types.Sequence2,
-                                           eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
-        self.st = sweeptable.data
-        self.st_iterator = iter(sweeptable.i)
-        self.static = sweeptable.static #shorthand
+class TargetController(SweepTableController):
+    """Target noise in the white noise stimulus"""
+    def __init__(self,tsp,sweeptable):
+        super(TargetController, self).__init__(sweeptable=sweeptable)
+        self.tsp = tsp
     def during_go_eval(self):
+        index = self.tableindex.next()
+        """Whether draw the target""" 
+        if index == None:
+            self.tsp.on = False
+            return
+        else:
+            self.tsp.on = True
         """Update target position, given sweep table index index"""
-        index = self.st_iterator.next()
         """
         grid index diagram posindex
              ___________
@@ -78,44 +75,28 @@ class PositionController(SweepTableController):
             |0,2|1,2|2,2|
             |___|___|___|
         """
-        #print self.st.posindex[index][0], self.st.posindex[index][1]
         xposdeg = self.static.center[0]-self.static.size[0]/2 + \
                     self.st.posindex[index][1]*self.static.gridcell[0]+self.static.widthDeg/2
         yposdeg = self.static.center[1]+self.static.size[1]/2 - \
                     self.st.posindex[index][0]*self.static.gridcell[1]-self.static.heightDeg/2
         xorig = deg2pix(self.static.origDeg[0]) + SCREENWIDTH / 2 
         yorig = deg2pix(self.static.origDeg[1]) + SCREENHEIGHT / 2
-        return (xorig+deg2pix(xposdeg),yorig+deg2pix(yposdeg))
-    
-class ContrastController(SweepTableController):
-    def __init__(self,sweeptable):
-        VisionEgg.FlowControl.Controller.__init__(self,
-                                           return_type=ve_types.Sequence4,
-                                           eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
-        self.st = sweeptable.data
-        self.st_iterator = iter(sweeptable.i)
-        self.static = sweeptable.static #shorthand
-    def during_go_eval(self):
+        
         """Update target contrast, given sweep table index index"""
-        index = self.st_iterator.next()
         if self.st.contrast[index] == 0:
-            return (0.0, 0.0, 0.0, 1.0)
+            self.tsp.color = (0.0, 0.0, 0.0, 1.0)
         else:
-            return (1.0, 1.0, 1.0, 1.0)
+            self.tsp.color = (1.0, 1.0, 1.0, 1.0)
+        self.tsp.position = (xorig+deg2pix(xposdeg),yorig+deg2pix(yposdeg))
 
-class CBColorController(SweepTableController):
+class CheckBoardController(SweepTableController):
     def __init__(self,cbp,sweeptable):
-        VisionEgg.FlowControl.Controller.__init__(self,
-                                           return_type=ve_types.NoneType,
-                                           eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
-        self.st = sweeptable.data
-        self.st_iterator = iter(sweeptable.i)
-        self.static = sweeptable.static #shorthand
+        super(CheckBoardController, self).__init__(sweeptable=sweeptable)
         self.cbp = cbp
         self.receptive_field = RFModel()
     def during_go_eval(self): 
         """update checkboard color index"""
-        index = self.st_iterator.next()
+        index = self.tableindex.next()
         xindex, yindex = self.st.posindex[index][0], self.st.posindex[index][1]
         m, n = self.static.griddim[0], self.static.griddim[1]
         xpos = xindex/m*8 - 4
@@ -123,7 +104,7 @@ class CBColorController(SweepTableController):
         color_increment = self.receptive_field.response(xpos,ypos,self.st.contrast[index])
         self.cbp.colorindex[self.st.posindex[index][0],self.st.posindex[index][1]] += color_increment
 
-class WhiteNoise(FrameControl):
+class WhiteNoise(FrameControl.FrameSweep):
     """WhiteNoise experiment"""
     def __init__(self, *args, **kwargs):
         super(WhiteNoise, self).__init__(*args, **kwargs)
@@ -140,7 +121,7 @@ class WhiteNoise(FrameControl):
                                        orientation = self.sweeptable.static.orientation,
                                        anchor = 'center',
                                        size = (deg2pix(self.sweeptable.static.widthDeg), deg2pix(self.sweeptable.static.heightDeg)),
-                                       on = True)
+                                       on = False)
         self.fixationspot = FixationSpot(position=(self.xorig, self.yorig),
                                                  anchor='center',
                                                  color=(1.0, 0.0, 0.0, 1.0),
@@ -162,15 +143,13 @@ class WhiteNoise(FrameControl):
         # last entry will be topmost layer in viewport
         self.stimuli = (self.background, self.checkboard, self.targetstimulus, self.fixationspot)
 
-    def add_controller(self):
+    def add_all_controllers(self):
         dt_controller = DTSweepStampController(sweeptable=self.sweeptable)
-        position_controller = PositionController(sweeptable=self.sweeptable)
-        contrast_controller = ContrastController(sweeptable=self.sweeptable)
-        cbcolour_controller = CBColorController(cbp=self.cbp, sweeptable=self.sweeptable)
-        self.presentation.add_controller(None,None,dt_controller)
-        self.presentation.add_controller(self.targetstimulus,'position',position_controller)
-        self.presentation.add_controller(self.targetstimulus,'color',contrast_controller)
-        self.presentation.add_controller(None,None,cbcolour_controller)
+        target_controller = TargetController(tsp=self.tsp, sweeptable=self.sweeptable)
+        checkboard_controller = CheckBoardController(cbp=self.cbp, sweeptable=self.sweeptable)
+        self.add_controller(None,None,dt_controller)
+        self.add_controller(None,None,target_controller)
+        self.add_controller(None,None,checkboard_controller)
         
     def saveparams(self):
         import time,os

@@ -6,6 +6,14 @@ import LightStim
 
 DTBOARDINSTALLED = LightStim.config.LIGHTSTIM_DTBOARD_INSTALLED
 
+if DTBOARDINSTALLED:
+    try:
+        import DT # only importable if DT board is installed
+    except ImportError:
+        raise RuntimeError('Cannot import DT module.')
+else:
+    DT = None
+
 # Digital output status bits. These are found on Port D on the DataWave panel
 DATA = 0x00010000 # data bit. Called datastrobe in Surf, needs to be toggled to signal new header or checksum related data on port
 SWEEP = 0x00020000 # sweep bit. Called displaysweep in Surf, positive edge signals new stimulus sweep. When set to low, Surf detects this as a pause

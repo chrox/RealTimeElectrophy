@@ -9,5 +9,6 @@
 <path>/RealTimeElectrophy/src/Experimenter</path>
 <path>/RealTimeElectrophy/src/SpikeRecord</path>
 <path>/RealTimeElectrophy/src/StimControl</path>
+<path>/RealTimeElectrophy/src/StimControl/LightStim</path>
 </pydev_pathproperty>
 </pydev_project>
