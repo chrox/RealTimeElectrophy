@@ -2,11 +2,12 @@ Welcome to the RealTimeElectrophy!
 
 OVERVIEW
 
-The RealTimeElectrophy is a collection of useful programs which are designed to simplify visual neurophysiology 
-research. The Experimenter package lies in the central position of the routines. A experimenter controls the 
-visual stimulator via StimControl and receives spikes data from SpikeRecord.  Precise frame timeing is done by 
-StimControl which sends a sweepstamp trigger to the acquisition system for each screen sweep. Once the visual 
-stimuli is synchronized with the spikes via Experimenter, preliminary data analysis can be performed in real time.
+The RealTimeElectrophy is a collection of useful programs which are designed to simplify visual 
+neurophysiology research. The Experimenter package lies in the central position of the routines. 
+A experimenter controls the visual stimulator via StimControl and receives spikes data from 
+SpikeRecord.  Precise frame timeing is done by StimControl which sends a sweepstamp trigger to 
+the acquisition system for each screen sweep. Once the visual stimuli is synchronized with the 
+spikes via Experimenter, preliminary data analysis can be performed in real time.
 
 INSTALLATION
 
