@@ -5,16 +5,13 @@ from __future__ import division
 import numpy as np
 np.seterr(all='raise') # raise all numpy errors (like 1/0), don't just warn
 
-import pygame
-import OpenGL.GL as gl
-import VisionEgg.Core
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
 
 import FrameControl
 from SweepStamp import DT,DTBOARDINSTALLED,SWEEP
-from SweepController import SweepStampController,SweepTableController
-from LightStim import SCREENWIDTH,SCREENHEIGHT,sec2vsync,sec2intvsync,deg2pix
+from SweepController import SweepTableController
+from LightStim import SCREENWIDTH,SCREENHEIGHT,deg2pix
 
 from CheckBoard import CheckBoard
 
@@ -31,15 +28,15 @@ class RFModel(object):
         else:
             return min(0,self.gabor_func(xpos,ypos)) 
 
-class DTSweepStampController(SweepStampController):
+class DTSweepStampController(SweepTableController):
     """Digital output for triggering and frame timing verification 
     """
     def __init__(self,sweeptable):
         super(DTSweepStampController, self).__init__(sweeptable=sweeptable)
         if DTBOARDINSTALLED: DT.initBoard()
     def during_go_eval(self):
-        if DTBOARDINSTALLED: DT.setBitsNoDelay(SWEEP)
-        index = self.tableindex.next()
+        index = self.next_index()
+        if index == None: return
         """ 
             16-bits stimuli representation code will be posted to DT port
                 000 1 111111 111111
@@ -48,6 +45,7 @@ class DTSweepStampController(SweepStampController):
                  |  |-----------------contrast
                  |--------------------reserved 
         """
+        if DTBOARDINSTALLED: DT.setBitsNoDelay(SWEEP)
         postval = (self.st.contrast[index]<<12) + (self.st.posindex[index][0]<<6) + self.st.posindex[index][1]
         if DTBOARDINSTALLED: DT.postInt16NoDelay(postval) # post value to port, no delay
         
@@ -57,7 +55,7 @@ class TargetController(SweepTableController):
         super(TargetController, self).__init__(sweeptable=sweeptable)
         self.tsp = tsp
     def during_go_eval(self):
-        index = self.tableindex.next()
+        index = self.next_index()
         """Whether draw the target""" 
         if index == None:
             self.tsp.on = False
@@ -96,7 +94,8 @@ class CheckBoardController(SweepTableController):
         self.receptive_field = RFModel()
     def during_go_eval(self): 
         """update checkboard color index"""
-        index = self.tableindex.next()
+        index = self.next_index()
+        if index == None: return
         xindex, yindex = self.st.posindex[index][0], self.st.posindex[index][1]
         m, n = self.static.griddim[0], self.static.griddim[1]
         xpos = xindex/m*8 - 4
@@ -143,13 +142,16 @@ class WhiteNoise(FrameControl.FrameSweep):
         # last entry will be topmost layer in viewport
         self.stimuli = (self.background, self.checkboard, self.targetstimulus, self.fixationspot)
 
-    def add_all_controllers(self):
+    def add_stimulus_controllers(self):
         dt_controller = DTSweepStampController(sweeptable=self.sweeptable)
         target_controller = TargetController(tsp=self.tsp, sweeptable=self.sweeptable)
         checkboard_controller = CheckBoardController(cbp=self.cbp, sweeptable=self.sweeptable)
         self.add_controller(None,None,dt_controller)
         self.add_controller(None,None,target_controller)
         self.add_controller(None,None,checkboard_controller)
+    
+    def remove_stimulus_controllers(self):
+        pass
         
     def saveparams(self):
         import time,os
