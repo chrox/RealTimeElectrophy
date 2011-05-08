@@ -1,4 +1,4 @@
-# 
+# Demo program using WhiteNoise.
 #
 # Copyright (C) 2010-2011 Huang Xin
 # 
