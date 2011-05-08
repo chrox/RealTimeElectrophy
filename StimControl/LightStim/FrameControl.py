@@ -122,7 +122,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         """ Stimulus go"""
         self.parameters.go_duration=('forever','')
         # add fundamental sweep controllers such as pause and quit
-        """TODO: add pause_sweep_controllers"""
+        #TODO: add pause_sweep_controllers
         quit_sweep_controller = QuitSweepController(sweeptable=self.sweeptable,framesweep=self)
         self.add_controller(None,None,quit_sweep_controller)
         self.add_stimulus_controllers()

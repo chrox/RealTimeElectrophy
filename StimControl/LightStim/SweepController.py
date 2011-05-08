@@ -24,6 +24,7 @@ class SweepTableController(VisionEgg.FlowControl.Controller):
         self.static = sweeptable.static #shorthand
         # multiply the sweeptable index with n vsync for every frame sweep
         nvsync = sec2intvsync(self.static.sweepSec)
+        # TODO: create a global vsynctable so that run time modification could be easier.
         vsynctable = [vsync for sweep in sweeptable.i for vsync in itertools.repeat(sweep,nvsync)]
         # iterator for every vsync sweep
         self.tableindex = iter(vsynctable)
