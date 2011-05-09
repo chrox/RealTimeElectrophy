@@ -1,7 +1,10 @@
-#!/usr/bin/env python
-"""  """
-# Copyright (c) 2010-2011 HuangXin.  Distributed under the terms
-# of the GNU Lesser General Public License (LGPL).
+# This module contains the constants of SweepStamp.
+#
+# Copyright (C) 2010-2011 Huang Xin
+# 
+#
+# Distributed under the terms of the GNU Lesser General Public License
+# (LGPL). See LICENSE.TXT that came with this file.
 import LightStim
 
 DTBOARDINSTALLED = LightStim.config.LIGHTSTIM_DTBOARD_INSTALLED

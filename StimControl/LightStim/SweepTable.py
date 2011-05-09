@@ -1,4 +1,4 @@
-# The LightStim: SweepTable
+# LightStim.SweepTable: the core class for frame-by-frame stimulus control.
 #
 # Copyright (C) 2010-2011 Huang Xin
 # 

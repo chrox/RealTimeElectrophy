@@ -1,7 +1,11 @@
-#!/usr/bin/env python
-"""  """
-# Copyright (c) 2010-2011 HuangXin.  Distributed under the terms
-# of the GNU Lesser General Public License (LGPL).
+# This module contains the main class of LightStim.
+#
+# Copyright (C) 2010-2011 Huang Xin
+# 
+#
+# Distributed under the terms of the GNU Lesser General Public License
+# (LGPL). See LICENSE.TXT that came with this file.
+
 import os
 
 import OpenGL.GL as gl
@@ -19,7 +23,9 @@ from SweepController import SweepTableController
 
 
 class FrameSweep(VisionEgg.FlowControl.Presentation):
-    """ Per frame visual stimulus generator"""
+    """ FrameSweep is a subclass of VisionEgg Presentation.The FrameSweep is initiated with stimulus parameter and get the sweeptable
+    as the attribute.
+    """
     def __init__(self, static, dynamic, variables, runs=None, blanksweeps=None):
         self.sweeptable = SweepTable.SweepTable(static, dynamic, variables, runs, blanksweeps)
 
