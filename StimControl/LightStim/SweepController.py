@@ -43,8 +43,8 @@ class SweepTableController(VisionEgg.FlowControl.Controller):
 class SaveParamsController(SweepTableController):
     """ Use Every_Frame evaluation controller in case of real time sweep table modification
     """
-    def __init__(self,sweeptable,file_prefix):
-        super(SaveParamsController, self).__init__(sweeptable=sweeptable)
+    def __init__(self,file_prefix,*args,**kwargs):
+        super(SaveParamsController, self).__init__(*args,**kwargs)
         self.savedpost = []
         self.file_prefix = file_prefix
         import time,os

@@ -39,8 +39,8 @@ class RFModel(object):
 class DTSweepStampController(SweepTableController):
     """Digital output for triggering and frame timing verification 
     """
-    def __init__(self,sweeptable):
-        super(DTSweepStampController, self).__init__(sweeptable=sweeptable)
+    def __init__(self,*args,**kwargs):
+        super(DTSweepStampController, self).__init__(*args,**kwargs)
         if DTBOARDINSTALLED: DT.initBoard()
     def during_go_eval(self):
         index = self.next_index()
@@ -59,8 +59,8 @@ class DTSweepStampController(SweepTableController):
         
 class TargetController(SweepTableController):
     """Target noise in the white noise stimulus"""
-    def __init__(self,tsp,sweeptable):
-        super(TargetController, self).__init__(sweeptable=sweeptable)
+    def __init__(self,tsp,*args,**kwargs):
+        super(TargetController, self).__init__(*args,**kwargs)
         self.tsp = tsp
     def during_go_eval(self):
         index = self.next_index()
@@ -96,8 +96,8 @@ class TargetController(SweepTableController):
         self.tsp.position = (xorig+deg2pix(xposdeg),yorig+deg2pix(yposdeg))
 
 class CheckBoardController(SweepTableController):
-    def __init__(self,cbp,sweeptable):
-        super(CheckBoardController, self).__init__(sweeptable=sweeptable)
+    def __init__(self,cbp,*args,**kwargs):
+        super(CheckBoardController, self).__init__(*args,**kwargs)
         self.cbp = cbp
         self.receptive_field = RFModel()
     def during_go_eval(self): 
@@ -114,8 +114,8 @@ class CheckBoardController(SweepTableController):
 class SavePosParamsController(SaveParamsController):
     """ Use Every_Frame evaluation controller in case of real time sweep table modification
     """
-    def __init__(self,sweeptable,file_prefix='whitenoise'):
-        super(SavePosParamsController, self).__init__(sweeptable,file_prefix='whitenoise')
+    def __init__(self,file_prefix='whitenoise',*args,**kwargs):
+        super(SavePosParamsController, self).__init__(file_prefix='whitenoise',*args,**kwargs)
         self.file_header = 'Sparse White Noise parameters for every sweep.\n contrast xindex  yindex   postval\n'
         self.file_saved = False
     def during_go_eval(self):
