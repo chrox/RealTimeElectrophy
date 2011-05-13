@@ -5,30 +5,20 @@
 #
 # Distributed under the terms of the GNU Lesser General Public License
 # (LGPL). See LICENSE.TXT that came with this file.
-
-import OpenGL.GL as gl
 import pygame
-
 import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
-import VisionEgg.Core
 
 import LightStim.Core
-from SweepController import SweepTableController
-
+from SweepController import QuitSweepController,CheckViewportController
 
 class FrameSweep(VisionEgg.FlowControl.Presentation):
-    """ FrameSweep is a subclass of VisionEgg Presentation.The FrameSweep is initiated with stimulus parameter and get the sweeptable
-    as the attribute.
+    """ FrameSweep is a subclass of VisionEgg Presentation.The FrameSweep maintains the relationships among stimulus, viewport
+        and screen. And it takes the responsibility for keeping proper order of these objects for VisionEgg presentation go method.
     """
     def __init__(self):
-        self.screen = LightStim.Core.Screen(num_displays=4, frameless=True, hide_mouse=True, alpha_bits=8)
+        self.stimuli_buffer = []
         
-        
-        #################################
-        """ Create screen and viewported stimuli """
-        self.create_screen_viewport_stimuli()
-        #################################
         # presentation state variables
         self.quit = False
         self.pause = False # init pause signal
@@ -40,24 +30,28 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.left = 0
         self.right = 0
         
-        super(FrameSweep, self).__init__(viewports=[self.viewport])
+        super(FrameSweep, self).__init__(go_duration=('forever',''))
         self.parameters.handle_event_callbacks = [(pygame.locals.QUIT, self.quit_callback),
                                                   (pygame.locals.KEYDOWN, self.keydown_callback),
                                                   (pygame.locals.KEYUP, self.keyup_callback)]
+        self.add_controller(None, None, CheckViewportController(self))
+        self.add_controller(None, None, QuitSweepController(self))
 
-    def create_viewport(self):
-        """ Called by FrameSweep initiate method. Create viewports for different stimuli on specific display.
-            Override this method in subclasses.
+    def add_stimulus(self, stimulus):
+        """ Update the stimulus in viewport and viewport in framesweep.
         """
-        raise RuntimeError("%s: Definition of create_viewport() in abstract base class FrameSweep must be overriden."%(str(self),))
-    
-    def create_stimuli(self):
-        """ Called by FrameSweep initiate method. Create stimuli on specific viewport.
-            Override this method in subclasses.
+        self.stimuli_buffer.append(stimulus)
+        p = self.parameters
+        # add new viewports in sweep screen
+        if stimulus.viewport not in p.viewports:
+            p.viewports.append(stimulus.viewport)
+    def add_controllers(self):
+        """ Update the controllers in framesweep.
         """
-        raise RuntimeError("%s: Definition of create_stimuli() in abstract base class FrameSweep must be overriden."%(str(self),))
-
-    
+        for stimulus in self.stimuli_buffer:
+            for controller in stimulus.controllers:
+                self.controllers.append((None,None,controller))
+        
     def keydown_callback(self,event):
         if event.key == pygame.locals.K_ESCAPE:
             self.quit_callback(event)
@@ -84,29 +78,14 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.parameters.go_duration = (0,'frames')
 
     def go(self):
-#        """Does 2 buffer swaps, each followed by a glFlush call
-#        This ensures that all following swap_buffers+glFlush call pairs
-#        return on the vsync pulse from the video card. This is a workaround
-#        for strange OpenGL behaviour. See Sol Simpson's 2007-01-29 post on
-#        the visionegg mailing list"""
-        for dummy in range(2):
-            VisionEgg.Core.swap_buffers() # returns immediately
-            gl.glFlush() # if this is the first buffer swap, returns immediately, otherwise waits for next vsync pulse from video card
-        
-        """ Pre-stimulus go"""    
-        self.parameters.go_duration = (self.sweeptable.static.preframesweepSec, 'seconds')
-        super(FrameSweep, self).go()
-        """ Stimulus go"""
         self.parameters.go_duration=('forever','')
-        # add fundamental sweep controllers such as pause and quit
-        #TODO: add pause_sweep_controllers
-        quit_sweep_controller = QuitSweepController(sweeptable=self.sweeptable,framesweep=self)
-        self.add_controller(None,None,quit_sweep_controller)
-        self.add_stimulus_controllers()
         super(FrameSweep, self).go()
+
+    def pre_go(self, seconds):
+        self.parameters.go_duration = (seconds, 'seconds')
+        super(FrameSweep, self).go()
+    def post_go(self, seconds):
         self.remove_controller(None,None,None)
-        """ Post-stimulus go"""    
-        self.parameters.go_duration = (self.sweeptable.static.postframesweepSec, 'seconds')
+        self.parameters.go_duration = (seconds, 'seconds')
         super(FrameSweep, self).go()
         
-        self.screen.close()

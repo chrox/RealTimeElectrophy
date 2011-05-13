@@ -15,12 +15,35 @@ from __future__ import division
 import math
 import numpy as np
 
+import VisionEgg
+VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 import VisionEgg.GL as gl
 import VisionEgg.Core
 
 import LightStim
 
-from VisionEgg.Core import Viewport
+class Screen(VisionEgg.Core.Screen):
+    """ Large screen occupies multiply displays
+    """
+    def __init__(self, num_displays, **kw):
+#        # Make sure that SDL_VIDEO_WINDOW_POS takes effect.
+#        VisionEgg.config.VISIONEGG_FRAMELESS_WINDOW = 0
+        self.screen_width = num_displays*LightStim.config.get_screen_width_pix()
+        self.screen_height = LightStim.config.get_screen_height_pix()
+        self.displays = num_displays
+
+        super(Screen,self).__init__(size=(self.screen_width, self.screen_height), **kw)
+        
+class Stimulus(VisionEgg.Core.Stimulus):
+    """ One stimulus has one and only one viewport to make things not so hard."""
+    def __init__(self,sweeptable, viewport, **kwargs):
+        super(Stimulus, self).__init__(**kwargs)
+        self.viewport = LightStim.Core.Viewport(name=viewport, stimuli=[self])
+        self.stimuli = []
+        self.controllers = []
+        self.sweeptable = sweeptable
+        self.sweep_completed = False
+    
 class HorizontalMirrorView(VisionEgg.Core.ModelView):
     def __init__(self,width):
         gl.glMatrixMode(gl.GL_MODELVIEW) # Set OpenGL matrix state to modify the modelview matrix
@@ -34,23 +57,12 @@ class HorizontalMirrorView(VisionEgg.Core.ModelView):
             # OpenGL wasn't started
             raise RuntimeError("OpenGL matrix operations can only take place once OpenGL context started.")
         matrix = np.asarray(matrix) # make sure it's numpy array
-        VisionEgg.Core.ModelView.__init__(self,**{'matrix':matrix})
-
-class Screen(VisionEgg.Core.Screen):
-    """ Large screen occupies multiply displays
-    """
-    def __init__(self, num_displays, **kw):
-#        # Make sure that SDL_VIDEO_WINDOW_POS takes effect.
-#        VisionEgg.config.VISIONEGG_FRAMELESS_WINDOW = 0
-        self.screen_width = num_displays*LightStim.config.get_screen_width_pix()
-        self.screen_height = LightStim.config.get_screen_height_pix()
-        self.displays = num_displays
-
-        super(Screen,self).__init__(size=(self.screen_width, self.screen_height), **kw)
+        VisionEgg.Core.ModelView.__init__(self,**{'matrix':matrix})               
 
 class Viewport(VisionEgg.Core.Viewport):
     """ Named viewport in LightStim.cfg
     """
+    screen = Screen(num_displays=4, frameless=True, hide_mouse=False, alpha_bits=8)
     def __init__(self, name, **kw):
         self.width_pix = LightStim.config.get_viewport_width_pix(name)
         self.height_pix = LightStim.config.get_viewport_height_pix(name)
@@ -71,7 +83,7 @@ class Viewport(VisionEgg.Core.Viewport):
             mirror_view = HorizontalMirrorView(width=self.width_pix)
         else:
             mirror_view = None
-        super(Viewport,self).__init__(position=(self.offset_pix,0), size=self.size, camera_matrix=mirror_view, **kw)
+        super(Viewport,self).__init__(position=(self.offset_pix,0), size=self.size, camera_matrix=mirror_view, screen=Viewport.screen, **kw)
     def get_size(self):
         return self.size
     
@@ -98,9 +110,7 @@ class Viewport(VisionEgg.Core.Viewport):
         rad = s / self.distance_cm # angle in radians
         return rad * 180 / math.pi # float, angle in degrees
     
-    ############# Some temporal utilities #############
-    
-    
+    ############# Some temporal utilities #############    
     def intround(self, n):
         """Round to the nearest integer, return an integer"""
         return int(round(n))
@@ -165,4 +175,3 @@ class Viewport(VisionEgg.Core.Viewport):
             return 1 / pixCyc # float
         except (ZeroDivisionError, FloatingPointError):
             return 0.0 # float
-        

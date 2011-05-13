@@ -5,26 +5,19 @@
 #
 # Distributed under the terms of the GNU Lesser General Public License
 # (LGPL). See LICENSE.TXT that came with this file.
-
 from __future__ import division
-
 import numpy as np
 np.seterr(all='raise') # raise all numpy errors (like 1/0), don't just warn
 
 import pickle
 
-import VisionEgg.Core
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
 
 import LightStim.Core
-import FrameControl
-import SweepTable
 from SweepStamp import DT,DTBOARDINSTALLED,SWEEP
-from SweepController import SweepTableController,SaveParamsController
-
+from SweepController import StimulusController,SaveParamsController
 from CheckBoard import CheckBoard
-
 
 class RFModel(object):
     """LNP receptive field model for simulation"""
@@ -38,7 +31,7 @@ class RFModel(object):
         else:
             return min(0,self.gabor_func(xpos,ypos)) 
 
-class DTSweepStampController(SweepTableController):
+class DTSweepStampController(StimulusController):
     """Digital output for triggering and frame timing verification 
     """
     def __init__(self,*args,**kwargs):
@@ -59,11 +52,11 @@ class DTSweepStampController(SweepTableController):
         postval = (self.st.contrast[index]<<12) + (self.st.posindex[index][0]<<6) + self.st.posindex[index][1]
         if DTBOARDINSTALLED: DT.postInt16NoDelay(postval) # post value to port, no delay
         
-class TargetController(SweepTableController):
+class TargetController(StimulusController):
     """Target noise in the white noise stimulus"""
-    def __init__(self,tsp,*args,**kwargs):
+    def __init__(self,*args,**kwargs):
         super(TargetController, self).__init__(*args,**kwargs)
-        self.tsp = tsp
+        self.tsp = self.stimulus.tsp
     def during_go_eval(self):
         index = self.next_index()
         """Whether draw the target""" 
@@ -97,10 +90,10 @@ class TargetController(SweepTableController):
             self.tsp.color = (1.0, 1.0, 1.0, 1.0)
         self.tsp.position = (xorig+self.viewport.deg2pix(xposdeg),yorig+self.viewport.deg2pix(yposdeg))
 
-class CheckBoardController(SweepTableController):
-    def __init__(self,cbp,*args,**kwargs):
+class CheckBoardController(StimulusController):
+    def __init__(self,*args,**kwargs):
         super(CheckBoardController, self).__init__(*args,**kwargs)
-        self.cbp = cbp
+        self.cbp = self.stimulus.cbp
         self.receptive_field = RFModel()
     def during_go_eval(self): 
         """update checkboard color index"""
@@ -116,8 +109,8 @@ class CheckBoardController(SweepTableController):
 class SavePosParamsController(SaveParamsController):
     """ Use Every_Frame evaluation controller in case of real time sweep table modification
     """
-    def __init__(self,file_prefix='whitenoise',*args,**kwargs):
-        super(SavePosParamsController, self).__init__(file_prefix='whitenoise',*args,**kwargs)
+    def __init__(self,stimulus):
+        super(SavePosParamsController, self).__init__(stimulus,file_prefix='whitenoise')
         self.file_header = 'Sparse White Noise parameters for every sweep.\n contrast xindex  yindex   postval\n'
         self.file_saved = False
     def during_go_eval(self):
@@ -140,18 +133,17 @@ class SavePosParamsController(SaveParamsController):
                              '\t\t'+str(val&0x3F)+'\t\t'+str(val)+'\n')
         txt_output.close()
         self.file_saved = True
-        
 
-class WhiteNoise(VisionEgg.Core.Stimulus):
+class WhiteNoise(LightStim.Core.Stimulus):
     """WhiteNoise stimulus"""
-    def __init__(self, static, dynamic, variables, runs=None, blanksweeps=None, *args, **kwargs):
-        super(WhiteNoise, self).__init__(*args, **kwargs)
-        self.sweeptable = SweepTable(static, dynamic, variables, runs, blanksweeps)
+    def __init__(self, **kwargs):
+        super(WhiteNoise, self).__init__(**kwargs)
         self.savedpost = []
 
-    def create_screen_viewport_stimuli(self):
-        
-        self.viewport = LightStim.Core.Viewport(name='Viewport_primary', screen=self.screen)
+        self.make_stimuli()
+        self.register_controllers()
+    
+    def make_stimuli(self):
         size = self.viewport.get_size()
         self.background = Target2D(position=(size[0]/2, size[1]/2),
                                    anchor='center',
@@ -194,18 +186,13 @@ class WhiteNoise(VisionEgg.Core.Stimulus):
         self.cbp = self.checkboard.parameters
         # last entry will be topmost layer in viewport
         self.stimuli = (self.background, self.checkboard, self.targetstimulus, self.fixationspot)
-        
-        self.viewport.parameters.stimuli=self.stimuli
-
-    def add_stimulus_controllers(self):
-        dt_controller = DTSweepStampController(sweeptable=self.sweeptable)
-        save_params_controller = SavePosParamsController(sweeptable=self.sweeptable)
-        target_controller = TargetController(tsp=self.tsp, sweeptable=self.sweeptable)
-        checkboard_controller = CheckBoardController(cbp=self.cbp, sweeptable=self.sweeptable)
-        self.add_controller(None,None,dt_controller)
-        self.add_controller(None,None,save_params_controller)
-        self.add_controller(None,None,target_controller)
-        self.add_controller(None,None,checkboard_controller)
     
-    def remove_stimulus_controllers(self):
-        pass
+    def register_controllers(self):
+        self.controllers.append(DTSweepStampController(self))
+        self.controllers.append(SavePosParamsController(self))
+        self.controllers.append(TargetController(self))
+        self.controllers.append(CheckBoardController(self))
+        
+    def draw(self):
+        for stimulus in self.stimuli:
+            stimulus.draw()

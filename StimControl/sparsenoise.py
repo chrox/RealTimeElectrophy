@@ -10,6 +10,7 @@ from __future__ import division
 from LightStim.SweepTable import StaticParams,DynamicParams,Runs,Variable,Variables
 from LightStim.WhiteNoise import WhiteNoise
 from LightStim.FrameControl import FrameSweep
+from LightStim.SweepTable import SweepTable
 
 static = StaticParams()
 dynamic = DynamicParams()
@@ -21,11 +22,11 @@ stim_times = 2
 # pre-experiment duration to display blank screen (sec)
 static.preframesweepSec = 3.0
 # post-experiment duration to display blank screen (sec)
-static.postframesweepSec = 3.0
+static.postframesweepSec = 5.0
 """Screen settings"""
 static.origDeg = (0, 0)
 """Grid settings"""
-static.center = (6, 6)
+static.center = (0, 0)
 static.size = (10, 10)
 # grid dimension (x, y)
 static.griddim = (8, 8)
@@ -65,7 +66,7 @@ and has to be added to this Experiment's Variables object"""
 # noise stimuli times for every grid cell(n)
 dynamic.times = range(stim_times)
 # sweep duration (sec)
-static.sweepSec = 0.01
+static.sweepSec = 0.04
 # post-sweep duration to display blank screen (sec)
 static.postsweepSec = 0
 # noise position index in stimulus grid
@@ -79,7 +80,18 @@ variable.times    = Variable(vals=dynamic.times,    dim=0, shuffle=True)
 variable.posindex = Variable(vals=dynamic.posindex, dim=1, shuffle=True)
 variable.contrast = Variable(vals=dynamic.contrast, dim=2, shuffle=True)
 
-stimulus = WhiteNoise(static=static, dynamic=dynamic, variables=variable, runs=runs)
-sweep = FrameSweep
+sweeptable = SweepTable(static=static, dynamic=dynamic, variables=variable, runs=runs)
+stimulus = WhiteNoise(viewport='Viewport_control', sweeptable=sweeptable)
+stimulus_prim = WhiteNoise(viewport='Viewport_primary', sweeptable=sweeptable)
+
+sweep = FrameSweep()
 sweep.add_stimulus(stimulus)
+sweep.add_stimulus(stimulus_prim)
+
+""" Pre-stimulus go"""    
+sweep.pre_go(sweeptable.static.preframesweepSec)
+""" Stimulus go"""
+sweep.add_controllers()
 sweep.go()
+""" Post-stimulus go"""
+sweep.post_go(sweeptable.static.postframesweepSec)
