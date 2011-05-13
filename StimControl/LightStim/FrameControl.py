@@ -6,19 +6,14 @@
 # Distributed under the terms of the GNU Lesser General Public License
 # (LGPL). See LICENSE.TXT that came with this file.
 
-import os
-
 import OpenGL.GL as gl
-import pygame.display
-import platform
+import pygame
 
 import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 import VisionEgg.Core
-import VisionEgg.MoreStimuli
 
-import SweepTable
-from LightStim import SCREENWIDTH,SCREENHEIGHT,deg2pix
+import LightStim.Core
 from SweepController import SweepTableController
 
 
@@ -26,21 +21,20 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
     """ FrameSweep is a subclass of VisionEgg Presentation.The FrameSweep is initiated with stimulus parameter and get the sweeptable
     as the attribute.
     """
-    def __init__(self, static, dynamic, variables, runs=None, blanksweeps=None):
-        self.sweeptable = SweepTable.SweepTable(static, dynamic, variables, runs, blanksweeps)
-
-        self.xorig = deg2pix(self.sweeptable.static.origDeg[0]) + SCREENWIDTH / 2  # do this once, since it's static, save time in main loop
-        self.yorig = deg2pix(self.sweeptable.static.origDeg[1]) + SCREENHEIGHT / 2
+    def __init__(self):
+        self.screen = LightStim.Core.Screen(num_displays=4, frameless=True, hide_mouse=True, alpha_bits=8)
         
-        self.createscreen()
-        self.createstimuli()
-        self.createviewport()
-                
+        
+        #################################
+        """ Create screen and viewported stimuli """
+        self.create_screen_viewport_stimuli()
+        #################################
+        # presentation state variables
         self.quit = False
         self.pause = False # init pause signal
         self.paused = False # remembers whether this experiment has been paused
         
-        # key state global variables
+        # key state variables
         self.up = 0
         self.down = 0
         self.left = 0
@@ -50,42 +44,19 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.parameters.handle_event_callbacks = [(pygame.locals.QUIT, self.quit_callback),
                                                   (pygame.locals.KEYDOWN, self.keydown_callback),
                                                   (pygame.locals.KEYUP, self.keyup_callback)]
-        
-    def createscreen(self):
-        # Init OpenGL graphics screen
-        pygame.display.init()
-        dispinfo = pygame.display.Info()
-        pygame.display.quit()
-        # Make sure that SDL_VIDEO_WINDOW_POS takes effect.
-        VisionEgg.config.VISIONEGG_FRAMELESS_WINDOW = 0
-        system = platform.system()
-        if system == 'Linux':
-            #os.environ['SDL_VIDEO_WINDOW_POS']="%u,0" %(dispinfo.current_w - 800)
-            os.environ['SDL_VIDEO_WINDOW_POS']="%u,0" %(0)
-        else:
-            os.environ['SDL_VIDEO_WINDOW_POS']="%u,0" %(dispinfo.current_w)
-        self.screen = VisionEgg.Core.Screen(size=(800,600), frameless=True, hide_mouse=True, alpha_bits=8)
-        
-    def createstimuli(self):
-        """Creates the VisionEgg stimuli objects common to all Experiment subclasses"""
-        self.background = VisionEgg.MoreStimuli.Target2D(position=(SCREENWIDTH/2, SCREENHEIGHT/2),
-                                   anchor='center',
-                                   size=(SCREENWIDTH, SCREENHEIGHT),
-                                   on=True)
 
-        self.bgp = self.background.parameters # synonym
-        #set background color before real sweep
-        bgb = self.sweeptable.static.bgbrightness # get it for sweep table index 0
-        self.bgp.color = bgb, bgb, bgb, 1.0 # set bg colour, do this now so it's correct for the pre-exp delay
-        
-    def createviewport(self):
-        self.viewport = VisionEgg.Core.Viewport(screen=self.screen, stimuli=self.stimuli)
+    def create_viewport(self):
+        """ Called by FrameSweep initiate method. Create viewports for different stimuli on specific display.
+            Override this method in subclasses.
+        """
+        raise RuntimeError("%s: Definition of create_viewport() in abstract base class FrameSweep must be overriden."%(str(self),))
     
-#    def saveparams(self):
-#        """Called by FrameSweep. Save stimulus parameters when exits FrameSweep go loop.
-#
-#        Override this method in subclasses."""
-#        raise RuntimeError("%s: Definition of saveparams() in abstract base class FrameSweep must be overriden."%(str(self),))
+    def create_stimuli(self):
+        """ Called by FrameSweep initiate method. Create stimuli on specific viewport.
+            Override this method in subclasses.
+        """
+        raise RuntimeError("%s: Definition of create_stimuli() in abstract base class FrameSweep must be overriden."%(str(self),))
+
     
     def keydown_callback(self,event):
         if event.key == pygame.locals.K_ESCAPE:
@@ -139,13 +110,3 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         super(FrameSweep, self).go()
         
         self.screen.close()
-
-class QuitSweepController(SweepTableController):
-    def __init__(self,sweeptable=None,framesweep=None):
-        super(QuitSweepController, self).__init__(sweeptable=sweeptable)
-        self.framesweep = framesweep
-    def during_go_eval(self):
-        index = self.next_index()
-        """If vsynctable runs to an end, quit the sweep right away."""
-        if index == None:
-            self.framesweep.parameters.go_duration = (0,'frames')

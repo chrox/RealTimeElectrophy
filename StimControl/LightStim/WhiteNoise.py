@@ -13,13 +13,15 @@ np.seterr(all='raise') # raise all numpy errors (like 1/0), don't just warn
 
 import pickle
 
+import VisionEgg.Core
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
 
+import LightStim.Core
 import FrameControl
+import SweepTable
 from SweepStamp import DT,DTBOARDINSTALLED,SWEEP
 from SweepController import SweepTableController,SaveParamsController
-from LightStim import SCREENWIDTH,SCREENHEIGHT,deg2pix
 
 from CheckBoard import CheckBoard
 
@@ -85,15 +87,15 @@ class TargetController(SweepTableController):
                     self.st.posindex[index][1]*self.static.gridcell[0]+self.static.widthDeg/2
         yposdeg = self.static.center[1]+self.static.size[1]/2 - \
                     self.st.posindex[index][0]*self.static.gridcell[1]-self.static.heightDeg/2
-        xorig = deg2pix(self.static.origDeg[0]) + SCREENWIDTH / 2 
-        yorig = deg2pix(self.static.origDeg[1]) + SCREENHEIGHT / 2
+        xorig = self.viewport.deg2pix(self.static.origDeg[0]) + self.viewport.width_pix / 2 
+        yorig = self.viewport.deg2pix(self.static.origDeg[1]) + self.viewport.height_pix / 2
         
         """Update target contrast, given sweep table index index"""
         if self.st.contrast[index] == 0:
             self.tsp.color = (0.0, 0.0, 0.0, 1.0)
         else:
             self.tsp.color = (1.0, 1.0, 1.0, 1.0)
-        self.tsp.position = (xorig+deg2pix(xposdeg),yorig+deg2pix(yposdeg))
+        self.tsp.position = (xorig+self.viewport.deg2pix(xposdeg),yorig+self.viewport.deg2pix(yposdeg))
 
 class CheckBoardController(SweepTableController):
     def __init__(self,cbp,*args,**kwargs):
@@ -140,25 +142,38 @@ class SavePosParamsController(SaveParamsController):
         self.file_saved = True
         
 
-class WhiteNoise(FrameControl.FrameSweep):
-    """WhiteNoise experiment"""
-    def __init__(self, *args, **kwargs):
+class WhiteNoise(VisionEgg.Core.Stimulus):
+    """WhiteNoise stimulus"""
+    def __init__(self, static, dynamic, variables, runs=None, blanksweeps=None, *args, **kwargs):
         super(WhiteNoise, self).__init__(*args, **kwargs)
+        self.sweeptable = SweepTable(static, dynamic, variables, runs, blanksweeps)
         self.savedpost = []
 
-    def createstimuli(self):
-        """Creates the VisionEgg stimuli objects for this Experiment subclass"""
-        super(WhiteNoise, self).createstimuli()
+    def create_screen_viewport_stimuli(self):
         
-        position = (self.xorig+deg2pix(self.sweeptable.static.center[0]),self.yorig+deg2pix(self.sweeptable.static.center[1]))
+        self.viewport = LightStim.Core.Viewport(name='Viewport_primary', screen=self.screen)
+        size = self.viewport.get_size()
+        self.background = Target2D(position=(size[0]/2, size[1]/2),
+                                   anchor='center',
+                                   size=size,
+                                   on=True)
+
+        self.bgp = self.background.parameters # synonym
+        #set background color before real sweep
+        bgb = self.sweeptable.static.bgbrightness # get it for sweep table index 0
+        self.bgp.color = bgb, bgb, bgb, 1.0 # set bg colour, do this now so it's correct for the pre-exp delay
+        
+        position = (self.viewport.xorig+self.viewport.deg2pix(self.sweeptable.static.center[0]), \
+                    self.viewport.yorig+self.viewport.deg2pix(self.sweeptable.static.center[1]))
         
         self.targetstimulus = Target2D(position = position,
                                        color = (0.0, 0.0, 0.0, 1.0),
                                        orientation = self.sweeptable.static.orientation,
                                        anchor = 'center',
-                                       size = (deg2pix(self.sweeptable.static.widthDeg), deg2pix(self.sweeptable.static.heightDeg)),
+                                       size = (self.viewport.deg2pix(self.sweeptable.static.widthDeg), 
+                                               self.viewport.deg2pix(self.sweeptable.static.heightDeg)),
                                        on = False)
-        self.fixationspot = FixationSpot(position=(self.xorig, self.yorig),
+        self.fixationspot = FixationSpot(position=(self.viewport.xorig, self.viewport.yorig),
                                                  anchor='center',
                                                  color=(1.0, 0.0, 0.0, 1.0),
                                                  size=(50, 50),
@@ -167,7 +182,8 @@ class WhiteNoise(FrameControl.FrameSweep):
         self.checkboard = CheckBoard(position = position,
                                      orientation = 0.0,
                                      anchor='center',
-                                     size = (deg2pix(self.sweeptable.static.size[0]),deg2pix(self.sweeptable.static.size[1])),
+                                     size = (self.viewport.deg2pix(self.sweeptable.static.size[0]), \
+                                             self.viewport.deg2pix(self.sweeptable.static.size[1])),
                                      grid = self.sweeptable.static.griddim,
                                      drawline = False,
                                      cellcolor = self.sweeptable.static.cbcolormap,
@@ -178,6 +194,8 @@ class WhiteNoise(FrameControl.FrameSweep):
         self.cbp = self.checkboard.parameters
         # last entry will be topmost layer in viewport
         self.stimuli = (self.background, self.checkboard, self.targetstimulus, self.fixationspot)
+        
+        self.viewport.parameters.stimuli=self.stimuli
 
     def add_stimulus_controllers(self):
         dt_controller = DTSweepStampController(sweeptable=self.sweeptable)

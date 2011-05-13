@@ -9,6 +9,7 @@ from __future__ import division
 
 from LightStim.SweepTable import StaticParams,DynamicParams,Runs,Variable,Variables
 from LightStim.WhiteNoise import WhiteNoise
+from LightStim.FrameControl import FrameSweep
 
 static = StaticParams()
 dynamic = DynamicParams()
@@ -78,5 +79,7 @@ variable.times    = Variable(vals=dynamic.times,    dim=0, shuffle=True)
 variable.posindex = Variable(vals=dynamic.posindex, dim=1, shuffle=True)
 variable.contrast = Variable(vals=dynamic.contrast, dim=2, shuffle=True)
 
-e = WhiteNoise(static=static, dynamic=dynamic, variables=variable, runs=runs) # create a WhiteNoise experiment
-e.go()
+stimulus = WhiteNoise(static=static, dynamic=dynamic, variables=variable, runs=runs)
+sweep = FrameSweep
+sweep.add_stimulus(stimulus)
+sweep.go()

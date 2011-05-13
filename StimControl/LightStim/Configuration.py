@@ -9,25 +9,56 @@
 import os
 import ConfigParser
 
-default_dict = {
+default_conf = {
     'DTBoard' : {
                 'INSTALLED': False
                 },
-    'Screen' : {
-                 'WIDTH':    38.6,
-                 'HEIGHT':   29.0,
-                 'DISTANCE': 57.0,
-                 'GAMMA':    1.0
-                 },
-    'Eye' :     {
-                'OPEN':     'right'
-                }
+    'Screen_common' : {
+                       'WIDTH':    800,
+                       'HEIGHT':   600
+                       },
+    'Viewport_control' : {
+                        'WIDTH':    38.6,
+                        'HEIGHT':   29.0,
+                        'DISTANCE': 57.0,
+                        'GAMMA':    1.0,
+                        'OFFSET':   0,
+                        'MIRRORED': False,
+                        'REFRESH_RATE': 60.0
+                        },
+    'Viewport_primary' : {
+                        'WIDTH':    38.6,
+                        'HEIGHT':   29.0,
+                        'DISTANCE': 57.0,
+                        'GAMMA':    1.0,
+                        'OFFSET':   800,
+                        'MIRRORED': False,
+                        'REFRESH_RATE': 120.0
+                        },
+    'Viewport_left' : {
+                        'WIDTH':    42.6,
+                        'HEIGHT':   32.0,
+                        'DISTANCE': 57.0,
+                        'GAMMA':    1.0,
+                        'OFFSET':   1600,
+                        'MIRRORED': True,
+                        'REFRESH_RATE': 120.0
+                        },
+    'Viewport_right' : {
+                        'WIDTH':    42.6,
+                        'HEIGHT':   32.0,
+                        'DISTANCE': 57.0,
+                        'GAMMA':    1.0,
+                        'OFFSET':   2400,
+                        'MIRRORED': True,
+                        'REFRESH_RATE': 120.0
+                        },
     }
 
 class Config:
     """Reads and writes the config file, adds an update function"""
     def __init__(self):
-        cfg = ConfigParser.ConfigParser()
+        self.cfg = ConfigParser.ConfigParser()
         
         self.LIGHTSTIM_SYSTEM_DIR = os.path.split(__file__)[0]
         user_dir = os.path.expanduser("~")
@@ -39,19 +70,19 @@ class Config:
             if not os.path.isfile(configFile):
                 configFile = None # No file, use defaults specified in environment variables then here
         if configFile:
-            cfg.read(configFile)
+            self.cfg.read(configFile)
         else:
             # pretend we have a config file
-            for section_name,section in default_dict.iteritems():
-                cfg.add_section(section_name)
+            for section_name,section in default_conf.iteritems():
+                self.cfg.add_section(section_name)
                 for key,value in section.iteritems():
-                    cfg.set(section_name,key,str(value))
+                    self.cfg.set(section_name,key,str(value))
 
         # Get the values from the configFile
-        for section_name,section in default_dict.iteritems():
-            for option in cfg.options(section_name):
+        for section_name,section in default_conf.iteritems():
+            for option in self.cfg.options(section_name):
                 name = option.upper()
-                value = cfg.get(section_name,option)
+                value = self.cfg.get(section_name,option)
                 if value == 'False' or value == 'false':
                     value = False
                 elif value == 'True' or value == 'true':
@@ -64,3 +95,30 @@ class Config:
                 elif isinstance(section[name], float):
                     value = float(value)
                 setattr(self,'LIGHTSTIM_'+section_name.upper()+'_'+name,value)
+
+    def get_screen_width_pix(self):
+        return self.LIGHTSTIM_SCREEN_COMMON_WIDTH
+    def get_screen_height_pix(self):
+        return self.LIGHTSTIM_SCREEN_COMMON_HEIGHT
+    def get_viewport_width_pix(self,name):
+        return self.LIGHTSTIM_SCREEN_COMMON_WIDTH
+    def get_viewport_height_pix(self,name):
+        return self.LIGHTSTIM_SCREEN_COMMON_HEIGHT
+    def get_viewport_width_cm(self,name):
+        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'WIDTH')
+    def get_viewport_height_cm(self,name):
+        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'HEIGHT')
+    def get_viewport_distance(self,name):
+        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'DISTANCE')
+    def get_viewport_offset(self,name):
+        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'OFFSET')
+    def get_viewport_mirrored(self,name):
+        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'MIRRORED')
+    def get_viewport_refresh_rate(self,name):
+        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'REFRESH_RATE')
+    def get_viewport_gamma(self,name):
+        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'GAMMA')
+    def is_viewport_mirrored(self,name):
+        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'MIRRORED')
+        
+        
