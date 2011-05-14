@@ -81,11 +81,11 @@ variable.posindex = Variable(vals=dynamic.posindex, dim=1, shuffle=True)
 variable.contrast = Variable(vals=dynamic.contrast, dim=2, shuffle=True)
 
 sweeptable = SweepTable(static=static, dynamic=dynamic, variables=variable, runs=runs)
-stimulus = WhiteNoise(viewport='Viewport_control', sweeptable=sweeptable)
+stimulus_left = WhiteNoise(viewport='Viewport_left', sweeptable=sweeptable)
 stimulus_prim = WhiteNoise(viewport='Viewport_primary', sweeptable=sweeptable)
 
 sweep = FrameSweep()
-sweep.add_stimulus(stimulus)
+sweep.add_stimulus(stimulus_left)
 sweep.add_stimulus(stimulus_prim)
 
 """ Pre-stimulus go"""    

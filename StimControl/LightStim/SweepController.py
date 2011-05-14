@@ -62,7 +62,7 @@ class SaveParamsController(StimulusController):
         pass
 
 class QuitSweepController(VisionEgg.FlowControl.Controller):
-    """ Quit the frame sweep loop if there is no viewports in the screen
+    """ Quit the frame sweep loop if there is no viewports in the screen.
     """
     def __init__(self, framesweep):
         VisionEgg.FlowControl.Controller.__init__(self,
@@ -76,7 +76,7 @@ class QuitSweepController(VisionEgg.FlowControl.Controller):
         pass
 
 class CheckViewportController(VisionEgg.FlowControl.Controller):
-    """ Quit the frame sweep loop if there is no viewports in the screen
+    """ Check each viewport if all stimuli complete sweep delete the viewport.
     """
     def __init__(self, framesweep):
         VisionEgg.FlowControl.Controller.__init__(self,
@@ -84,14 +84,16 @@ class CheckViewportController(VisionEgg.FlowControl.Controller):
                                            eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
         self.framesweep = framesweep
     def during_go_eval(self):
-        viewports_cleaned = True
         p = self.framesweep.parameters
         for viewport in p.viewports:
+            viewport_cleaned = True
             for stimulus in viewport.parameters.stimuli:
-                viewports_cleaned &= stimulus.sweep_completed
-        if viewports_cleaned:
-            self.framesweep.parameters.viewports = []
+                viewport_cleaned &= stimulus.sweep_completed
+            if viewport_cleaned:
+                self.framesweep.parameters.viewports.remove(viewport)
             
     def between_go_eval(self):
         pass
     
+class PauseSweepController(StimulusController):
+    pass

@@ -39,10 +39,18 @@ class Stimulus(VisionEgg.Core.Stimulus):
     def __init__(self,sweeptable, viewport, **kwargs):
         super(Stimulus, self).__init__(**kwargs)
         self.viewport = LightStim.Core.Viewport(name=viewport, stimuli=[self])
-        self.stimuli = []
-        self.controllers = []
         self.sweeptable = sweeptable
         self.sweep_completed = False
+        self.stimuli = []
+        self.controllers = []
+        self.event_handlers = []
+    
+    def make_stimuli(self):
+        pass    
+    def register_controllers(self):
+        pass
+    def register_event_handlers(self):
+        pass
     
 class HorizontalMirrorView(VisionEgg.Core.ModelView):
     def __init__(self,width):
@@ -78,6 +86,8 @@ class Viewport(VisionEgg.Core.Viewport):
         # the view angle in the viewport are based on xorig and yorig
         self.xorig = self.width_pix / 2
         self.yorig = self.height_pix / 2
+        
+        self.name = name
         
         if self.mirrored:
             mirror_view = HorizontalMirrorView(width=self.width_pix)

@@ -9,7 +9,6 @@ import pygame
 import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 
-import LightStim.Core
 from SweepController import QuitSweepController,CheckViewportController
 
 class FrameSweep(VisionEgg.FlowControl.Presentation):
@@ -17,6 +16,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         and screen. And it takes the responsibility for keeping proper order of these objects for VisionEgg presentation go method.
     """
     def __init__(self):
+        # buffer is used to add delayed controllers so that presweep go don't call the controllers.
         self.stimuli_buffer = []
         
         # presentation state variables
@@ -51,6 +51,12 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         for stimulus in self.stimuli_buffer:
             for controller in stimulus.controllers:
                 self.controllers.append((None,None,controller))
+                
+    def attach_event_handlers(self):
+        """ Update the event handlers in framesweep.
+        """
+        for stimulus in self.stimuli_buffer:
+            self.parameters.handle_event_callbacks += stimulus.event_handlers
         
     def keydown_callback(self,event):
         if event.key == pygame.locals.K_ESCAPE:
