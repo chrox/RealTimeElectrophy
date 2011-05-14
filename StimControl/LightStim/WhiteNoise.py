@@ -16,7 +16,7 @@ from VisionEgg.Core import FixationSpot
 
 import LightStim.Core
 from SweepStamp import DT,DTBOARDINSTALLED,SWEEP
-from SweepController import StimulusController,SaveParamsController
+from SweepController import SweepTableStimulusController,SaveParamsController
 from CheckBoard import CheckBoard
 
 class RFModel(object):
@@ -31,7 +31,7 @@ class RFModel(object):
         else:
             return min(0,self.gabor_func(xpos,ypos)) 
 
-class DTSweepStampController(StimulusController):
+class DTSweepStampController(SweepTableStimulusController):
     """Digital output for triggering and frame timing verification 
     """
     def __init__(self,*args,**kwargs):
@@ -52,7 +52,7 @@ class DTSweepStampController(StimulusController):
         postval = (self.st.contrast[index]<<12) + (self.st.posindex[index][0]<<6) + self.st.posindex[index][1]
         if DTBOARDINSTALLED: DT.postInt16NoDelay(postval) # post value to port, no delay
         
-class TargetController(StimulusController):
+class TargetController(SweepTableStimulusController):
     """Target noise in the white noise stimulus"""
     def __init__(self,*args,**kwargs):
         super(TargetController, self).__init__(*args,**kwargs)
@@ -90,7 +90,7 @@ class TargetController(StimulusController):
             self.tsp.color = (1.0, 1.0, 1.0, 1.0)
         self.tsp.position = (xorig+self.viewport.deg2pix(xposdeg),yorig+self.viewport.deg2pix(yposdeg))
 
-class CheckBoardController(StimulusController):
+class CheckBoardController(SweepTableStimulusController):
     def __init__(self,*args,**kwargs):
         super(CheckBoardController, self).__init__(*args,**kwargs)
         self.cbp = self.stimulus.cbp
@@ -193,6 +193,3 @@ class WhiteNoise(LightStim.Core.Stimulus):
         self.controllers.append(TargetController(self))
         self.controllers.append(CheckBoardController(self))
         
-    def draw(self):
-        for stimulus in self.stimuli:
-            stimulus.draw()

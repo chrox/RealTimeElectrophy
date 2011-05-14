@@ -36,7 +36,7 @@ class Screen(VisionEgg.Core.Screen):
         
 class Stimulus(VisionEgg.Core.Stimulus):
     """ One stimulus has one and only one viewport to make things not so hard."""
-    def __init__(self,sweeptable, viewport, **kwargs):
+    def __init__(self, viewport, sweeptable=None, **kwargs):
         super(Stimulus, self).__init__(**kwargs)
         self.viewport = LightStim.Core.Viewport(name=viewport, stimuli=[self])
         self.sweeptable = sweeptable
@@ -44,6 +44,10 @@ class Stimulus(VisionEgg.Core.Stimulus):
         self.stimuli = []
         self.controllers = []
         self.event_handlers = []
+    
+    def draw(self):
+        for stimulus in self.stimuli:
+            stimulus.draw()
     
     def make_stimuli(self):
         pass    
@@ -75,13 +79,13 @@ class Viewport(VisionEgg.Core.Viewport):
         self.width_pix = LightStim.config.get_viewport_width_pix(name)
         self.height_pix = LightStim.config.get_viewport_height_pix(name)
         self.width_cm = LightStim.config.get_viewport_width_cm(name)
-        self.width_cm = LightStim.config.get_viewport_height_cm(name)
+        self.height_cm = LightStim.config.get_viewport_height_cm(name)
         self.distance_cm = LightStim.config.get_viewport_distance(name)
         self.offset_pix = LightStim.config.get_viewport_offset(name)
         self.mirrored = LightStim.config.is_viewport_mirrored(name)
         self.refresh_rate = LightStim.config.get_viewport_refresh_rate(name)
         
-        self.pix_per_cm = (self.width_pix/self.width_cm + self.height_pix/self.width_cm)/2
+        self.pix_per_cm = (self.width_pix/self.width_cm + self.height_pix/self.height_cm)/2
         self.size = (self.width_pix, self.height_pix)
         # the view angle in the viewport are based on xorig and yorig
         self.xorig = self.width_pix / 2

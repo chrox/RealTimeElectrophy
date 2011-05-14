@@ -9,19 +9,31 @@
 import itertools
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
-    
+
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.
-        Assume that all stimulus parameters come from the sweep table. 
+        For stimulus in viewport.
     """
     def __init__(self,stimulus):
         VisionEgg.FlowControl.Controller.__init__(self,
                                            return_type=ve_types.NoneType,
                                            eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
         self.stimulus = stimulus
+        self.viewport = stimulus.viewport
+    def during_go_eval(self):
+        pass
+    def between_go_eval(self):
+        pass
+        
+class SweepTableStimulusController(StimulusController):
+    """ 
+        Assume that all stimulus parameters come from the sweep table. 
+    """
+    def __init__(self,stimulus):
+        super(SweepTableStimulusController,self).__init__(stimulus)
+        
         self.st = stimulus.sweeptable.data
         self.static = stimulus.sweeptable.static #shorthand
-        self.viewport = stimulus.viewport
         # multiply the sweeptable index with n vsync for every frame sweep
         nvsync = self.viewport.sec2intvsync(self.static.sweepSec)
         # TODO: create a global vsynctable so that run time modification could be easier.
@@ -36,12 +48,8 @@ class StimulusController(VisionEgg.FlowControl.Controller):
         except StopIteration:
             self.stimulus.sweep_completed = True
             return None
-    def during_go_eval(self):
-        pass
-    def between_go_eval(self):
-        pass
 
-class SaveParamsController(StimulusController):
+class SaveParamsController(SweepTableStimulusController):
     """ Use Every_Frame evaluation controller in case of real time sweep table modification
     """
     def __init__(self,stimulus,file_prefix):
