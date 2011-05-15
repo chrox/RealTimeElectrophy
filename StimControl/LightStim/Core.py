@@ -44,6 +44,7 @@ class Stimulus(VisionEgg.Core.Stimulus):
         self.stimuli = []
         self.controllers = []
         self.event_handlers = []
+
     
     def draw(self):
         for stimulus in self.stimuli:
@@ -74,14 +75,14 @@ class HorizontalMirrorView(VisionEgg.Core.ModelView):
 class Viewport(VisionEgg.Core.Viewport):
     """ Named viewport in LightStim.cfg
     """
-    screen = Screen(num_displays=4, frameless=True, hide_mouse=False, alpha_bits=8)
+    screen = Screen(num_displays=4, frameless=True, hide_mouse=True, alpha_bits=8)
     def __init__(self, name, **kw):
         self.width_pix = LightStim.config.get_viewport_width_pix(name)
         self.height_pix = LightStim.config.get_viewport_height_pix(name)
         self.width_cm = LightStim.config.get_viewport_width_cm(name)
         self.height_cm = LightStim.config.get_viewport_height_cm(name)
-        self.distance_cm = LightStim.config.get_viewport_distance(name)
-        self.offset_pix = LightStim.config.get_viewport_offset(name)
+        self.distance_cm = LightStim.config.get_viewport_distance_cm(name)
+        self.offset_pix = LightStim.config.get_viewport_offset_pix(name)
         self.mirrored = LightStim.config.is_viewport_mirrored(name)
         self.refresh_rate = LightStim.config.get_viewport_refresh_rate(name)
         

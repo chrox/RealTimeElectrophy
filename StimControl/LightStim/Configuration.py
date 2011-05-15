@@ -31,7 +31,7 @@ default_conf = {
                         'HEIGHT':   29.0,
                         'DISTANCE': 57.0,
                         'GAMMA':    1.0,
-                        'OFFSET':   800,
+                        'OFFSET':   1,
                         'MIRRORED': False,
                         'REFRESH_RATE': 120.0
                         },
@@ -40,7 +40,7 @@ default_conf = {
                         'HEIGHT':   32.0,
                         'DISTANCE': 57.0,
                         'GAMMA':    1.0,
-                        'OFFSET':   1600,
+                        'OFFSET':   2,
                         'MIRRORED': True,
                         'REFRESH_RATE': 120.0
                         },
@@ -49,7 +49,7 @@ default_conf = {
                         'HEIGHT':   32.0,
                         'DISTANCE': 57.0,
                         'GAMMA':    1.0,
-                        'OFFSET':   2400,
+                        'OFFSET':   3,
                         'MIRRORED': True,
                         'REFRESH_RATE': 120.0
                         },
@@ -108,10 +108,10 @@ class Config:
         return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'WIDTH')
     def get_viewport_height_cm(self,name):
         return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'HEIGHT')
-    def get_viewport_distance(self,name):
+    def get_viewport_distance_cm(self,name):
         return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'DISTANCE')
-    def get_viewport_offset(self,name):
-        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'OFFSET')
+    def get_viewport_offset_pix(self,name):
+        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'OFFSET') * self.get_screen_width_pix()
     def get_viewport_mirrored(self,name):
         return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'MIRRORED')
     def get_viewport_refresh_rate(self,name):

@@ -14,11 +14,7 @@ from LightStim.ManBar import ManBar
 p = StaticParams()
 
 # Manual Bar experiment parameters, all must be scalars
-p.xorigDeg = -3.510392 # x coord of stimulus center anchor from screen center, in deg
-p.yorigDeg = 2.73537 # y coord of stimulus center anchor from screen center, in deg
-p.widthDeg = 15.146667 # stimulus width in deg. Width is the dimension || to ori
-p.heightDeg = 12.266667 # stimulus width in deg. Height is the dim |_ to ORI
-p.ori = 293 # orientation of manbar in deg from the positive x axis, counterclockwise, used as stimulus orientation offset
+
 # bar brightness (0-1)
 p.brightness = 1
 # background brightness (0-1)
@@ -42,11 +38,15 @@ p.printhistogram = False
 # display on how many screens?
 p.nscreens = 2
 
-stimulus_with_info = ManBar(viewport='Viewport_control', params=p, disp_info=True)
-stimulus_no_info = ManBar(viewport='Viewport_left', params=p, disp_info=False)
+stimulus_control = ManBar(viewport='Viewport_control', params=p, disp_info=True)
+stimulus_primary = ManBar(viewport='Viewport_primary', params=p, disp_info=False)
+stimulus_left = ManBar(viewport='Viewport_left', params=p, disp_info=False)
+stimulus_right = ManBar(viewport='Viewport_right', params=p, disp_info=False)
 sweep = FrameSweep()
-sweep.add_stimulus(stimulus_with_info)
-sweep.add_stimulus(stimulus_no_info)
+sweep.add_stimulus(stimulus_control)
+sweep.add_stimulus(stimulus_primary)
+sweep.add_stimulus(stimulus_left)
+sweep.add_stimulus(stimulus_right)
 sweep.add_controllers()
 sweep.attach_event_handlers()
 sweep.go()
