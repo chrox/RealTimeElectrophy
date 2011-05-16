@@ -176,7 +176,7 @@ class ManBar(LightStim.Core.Stimulus):
         self.fp.position = self.x, self.y
         if self.viewport.name == 'Viewport_control':
             pygame.mouse.set_pos([self.x, self.viewport.height_pix - self.y])
-        print "pos after load: %d,%d" % (self.x, self.viewport.height_pix - self.y)
+        #print "pos after load: %d,%d" % (self.x, self.viewport.height_pix - self.y)
             
     def save_preference(self, bar_index):
         logger = logging.getLogger('LightStim.ManBar')
@@ -352,7 +352,7 @@ class ManBar(LightStim.Core.Stimulus):
             
     def mousemotion_callback(self,event):
         (x,y) = pygame.mouse.get_pos()
-        print "pos in callback: %d,%d" % (self.x, self.viewport.height_pix - self.y)
+        #print "pos in callback: %d,%d" % (self.x, self.viewport.height_pix - self.y)
         # keep the cursor in the control viewport
         if x > self.viewport.width_pix:
             x = self.viewport.width_pix
