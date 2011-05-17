@@ -11,6 +11,7 @@ from LightStim.SweepTable import StaticParams
 from LightStim.FrameControl import FrameSweep
 from LightStim.ManBar import ManBar
 
+
 p = StaticParams()
 
 # Manual Bar experiment parameters, all must be scalars
