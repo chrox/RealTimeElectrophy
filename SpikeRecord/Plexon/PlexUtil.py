@@ -6,7 +6,7 @@
 ### Written by Huangxin
 ###########################################################
 import numpy as np
-from .. import Plexon
+import Plexon
 
 class PlexUtil(object):
     """
