@@ -1,4 +1,4 @@
-# Demo program using WhiteNoise.
+# Demo program using ManBar.
 #
 # Copyright (C) 2010-2011 Huang Xin
 # 
@@ -34,15 +34,11 @@ p.orirateDegSec = 18
 p.brightnessstep = 0.005
 # orientation step size to snap to when scrolling mouse wheel (deg)
 p.snapDeg = 18
-# print vsync histogram?
-p.printhistogram = False
-# display on how many screens?
-p.nscreens = 2
 
-stimulus_control = ManBar(viewport='Viewport_control', params=p, disp_info=True)
-stimulus_primary = ManBar(viewport='Viewport_primary', params=p, disp_info=False)
-stimulus_left = ManBar(viewport='Viewport_left', params=p, disp_info=False)
-stimulus_right = ManBar(viewport='Viewport_right', params=p, disp_info=False)
+stimulus_control = ManBar(disp_info=True, params=p, viewport='Viewport_control')
+stimulus_primary = ManBar(disp_info=False, params=p, viewport='Viewport_primary')
+stimulus_left = ManBar(disp_info=False, params=p, viewport='Viewport_left')
+stimulus_right = ManBar(disp_info=False, params=p, viewport='Viewport_right')
 sweep = FrameSweep()
 sweep.add_stimulus(stimulus_control)
 sweep.add_stimulus(stimulus_primary)
