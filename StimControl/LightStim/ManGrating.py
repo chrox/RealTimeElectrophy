@@ -34,6 +34,7 @@ class ManGratingController(StimulusController):
     def during_go_eval(self):
         self.cp.position = self.stimulus.x, self.stimulus.y # update center spot position
         self.gp.position = self.stimulus.x, self.stimulus.y
+        self.gp.on = self.stimulus.on
         self.gp.size = self.viewport.deg2pix(self.stimulus.heightDeg), self.viewport.deg2pix(self.stimulus.widthDeg) # convert to pix
         self.gp.spatial_freq = self.viewport.cycDeg2cycPix(self.stimulus.sfreqCycDeg)
         self.gp.temporal_freq_hz = self.stimulus.tfreqCycSec
@@ -160,8 +161,6 @@ class ManGrating(ManStimulus):
         
     def register_event_handlers(self):
         super(ManGrating,self).register_event_handlers()
-        self.event_handlers += [(pygame.locals.KEYDOWN, self.keydown_callback),
-                                (pygame.locals.KEYUP, self.keyup_callback)]
         
     def keydown_callback(self,event):
         super(ManGrating,self).keydown_callback(event)

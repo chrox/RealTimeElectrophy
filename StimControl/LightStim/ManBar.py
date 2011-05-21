@@ -14,6 +14,7 @@ import pickle
 import logging
 
 import pygame
+from pygame.locals import K_i
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
 
@@ -163,6 +164,17 @@ class ManBar(ManStimulus):
         self.controllers.append(OrientationController(self))
         self.controllers.append(BrightnessController(self))
         self.controllers.append(ManBarController(self))
+    
+    def register_event_handlers(self):
+        super(ManBar,self).register_event_handlers()
+        #self.event_handlers += [(pygame.locals.KEYDOWN, self.keydown_callback)]
+        
+    def keydown_callback(self,event):
+        super(ManBar,self).keydown_callback(event)
+        key = event.key
+        if key == K_i:
+            self.brightness, self.bgbrightness = self.bgbrightness, self.brightness
+            #print "invert bg and fg color for ManBar: %d" %(id(self))
     
     def load_preference(self, bar_index):
         logger = logging.getLogger('VisionEgg')

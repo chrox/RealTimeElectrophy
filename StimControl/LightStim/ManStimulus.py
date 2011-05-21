@@ -118,8 +118,6 @@ class ManStimulus(LightStim.Core.Stimulus):
             self.MINUS = True
         elif key in [K_RSHIFT,K_LSHIFT]:
             self.squarelock = True
-        elif key == K_i:
-            self.brightness, self.bgbrightness = self.bgbrightness, self.brightness
         elif key == K_h:
             self.on = not self.on
         elif key in [K_0, K_KP0]: # set pos and ori to 0
