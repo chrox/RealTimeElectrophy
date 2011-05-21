@@ -21,14 +21,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         
         # presentation state variables
         self.quit = False
-        self.pause = False # init pause signal
-        self.paused = False # remembers whether this experiment has been paused
-        
-        # key state variables
-        self.up = 0
-        self.down = 0
-        self.left = 0
-        self.right = 0
+        self.paused = False
         
         super(FrameSweep, self).__init__(go_duration=('forever',''))
         self.parameters.handle_event_callbacks = [(pygame.locals.QUIT, self.quit_callback),
@@ -61,37 +54,26 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
     def keydown_callback(self,event):
         if event.key == pygame.locals.K_ESCAPE:
             self.quit_callback(event)
-        elif event.key == pygame.locals.K_UP:
-            self.up = 1
-        elif event.key == pygame.locals.K_DOWN:
-            self.down = 1
-        elif event.key == pygame.locals.K_RIGHT:
-            self.right = 1
-        elif event.key == pygame.locals.K_LEFT:
-            self.left = 1
             
     def keyup_callback(self,event):
-        if event.key == pygame.locals.K_UP:
-            self.up = 0
-        elif event.key == pygame.locals.K_DOWN:
-            self.down = 0
-        elif event.key == pygame.locals.K_RIGHT:
-            self.right = 0
-        elif event.key == pygame.locals.K_LEFT:
-            self.left = 0
+        pass
             
     def quit_callback(self,event):
         self.parameters.go_duration = (0,'frames')
 
-    def go(self):
+    def go(self,prestim=None,poststim=0):
+        # pre stimulation go
+        if prestim is not None:
+            self.parameters.go_duration = (prestim, 'seconds')
+            super(FrameSweep, self).go()
+        # stimulation go
         self.parameters.go_duration=('forever','')
+        self.add_controllers()
         super(FrameSweep, self).go()
+        # post stimulation go
+        if poststim is not None:
+            self.remove_controller(None,None,None)
+            self.parameters.go_duration = (poststim, 'seconds')
+            super(FrameSweep, self).go()
 
-    def pre_go(self, seconds):
-        self.parameters.go_duration = (seconds, 'seconds')
-        super(FrameSweep, self).go()
-    def post_go(self, seconds):
-        self.remove_controller(None,None,None)
-        self.parameters.go_duration = (seconds, 'seconds')
-        super(FrameSweep, self).go()
         

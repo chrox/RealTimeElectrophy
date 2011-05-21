@@ -88,10 +88,4 @@ sweep = FrameSweep()
 sweep.add_stimulus(stimulus_left)
 sweep.add_stimulus(stimulus_prim)
 
-""" Pre-stimulus go"""    
-sweep.pre_go(sweeptable.static.preframesweepSec)
-""" Stimulus go"""
-sweep.add_controllers()
-sweep.go()
-""" Post-stimulus go"""
-sweep.post_go(sweeptable.static.postframesweepSec)
+sweep.go(sweeptable.static.preframesweepSec, sweeptable.static.postframesweepSec)
