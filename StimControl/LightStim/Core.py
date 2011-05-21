@@ -72,10 +72,16 @@ class HorizontalMirrorView(VisionEgg.Core.ModelView):
         matrix = np.asarray(matrix) # make sure it's numpy array
         VisionEgg.Core.ModelView.__init__(self,**{'matrix':matrix})               
 
+class Dummy_Screen(VisionEgg.Core.Screen):
+    """ To trick viewport parameter checker
+    """
+    def __init__(self, **kw):
+        super(Dummy_Screen,self).__init__(frameless=True, hide_mouse=True, alpha_bits=8)
+
 class Viewport(VisionEgg.Core.Viewport):
     """ Named viewport in LightStim.cfg
     """
-    screen = Screen(num_displays=4, frameless=True, hide_mouse=True, alpha_bits=8)
+    dummy_screen = Dummy_Screen()
     def __init__(self, name, **kw):
         self.width_pix = LightStim.config.get_viewport_width_pix(name)
         self.height_pix = LightStim.config.get_viewport_height_pix(name)
@@ -98,7 +104,7 @@ class Viewport(VisionEgg.Core.Viewport):
             mirror_view = HorizontalMirrorView(width=self.width_pix)
         else:
             mirror_view = None
-        super(Viewport,self).__init__(position=(self.offset_pix,0), size=self.size, camera_matrix=mirror_view, screen=Viewport.screen, **kw)
+        super(Viewport,self).__init__(position=(self.offset_pix,0), size=self.size, camera_matrix=mirror_view, screen=Viewport.dummy_screen, **kw)
     def get_size(self):
         return self.size
     

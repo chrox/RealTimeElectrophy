@@ -10,6 +10,7 @@ import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 
 from SweepController import QuitSweepController,CheckViewportController
+from Core import Screen
 
 class FrameSweep(VisionEgg.FlowControl.Presentation):
     """ FrameSweep is a subclass of VisionEgg Presentation.The FrameSweep maintains the relationships among stimulus, viewport
@@ -23,6 +24,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.quit = False
         self.paused = False
         
+        self.screen = Screen(num_displays=4, frameless=True, hide_mouse=True, alpha_bits=8)
         super(FrameSweep, self).__init__(go_duration=('forever',''))
         self.parameters.handle_event_callbacks = [(pygame.locals.QUIT, self.quit_callback),
                                                   (pygame.locals.KEYDOWN, self.keydown_callback),
@@ -61,7 +63,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
     def quit_callback(self,event):
         self.parameters.go_duration = (0,'frames')
 
-    def go(self,prestim=None,poststim=0):
+    def go(self,prestim=None,poststim=None):
         # pre stimulation go
         if prestim is not None:
             self.parameters.go_duration = (prestim, 'seconds')
@@ -69,6 +71,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         # stimulation go
         self.parameters.go_duration=('forever','')
         self.add_controllers()
+        self.attach_event_handlers()
         super(FrameSweep, self).go()
         # post stimulation go
         if poststim is not None:

@@ -44,6 +44,5 @@ sweep.add_stimulus(stimulus_control)
 sweep.add_stimulus(stimulus_primary)
 sweep.add_stimulus(stimulus_left)
 sweep.add_stimulus(stimulus_right)
-sweep.add_controllers()
-sweep.attach_event_handlers()
+
 sweep.go()

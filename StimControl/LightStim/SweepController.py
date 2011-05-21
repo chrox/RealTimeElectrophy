@@ -9,6 +9,7 @@
 import itertools
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
+from Core import Dummy_Screen
 
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.
@@ -93,7 +94,12 @@ class CheckViewportController(VisionEgg.FlowControl.Controller):
         self.framesweep = framesweep
     def during_go_eval(self):
         p = self.framesweep.parameters
+        # assign to the real screen if the screen param is a dummy screen
+         
+        # remove the viewport if all the stimuli in the viewport has completed its sweep
         for viewport in p.viewports:
+            if isinstance(viewport.parameters.screen, Dummy_Screen):
+                viewport.parameters.screen = self.framesweep.screen
             viewport_cleaned = True
             for stimulus in viewport.parameters.stimuli:
                 viewport_cleaned &= stimulus.sweep_completed
