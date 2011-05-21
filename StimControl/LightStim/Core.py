@@ -76,7 +76,7 @@ class Dummy_Screen(VisionEgg.Core.Screen):
     """ To trick viewport parameter checker
     """
     def __init__(self, **kw):
-        super(Dummy_Screen,self).__init__(frameless=True, hide_mouse=True, alpha_bits=8)
+        super(Dummy_Screen,self).__init__(size=(1,1), frameless=True, hide_mouse=True, alpha_bits=8)
 
 class Viewport(VisionEgg.Core.Viewport):
     """ Named viewport in LightStim.cfg
