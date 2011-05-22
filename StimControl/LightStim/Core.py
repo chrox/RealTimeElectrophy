@@ -34,6 +34,12 @@ class Screen(VisionEgg.Core.Screen):
 
         super(Screen,self).__init__(size=(self.screen_width, self.screen_height), **kw)
         
+class Dummy_Screen(VisionEgg.Core.Screen):
+    """ To trick viewport parameter checker
+    """
+    def __init__(self, **kw):
+        super(Dummy_Screen,self).__init__(size=(1,1), bgcolor=(0.0,0.0,0.0),frameless=True, hide_mouse=True, alpha_bits=8)
+        
 class Stimulus(VisionEgg.Core.Stimulus):
     """ One stimulus has one and only one viewport to make things not so hard."""
     def __init__(self, viewport, sweeptable=None, **kwargs):
@@ -56,7 +62,14 @@ class Stimulus(VisionEgg.Core.Stimulus):
         pass
     def register_event_handlers(self):
         pass
-    
+
+class Dummy_Stimulus(Stimulus):
+    """ To keep the framesweep running """
+    def __init__(self, viewport='Viewport_control', sweeptable=None, **kwargs):
+        super(Dummy_Stimulus, self).__init__(viewport,sweeptable,**kwargs)
+    def draw(self):
+        pass
+
 class HorizontalMirrorView(VisionEgg.Core.ModelView):
     def __init__(self,width):
         gl.glMatrixMode(gl.GL_MODELVIEW) # Set OpenGL matrix state to modify the modelview matrix
@@ -71,12 +84,6 @@ class HorizontalMirrorView(VisionEgg.Core.ModelView):
             raise RuntimeError("OpenGL matrix operations can only take place once OpenGL context started.")
         matrix = np.asarray(matrix) # make sure it's numpy array
         VisionEgg.Core.ModelView.__init__(self,**{'matrix':matrix})               
-
-class Dummy_Screen(VisionEgg.Core.Screen):
-    """ To trick viewport parameter checker
-    """
-    def __init__(self, **kw):
-        super(Dummy_Screen,self).__init__(size=(1,1), frameless=True, hide_mouse=True, alpha_bits=8)
 
 class Viewport(VisionEgg.Core.Viewport):
     """ Named viewport in LightStim.cfg

@@ -24,7 +24,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.quit = False
         self.paused = False
         
-        self.screen = Screen(num_displays=4, frameless=True, hide_mouse=True, alpha_bits=8)
+        self.screen = Screen(num_displays=4, bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8)
         super(FrameSweep, self).__init__(go_duration=('forever',''))
         self.parameters.handle_event_callbacks = [(pygame.locals.QUIT, self.quit_callback),
                                                   (pygame.locals.KEYDOWN, self.keydown_callback),
@@ -45,7 +45,8 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         """
         for stimulus in self.stimuli_buffer:
             for controller in stimulus.controllers:
-                self.controllers.append((None,None,controller))
+                if controller not in self.controllers:
+                    self.controllers.append((None,None,controller))
                 
     def attach_event_handlers(self):
         """ Update the event handlers in framesweep.
