@@ -116,5 +116,23 @@ class StimulusPoolController(SweepController,Pyro.core.ObjBase):
     def remove_stimulus(self,stimulus):
         pass
     
-    
+class EventHandlerController(SweepController):
+    """ Per viewport control of the stimulus event handler.
+        If the stimulus is interactive then attach its event handlers to framesweep.
+    """
+    def during_go_eval(self):
+        p = self.framesweep.parameters
+        for viewport in p.viewports:
+            if not viewport.interactive:
+                for stimulus in viewport.parameters.stimuli:
+                    if hasattr(stimulus,'event_handlers'):
+                        for event_handler in stimulus.event_handlers:
+                            if event_handler in p.handle_event_callbacks:
+                                p.handle_event_callbacks.remove(event_handler)
+            else:
+                for stimulus in viewport.parameters.stimuli:
+                    if hasattr(stimulus,'event_handlers'):
+                        for event_handler in stimulus.event_handlers:
+                            if event_handler not in p.handle_event_callbacks:
+                                p.handle_event_callbacks.append(event_handler)               
     

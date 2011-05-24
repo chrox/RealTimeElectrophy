@@ -12,9 +12,10 @@ This module contains classes for multiply displays stimulation.
 
 """
 from __future__ import division
+import os
 import math
 import numpy as np
-
+import pygame
 import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 import VisionEgg.GL as gl
@@ -40,7 +41,8 @@ class Screen(VisionEgg.Core.Screen):
     """
     def __init__(self, num_displays, **kw):
 #        # Make sure that SDL_VIDEO_WINDOW_POS takes effect.
-#        VisionEgg.config.VISIONEGG_FRAMELESS_WINDOW = 0
+        VisionEgg.config.VISIONEGG_FRAMELESS_WINDOW = 0
+        os.environ['SDL_VIDEO_WINDOW_POS']="0,0"
         self.screen_width = num_displays*LightStim.config.get_screen_width_pix()
         self.screen_height = LightStim.config.get_screen_height_pix()
         self.displays = num_displays
@@ -111,12 +113,28 @@ class Viewport(VisionEgg.Core.Viewport):
         self.yorig = self.height_pix / 2
         
         self.name = name
+        self.interactive = True
+        self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback)]
         
         if self.mirrored:
             mirror_view = HorizontalMirrorView(width=self.width_pix)
         else:
             mirror_view = None
         super(Viewport,self).__init__(position=(self.offset_pix,0), size=self.size, camera_matrix=mirror_view, screen=Viewport.default_screen, **kw)
+    def keydown_callback(self,event):
+        key = event.key
+        if key == pygame.locals.K_F1:
+            if self.name == 'Viewport_control':
+                self.interactive = not self.interactive
+        elif key == pygame.locals.K_F2:
+            if self.name == 'Viewport_primary':
+                self.interactive = not self.interactive
+        elif key == pygame.locals.K_F3:
+            if self.name == 'Viewport_left':
+                self.interactive = not self.interactive
+        elif key == pygame.locals.K_F4:
+            if self.name == 'Viewport_right':
+                self.interactive = not self.interactive
     def get_size(self):
         return self.size
     

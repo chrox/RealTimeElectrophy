@@ -9,7 +9,7 @@ import pygame
 import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 
-from SweepController import QuitSweepController,RemoveViewportController
+from SweepController import QuitSweepController,RemoveViewportController,EventHandlerController
 from Core import Screen,Viewport,Dummy_Screen,Dummy_Viewport
 
 class FrameSweep(VisionEgg.FlowControl.Presentation):
@@ -28,6 +28,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.parameters.handle_event_callbacks = [(pygame.locals.QUIT, self.quit_callback),
                                                   (pygame.locals.KEYDOWN, self.keydown_callback),
                                                   (pygame.locals.KEYUP, self.keyup_callback)]
+        self.add_controller(None, None, EventHandlerController(self))
         self.add_controller(None, None, RemoveViewportController(self))
         self.add_controller(None, None, QuitSweepController(self))
 
@@ -36,7 +37,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
             Update the stimulus in viewport and viewport in framesweep.
         """
         self.stimulus_pool.append(stimulus)
-        sweep_params = self.parameters
+        p = self.parameters
         # add new viewports in sweep screen
         if not hasattr(stimulus,'viewport'):
             stimulus.viewport = Viewport(name='Viewport_control')
@@ -45,23 +46,19 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         stimulus.viewport.parameters.stimuli.append(stimulus)    
 #        if isinstance(stimulus.viewport.parameters.screen, Dummy_Screen):
 #            stimulus.viewport.parameters.screen = self.screen
-        if stimulus.viewport not in sweep_params.viewports:
-            sweep_params.viewports.append(stimulus.viewport)
+        if stimulus.viewport not in p.viewports:
+            p.viewports.append(stimulus.viewport)
+            p.handle_event_callbacks += stimulus.viewport.event_handlers 
+            
     def add_controllers(self):
-        """ Update the controllers in framesweep.
-        """
+        """ Update the controllers in framesweep. The controller of each stimulus should be delayed to add into the sweep.
+            In case we have pre stimulus delay.
+        """ 
         for stimulus in self.stimulus_pool:
             if hasattr(stimulus,'controllers'):
                 for controller in stimulus.controllers:
                     if controller not in self.controllers:
                         self.controllers.append((None,None,controller))
-                
-    def attach_event_handlers(self):
-        """ Update the event handlers in framesweep.
-        """
-        for stimulus in self.stimulus_pool:
-            if hasattr(stimulus,'event_handlers'):
-                self.parameters.handle_event_callbacks += stimulus.event_handlers
         
     def keydown_callback(self,event):
         if event.key == pygame.locals.K_ESCAPE:
@@ -81,7 +78,6 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         # stimulation go
         self.parameters.go_duration=('forever','')
         self.add_controllers()
-        self.attach_event_handlers()
         super(FrameSweep, self).go()
         # post stimulation go
         if poststim is not None:

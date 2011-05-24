@@ -56,8 +56,6 @@ class ManBarController(StimulusController):
             self.sptp.color = (1.0, 1.0, 0.0, 1.0) # set to yellow
         elif self.stimulus.brightenText == 'Manbar1':
             self.sptp.color = (1.0, 0.0, 0.0, 1.0) # set to red
-        elif self.stimulus.brightenText == 'Eye':
-            self.stp.color = (1.0, 0.0, 0.0, 1.0) # set to red
         else:
             self.sptp.color = (0.0, 1.0, 0.0, 1.0) # set it back to green
             self.stp.color = (0.0, 1.0, 1.0, 1.0) # set it back to cyan
@@ -119,7 +117,8 @@ class OrientationController(StimulusController):
 class ManBar(ManStimulus):
     def __init__(self, disp_info, **kwargs):
         super(ManBar, self).__init__(**kwargs)
-
+        
+        self.name = 'manbar'
         self.make_stimuli(disp_info)
         self.register_controllers()
         # load preference from saved file
@@ -176,9 +175,11 @@ class ManBar(ManStimulus):
             self.brightness, self.bgbrightness = self.bgbrightness, self.brightness
             #print "invert bg and fg color for ManBar: %d" %(id(self))
     
-    def load_preference(self, bar_index):
+    def load_preference(self, index):
+        name = self.viewport.name
+        info = self.name + str(index) + ' in ' + name + '.'
         logger = logging.getLogger('VisionEgg')
-        logger.info('Load preference ' + 'for bar ' + str(bar_index) + ' in ' + self.viewport.name + '.')
+        logger.info('Load preference for ' + info)
         self.defalut_preference = {'xorigDeg':0.0,
                                    'yorigDeg':0.0,
                                    'widthDeg':15.0,
@@ -186,10 +187,10 @@ class ManBar(ManStimulus):
                                    'ori': 0.0}
         try:
             with open('Manbar_preference.pkl','rb') as pkl_input:
-                bar_preferences = pickle.load(pkl_input)
-                self.preference = bar_preferences[bar_index]
+                preferences_dict = pickle.load(pkl_input)
+                self.preference = preferences_dict[name][index]
         except:
-            logger.warning('Cannot load bar preference. Use the default preference.')
+            logger.warning('Cannot load preference for ' + info + ' Use the default preference.')
             self.preference = self.defalut_preference
         self.xorigDeg = self.preference['xorigDeg']
         self.yorigDeg = self.preference['yorigDeg']
@@ -202,28 +203,31 @@ class ManBar(ManStimulus):
         self.fp.position = self.x, self.y
         if self.viewport.name == 'Viewport_control':
             pygame.mouse.set_pos([self.x, self.viewport.height_pix - self.y])
-        #print "pos after load: %d,%d" % (self.x, self.viewport.height_pix - self.y)
             
-    def save_preference(self, bar_index):
+    def save_preference(self, index):
+        name = self.viewport.name
+        info = self.name + str(index) + ' in ' + name + '.'
         logger = logging.getLogger('VisionEgg')
-        logger.info('Save preference ' + 'for bar ' + str(bar_index) + ' in ' + self.viewport.name + '.')
-        bar_preferences = []
+        logger.info('Save preference for ' + info)
+        preferences_dict = {}
         try:
             try:
                 with open('Manbar_preference.pkl','rb') as pkl_input:
-                    bar_preferences = pickle.load(pkl_input)
+                    preferences_dict = pickle.load(pkl_input)
             except:
-                bar_preferences = [self.defalut_preference] * 2
+                logger.warning('Cannot load previous preferences.'+ ' Use the default preference.')
+            if name not in preferences_dict:
+                preferences_dict[name] = [self.defalut_preference] * 2
             with open('Manbar_preference.pkl','wb') as pkl_output:
                 self.preference['xorigDeg'] = self.viewport.pix2deg(self.x - self.viewport.width_pix / 2)
                 self.preference['yorigDeg'] = self.viewport.pix2deg(self.y - self.viewport.height_pix / 2)
                 self.preference['widthDeg'] = self.widthDeg
                 self.preference['heightDeg'] = self.heightDeg
                 self.preference['ori'] = self.ori
-                bar_preferences[bar_index] = self.preference
-                pickle.dump(bar_preferences, pkl_output)
+                preferences_dict[name][index] = self.preference
+                pickle.dump(preferences_dict, pkl_output)
         except:
-            logger.warning('Cannot save bar preference for some reasons.')
+            logger.warning('Cannot save preference ' + info)
         self.fp.position = self.x, self.y
-        self.brightenText = "Manbar " + str(bar_index)  # brighten the text for feedback
+        self.brightenText = "Manbar" + str(index)  # brighten the text for feedback
         
