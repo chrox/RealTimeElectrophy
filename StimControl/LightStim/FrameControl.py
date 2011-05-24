@@ -9,8 +9,8 @@ import pygame
 import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 
-from SweepController import QuitSweepController,CheckViewportController
-from Core import Screen
+from SweepController import QuitSweepController,RemoveViewportController
+from Core import Screen,Viewport,Dummy_Screen,Dummy_Viewport
 
 class FrameSweep(VisionEgg.FlowControl.Presentation):
     """ FrameSweep is a subclass of VisionEgg Presentation.The FrameSweep maintains the relationships among stimulus, viewport
@@ -18,41 +18,50 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
     """
     def __init__(self):
         # buffer is used to add delayed controllers so that presweep go don't call the controllers.
-        self.stimuli_buffer = []
+        self.stimulus_pool = []
         
         # presentation state variables
         self.quit = False
         self.paused = False
         
-        self.screen = Screen(num_displays=4, bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8)
         super(FrameSweep, self).__init__(go_duration=('forever',''))
         self.parameters.handle_event_callbacks = [(pygame.locals.QUIT, self.quit_callback),
                                                   (pygame.locals.KEYDOWN, self.keydown_callback),
                                                   (pygame.locals.KEYUP, self.keyup_callback)]
-        self.add_controller(None, None, CheckViewportController(self))
+        self.add_controller(None, None, RemoveViewportController(self))
         self.add_controller(None, None, QuitSweepController(self))
 
     def add_stimulus(self, stimulus):
-        """ Update the stimulus in viewport and viewport in framesweep.
+        """ The main maniputate interface of framesweep.
+            Update the stimulus in viewport and viewport in framesweep.
         """
-        self.stimuli_buffer.append(stimulus)
-        p = self.parameters
+        self.stimulus_pool.append(stimulus)
+        sweep_params = self.parameters
         # add new viewports in sweep screen
-        if stimulus.viewport not in p.viewports:
-            p.viewports.append(stimulus.viewport)
+        if not hasattr(stimulus,'viewport'):
+            stimulus.viewport = Viewport(name='Viewport_control')
+        if not hasattr(stimulus,'sweep_completed'):
+            stimulus.sweep_completed = False
+        stimulus.viewport.parameters.stimuli.append(stimulus)    
+#        if isinstance(stimulus.viewport.parameters.screen, Dummy_Screen):
+#            stimulus.viewport.parameters.screen = self.screen
+        if stimulus.viewport not in sweep_params.viewports:
+            sweep_params.viewports.append(stimulus.viewport)
     def add_controllers(self):
         """ Update the controllers in framesweep.
         """
-        for stimulus in self.stimuli_buffer:
-            for controller in stimulus.controllers:
-                if controller not in self.controllers:
-                    self.controllers.append((None,None,controller))
+        for stimulus in self.stimulus_pool:
+            if hasattr(stimulus,'controllers'):
+                for controller in stimulus.controllers:
+                    if controller not in self.controllers:
+                        self.controllers.append((None,None,controller))
                 
     def attach_event_handlers(self):
         """ Update the event handlers in framesweep.
         """
-        for stimulus in self.stimuli_buffer:
-            self.parameters.handle_event_callbacks += stimulus.event_handlers
+        for stimulus in self.stimulus_pool:
+            if hasattr(stimulus,'event_handlers'):
+                self.parameters.handle_event_callbacks += stimulus.event_handlers
         
     def keydown_callback(self,event):
         if event.key == pygame.locals.K_ESCAPE:

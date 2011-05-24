@@ -7,9 +7,9 @@
 # (LGPL). See LICENSE.TXT that came with this file.
 
 import itertools
+import Pyro.core
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
-from Core import Dummy_Screen
 
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.
@@ -70,44 +70,51 @@ class SaveParamsController(SweepTableStimulusController):
     def between_go_eval(self):
         pass
 
-class QuitSweepController(VisionEgg.FlowControl.Controller):
-    """ Quit the frame sweep loop if there is no viewports in the screen.
+class SweepController(VisionEgg.FlowControl.Controller):
+    """ Base sweep controller 
     """
     def __init__(self, framesweep):
         VisionEgg.FlowControl.Controller.__init__(self,
                                            return_type=ve_types.NoneType,
                                            eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
         self.framesweep = framesweep
+    def during_go_eval(self):
+        pass
+    def between_go_eval(self):
+        pass 
+
+class QuitSweepController(SweepController):
+    """ Quit the frame sweep loop if there is no viewports in the screen.
+    """
     def during_go_eval(self):
         if self.framesweep.parameters.viewports == []:
             self.framesweep.parameters.go_duration = (0, 'frames')
-    def between_go_eval(self):
-        pass
 
-class CheckViewportController(VisionEgg.FlowControl.Controller):
-    """ Check each viewport if all stimuli complete sweep delete the viewport.
+class RemoveViewportController(SweepController):
+    """ 
+        Check each viewport. If all stimuli complete sweep, delete the viewport.
     """
-    def __init__(self, framesweep):
-        VisionEgg.FlowControl.Controller.__init__(self,
-                                           return_type=ve_types.NoneType,
-                                           eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
-        self.framesweep = framesweep
     def during_go_eval(self):
         p = self.framesweep.parameters
         # assign to the real screen if the screen param is a dummy screen
-         
         # remove the viewport if all the stimuli in the viewport has completed its sweep
         for viewport in p.viewports:
-            if isinstance(viewport.parameters.screen, Dummy_Screen):
-                viewport.parameters.screen = self.framesweep.screen
             viewport_cleaned = True
             for stimulus in viewport.parameters.stimuli:
                 viewport_cleaned &= stimulus.sweep_completed
             if viewport_cleaned:
                 self.framesweep.parameters.viewports.remove(viewport)
-            
-    def between_go_eval(self):
+
+class StimulusPoolController(SweepController,Pyro.core.ObjBase):
+    """ Maintain a stimulus pool and synchronize the pool with sweep viewport
+    """
+    def __init__(self,*arg,**kw):
+        super(StimulusPoolController, self).__init__(*arg,**kw)
+        Pyro.core.ObjBase.__init__(self)
+    def add_stimulus(self,stimulus):
+        self.framesweep.add_stimulus(stimulus)
+    def remove_stimulus(self,stimulus):
         pass
     
-class PauseSweepController(StimulusController):
-    pass
+    
+    

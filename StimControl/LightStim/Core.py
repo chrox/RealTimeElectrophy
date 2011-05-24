@@ -22,6 +22,19 @@ import VisionEgg.Core
 
 import LightStim
 
+class Dummy_Screen(VisionEgg.Core.Screen):
+    """ To trick viewport parameter checker
+    """
+    def __init__(self, **kw):
+        super(Dummy_Screen,self).__init__(size=(1,1), bgcolor=(0.0,0.0,0.0),frameless=True, hide_mouse=True, alpha_bits=8)
+        
+class Dummy_Viewport(VisionEgg.Core.Viewport):
+    """ A stimulus is binded to a dummy viewport when it is created in client side.
+        Once the stimulus is sent to the server side the right viewport would be binded.
+    """ 
+    def __init__(self, name):
+        self.name = name
+    
 class Screen(VisionEgg.Core.Screen):
     """ Large screen occupies multiply displays
     """
@@ -31,31 +44,23 @@ class Screen(VisionEgg.Core.Screen):
         self.screen_width = num_displays*LightStim.config.get_screen_width_pix()
         self.screen_height = LightStim.config.get_screen_height_pix()
         self.displays = num_displays
-
         super(Screen,self).__init__(size=(self.screen_width, self.screen_height), **kw)
         
-class Dummy_Screen(VisionEgg.Core.Screen):
-    """ To trick viewport parameter checker
-    """
-    def __init__(self, **kw):
-        super(Dummy_Screen,self).__init__(size=(1,1), bgcolor=(0.0,0.0,0.0),frameless=True, hide_mouse=True, alpha_bits=8)
-        
-class Stimulus(VisionEgg.Core.Stimulus):
+#class Stimulus(VisionEgg.Core.Stimulus):
+class Stimulus(object):
     """ One stimulus has one and only one viewport to make things not so hard."""
     def __init__(self, viewport, sweeptable=None, **kwargs):
         super(Stimulus, self).__init__(**kwargs)
-        self.viewport = LightStim.Core.Viewport(name=viewport, stimuli=[self])
+        self.viewport = Viewport(name=viewport)
+        self.viewport_name = viewport
         self.sweeptable = sweeptable
         self.sweep_completed = False
         self.stimuli = []
         self.controllers = []
         self.event_handlers = []
-
-    
     def draw(self):
         for stimulus in self.stimuli:
             stimulus.draw()
-    
     def make_stimuli(self):
         pass    
     def register_controllers(self):
@@ -86,9 +91,9 @@ class HorizontalMirrorView(VisionEgg.Core.ModelView):
         VisionEgg.Core.ModelView.__init__(self,**{'matrix':matrix})               
 
 class Viewport(VisionEgg.Core.Viewport):
-    """ Named viewport in LightStim.cfg
+    """ Named viewport class in hardware configuration file LightStim.cfg
     """
-    dummy_screen = Dummy_Screen()
+    default_screen = Screen(num_displays=4, bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8)
     def __init__(self, name, **kw):
         self.width_pix = LightStim.config.get_viewport_width_pix(name)
         self.height_pix = LightStim.config.get_viewport_height_pix(name)
@@ -111,7 +116,7 @@ class Viewport(VisionEgg.Core.Viewport):
             mirror_view = HorizontalMirrorView(width=self.width_pix)
         else:
             mirror_view = None
-        super(Viewport,self).__init__(position=(self.offset_pix,0), size=self.size, camera_matrix=mirror_view, screen=Viewport.dummy_screen, **kw)
+        super(Viewport,self).__init__(position=(self.offset_pix,0), size=self.size, camera_matrix=mirror_view, screen=Viewport.default_screen, **kw)
     def get_size(self):
         return self.size
     

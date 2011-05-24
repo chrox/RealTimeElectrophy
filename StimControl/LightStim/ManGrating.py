@@ -109,7 +109,6 @@ class ContrastController(StimulusController):
 class ManGrating(ManStimulus):
     def __init__(self, disp_info, **kwargs):
         super(ManGrating, self).__init__(**kwargs)
-        
         self.COMMA, self.PERIOD = False,False
         self.LEFTBRACKET, self.RIGHTBRACKET = False,False
 
@@ -118,7 +117,6 @@ class ManGrating(ManStimulus):
         self.register_event_handlers()
         # load preference from saved file
         self.load_preference(0)
-        
     def make_stimuli(self, disp_info):
         
         nsinsamples = 2048 # number of samples of sine f'n, must be power of 2, quality/performance tradeoff
