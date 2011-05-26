@@ -9,8 +9,46 @@ import pygame
 import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 
-from SweepController import QuitSweepController,RemoveViewportController,EventHandlerController
-from Core import Screen,Viewport,Dummy_Screen,Dummy_Viewport
+from SweepController import SweepController
+from Core import Viewport
+
+class QuitSweepController(SweepController):
+    """ Quit the frame sweep loop if there is no viewports in the screen.
+    """
+    def during_go_eval(self):
+        if self.framesweep.parameters.viewports == []:
+            self.framesweep.parameters.go_duration = (0, 'frames')
+
+class RemoveViewportController(SweepController):
+    """ 
+        Check each viewport. If all stimuli complete sweep, delete the viewport.
+    """
+    def during_go_eval(self):
+        p = self.framesweep.parameters
+        # assign to the real screen if the screen param is a dummy screen
+        # remove the viewport if all the stimuli in the viewport has completed its sweep
+        for viewport in p.viewports:
+            viewport_cleaned = True
+            for stimulus in viewport.parameters.stimuli:
+                viewport_cleaned &= stimulus.sweep_completed
+            if viewport_cleaned:
+                Viewport.current_viewports.remove(viewport)
+                self.framesweep.parameters.viewports.remove(viewport)
+                
+class EventHandlerController(SweepController):
+    """ Per viewport control of the stimulus event handler.
+        If the stimulus is interactive then attach its event handlers to framesweep.
+    """
+    def during_go_eval(self):
+        p = self.framesweep.parameters
+        for viewport in p.viewports:
+            for stimulus in viewport.parameters.stimuli:
+                if hasattr(stimulus,'event_handlers'):
+                    for event_handler in stimulus.event_handlers:
+                        if event_handler not in p.handle_event_callbacks and viewport.interactive:
+                            p.handle_event_callbacks.append(event_handler)
+                        elif event_handler in p.handle_event_callbacks and not viewport.interactive:
+                            p.handle_event_callbacks.remove(event_handler)
 
 class FrameSweep(VisionEgg.FlowControl.Presentation):
     """ FrameSweep is a subclass of VisionEgg Presentation.The FrameSweep maintains the relationships among stimulus, viewport
@@ -40,13 +78,14 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         p = self.parameters
         # add new viewports in sweep screen
         if not hasattr(stimulus,'viewport'):
-            stimulus.viewport = Viewport(name='Viewport_control')
+            stimulus.viewport = Viewport(name='control')
         if not hasattr(stimulus,'sweep_completed'):
             stimulus.sweep_completed = False
         stimulus.viewport.parameters.stimuli.append(stimulus)    
 #        if isinstance(stimulus.viewport.parameters.screen, Dummy_Screen):
 #            stimulus.viewport.parameters.screen = self.screen
         if stimulus.viewport not in p.viewports:
+            Viewport.current_viewports.append(stimulus.viewport)
             p.viewports.append(stimulus.viewport)
             p.handle_event_callbacks += stimulus.viewport.event_handlers 
             

@@ -10,6 +10,7 @@ import itertools
 import Pyro.core
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
+from LightStim.Core import Viewport 
 
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.
@@ -83,28 +84,6 @@ class SweepController(VisionEgg.FlowControl.Controller):
     def between_go_eval(self):
         pass 
 
-class QuitSweepController(SweepController):
-    """ Quit the frame sweep loop if there is no viewports in the screen.
-    """
-    def during_go_eval(self):
-        if self.framesweep.parameters.viewports == []:
-            self.framesweep.parameters.go_duration = (0, 'frames')
-
-class RemoveViewportController(SweepController):
-    """ 
-        Check each viewport. If all stimuli complete sweep, delete the viewport.
-    """
-    def during_go_eval(self):
-        p = self.framesweep.parameters
-        # assign to the real screen if the screen param is a dummy screen
-        # remove the viewport if all the stimuli in the viewport has completed its sweep
-        for viewport in p.viewports:
-            viewport_cleaned = True
-            for stimulus in viewport.parameters.stimuli:
-                viewport_cleaned &= stimulus.sweep_completed
-            if viewport_cleaned:
-                self.framesweep.parameters.viewports.remove(viewport)
-
 class StimulusPoolController(SweepController,Pyro.core.ObjBase):
     """ Maintain a stimulus pool and synchronize the pool with sweep viewport
     """
@@ -115,24 +94,3 @@ class StimulusPoolController(SweepController,Pyro.core.ObjBase):
         self.framesweep.add_stimulus(stimulus)
     def remove_stimulus(self,stimulus):
         pass
-    
-class EventHandlerController(SweepController):
-    """ Per viewport control of the stimulus event handler.
-        If the stimulus is interactive then attach its event handlers to framesweep.
-    """
-    def during_go_eval(self):
-        p = self.framesweep.parameters
-        for viewport in p.viewports:
-            if not viewport.interactive:
-                for stimulus in viewport.parameters.stimuli:
-                    if hasattr(stimulus,'event_handlers'):
-                        for event_handler in stimulus.event_handlers:
-                            if event_handler in p.handle_event_callbacks:
-                                p.handle_event_callbacks.remove(event_handler)
-            else:
-                for stimulus in viewport.parameters.stimuli:
-                    if hasattr(stimulus,'event_handlers'):
-                        for event_handler in stimulus.event_handlers:
-                            if event_handler not in p.handle_event_callbacks:
-                                p.handle_event_callbacks.append(event_handler)               
-    

@@ -11,14 +11,48 @@ import numpy as np
 np.seterr(all='raise')
 
 import pygame
-from pygame.locals import *
+from pygame.locals import K_UP,K_DOWN,K_RIGHT,K_LEFT,K_EQUALS,K_MINUS,K_RSHIFT,K_LSHIFT,K_SPACE,K_RETURN,K_KP_ENTER,KMOD_CTRL
+from pygame.locals import K_h,K_e,K_0,K_KP0,K_1,K_KP1,K_2,K_KP2
 import VisionEgg.GL as gl
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Text import Text
+from SweepController import StimulusController
 
 import LightStim.Core
 
 STATUSBARHEIGHT = 15 # height of upper and lower status bars (pix)
+
+class ViewportInfoController(StimulusController):
+    def __init__(self,*args,**kwargs):
+        super(ViewportInfoController, self).__init__(*args,**kwargs)
+        self.vitp = self.stimulus.vitp
+        self.stp = self.stimulus.stp
+        self.sltp = self.stimulus.sltp
+        self.sptp = self.stimulus.sptp
+    def during_go_eval(self):
+        viewport_names = []
+        for viewport in LightStim.Core.Viewport.current_viewports:
+            if viewport.interactive:
+                viewport_names.append(viewport.name)
+        name_list = 'primary left right'
+        for name in name_list.split(' '):
+            if name not in viewport_names:
+                name_list = name_list.replace(name,' '*len(name))
+        self.vitp.text = "interactive viewports: " + name_list
+        
+        self.stp.text = self.stimulus.screenstring
+        if self.stimulus.brightenText == 'Manbar0':
+            self.sptp.color = (1.0, 1.0, 0.0, 1.0) # set to yellow
+        elif self.stimulus.brightenText == 'Manbar1':
+            self.sptp.color = (1.0, 0.0, 0.0, 1.0) # set to red
+        else:
+            self.stimulus.sptp.color = (0.0, 1.0, 0.0, 1.0) # set it back to green
+            self.stimulus.stp.color = (0.0, 1.0, 1.0, 1.0) # set it back to cyan
+
+        if self.stimulus.squarelock:
+            self.stimulus.sltp.on = True
+        else:
+            self.stimulus.sltp.on = False
 
 class ManStimulus(LightStim.Core.Stimulus):
     def __init__(self, params, **kwargs):
@@ -37,6 +71,8 @@ class ManStimulus(LightStim.Core.Stimulus):
 
         self.make_screen_info()
         self.register_event_handlers()
+        self.info = (self.upperbar, self.squarelocktext, self.viewportinfotext, self.screentext,
+                     self.lowerbar, self.stimulusparamtext)
         
     def make_screen_info(self):
         size = self.viewport.get_size()
@@ -61,7 +97,7 @@ class ManStimulus(LightStim.Core.Stimulus):
                                font_name=fontname,
                                font_size=10)
         self.stp = self.screentext.parameters
-        self.squarelocktext = Text(position=(0, self.viewport.height_pix),
+        self.squarelocktext = Text(position=(1, self.viewport.height_pix - STATUSBARHEIGHT + 1),
                                    anchor='upperleft',
                                    text='SQUARELOCK',
                                    color=(0.0, 1.0, 1.0, 1.0),
@@ -80,20 +116,33 @@ class ManStimulus(LightStim.Core.Stimulus):
                                  size=(self.viewport.width_pix, STATUSBARHEIGHT),
                                  anti_aliasing=self.antialiase,
                                  color=(0.0, 0.0, 0.0, 1.0))
-        self.stimulusparamtext = Text(position=(0, 0),
+        self.stimulusparamtext = Text(position=(1, 1),
                                anchor='lowerleft',
                                color=(0.0, 1.0, 0.0, 1.0),
                                texture_mag_filter=gl.GL_NEAREST,
                                font_name=fontname,
                                font_size=10)
         self.sptp = self.stimulusparamtext.parameters
+        self.viewportinfotext = Text(position=(1, self.viewport.height_pix - 1),
+                               anchor='upperleft',
+                               text='Interactive viewport: ',
+                               color=(0.0, 1.0, 1.0, 1.0),
+                               texture_mag_filter=gl.GL_NEAREST,
+                               font_name=fontname,
+                               font_size=10,
+                               on=True)
+        self.vitp = self.viewportinfotext.parameters
 
     def make_stimuli(self):
         raise RuntimeError("%s: Definition of make_stimuli() in abstract base class ManStimulus must be overriden."%(str(self),))
         
     def register_controllers(self):
-        raise RuntimeError("%s: Definition of register_controllers() in abstract base class ManStimulus must be overriden."%(str(self),))
+        self.register_stimulus_controller()
+        self.register_info_controller()
         
+    def register_info_controller(self):
+        self.controllers.append(ViewportInfoController(self))
+            
     def register_event_handlers(self):
         self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback),
                                (pygame.locals.KEYUP, self.keyup_callback),
@@ -119,7 +168,8 @@ class ManStimulus(LightStim.Core.Stimulus):
         elif key in [K_RSHIFT,K_LSHIFT]:
             self.squarelock = True
         elif key == K_h:
-            self.on = not self.on
+            if not self.viewport.name == 'control':
+                self.on = not self.on
         elif key in [K_0, K_KP0]: # set pos and ori to 0
             self.x = self.viewport.width_pix / 2
             self.y = self.viewport.height_pix / 2
@@ -158,8 +208,10 @@ class ManStimulus(LightStim.Core.Stimulus):
         (x,y) = pygame.mouse.get_pos()
         #print "pos in callback: %d,%d" % (self.x, self.viewport.height_pix - self.y)
         # keep the cursor in the control viewport
-        x = min(x, self.viewport.width_pix)
-        pygame.mouse.set_pos([x,y])
+        # x = min(x, self.viewport.width_pix)
+        if x > self.viewport.width_pix:
+            x = self.viewport.width_pix
+            pygame.mouse.set_pos([x,y])
         y = self.viewport.height_pix - y
         self.x = x
         self.y = y

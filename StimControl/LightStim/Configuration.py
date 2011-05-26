@@ -57,6 +57,7 @@ default_conf = {
 
 class Config:
     """Reads and writes the config file, adds an update function"""
+    viewport_prefix = 'LIGHTSTIM_VIEWPORT_'
     def __init__(self):
         self.cfg = ConfigParser.ConfigParser()
         
@@ -105,20 +106,20 @@ class Config:
     def get_viewport_height_pix(self,name):
         return self.LIGHTSTIM_SCREEN_COMMON_HEIGHT
     def get_viewport_width_cm(self,name):
-        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'WIDTH')
+        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'WIDTH')
     def get_viewport_height_cm(self,name):
-        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'HEIGHT')
+        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'HEIGHT')
     def get_viewport_distance_cm(self,name):
-        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'DISTANCE')
+        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'DISTANCE')
     def get_viewport_offset_pix(self,name):
-        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'OFFSET') * self.get_screen_width_pix()
+        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'OFFSET') * self.get_screen_width_pix()
     def get_viewport_mirrored(self,name):
-        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'MIRRORED')
+        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'MIRRORED')
     def get_viewport_refresh_rate(self,name):
-        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'REFRESH_RATE')
+        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'REFRESH_RATE')
     def get_viewport_gamma(self,name):
-        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'GAMMA')
+        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'GAMMA')
     def is_viewport_mirrored(self,name):
-        return getattr(self, 'LIGHTSTIM_'+name.upper()+'_'+'MIRRORED')
+        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'MIRRORED')
         
         

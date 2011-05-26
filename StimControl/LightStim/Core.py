@@ -72,7 +72,7 @@ class Stimulus(object):
 
 class Dummy_Stimulus(Stimulus):
     """ To keep the framesweep running """
-    def __init__(self, viewport='Viewport_control', sweeptable=None, **kwargs):
+    def __init__(self, viewport='control', sweeptable=None, **kwargs):
         super(Dummy_Stimulus, self).__init__(viewport,sweeptable,**kwargs)
     def draw(self):
         pass
@@ -93,9 +93,11 @@ class HorizontalMirrorView(VisionEgg.Core.ModelView):
         VisionEgg.Core.ModelView.__init__(self,**{'matrix':matrix})               
 
 class Viewport(VisionEgg.Core.Viewport):
-    """ Named viewport class in hardware configuration file LightStim.cfg
+    """ Named viewport in hardware configuration file LightStim.cfg
+        Register the this viewport in current viewports list
     """
     default_screen = Screen(num_displays=4, bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8)
+    current_viewports = []
     def __init__(self, name, **kw):
         self.width_pix = LightStim.config.get_viewport_width_pix(name)
         self.height_pix = LightStim.config.get_viewport_height_pix(name)
@@ -124,16 +126,16 @@ class Viewport(VisionEgg.Core.Viewport):
     def keydown_callback(self,event):
         key = event.key
         if key == pygame.locals.K_F1:
-            if self.name == 'Viewport_control':
+            if self.name == 'control':
                 self.interactive = not self.interactive
         elif key == pygame.locals.K_F2:
-            if self.name == 'Viewport_primary':
+            if self.name == 'primary':
                 self.interactive = not self.interactive
         elif key == pygame.locals.K_F3:
-            if self.name == 'Viewport_left':
+            if self.name == 'left':
                 self.interactive = not self.interactive
         elif key == pygame.locals.K_F4:
-            if self.name == 'Viewport_right':
+            if self.name == 'right':
                 self.interactive = not self.interactive
     def get_size(self):
         return self.size

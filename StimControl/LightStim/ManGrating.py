@@ -22,15 +22,12 @@ from ManStimulus import ManStimulus
 from ManBar import SizeController,OrientationController
 
 class ManGratingController(StimulusController):
-    """ update bar parameters """
+    """ update mangrating parameters """
     def __init__(self,*args,**kwargs):
         super(ManGratingController, self).__init__(*args,**kwargs)
         self.gp = self.stimulus.gp
         self.bgp = self.stimulus.bgp
-        self.cp = self.stimulus.cp
-        self.sptp = self.stimulus.sptp
-        self.stp = self.stimulus.stp
-        self.sltp = self.stimulus.sltp 
+        self.cp = self.stimulus.cp 
     def during_go_eval(self):
         self.cp.position = self.stimulus.x, self.stimulus.y # update center spot position
         self.gp.position = self.stimulus.x, self.stimulus.y
@@ -55,26 +52,19 @@ class ManGratingController(StimulusController):
         self.gp.orientation = (self.stimulus.ori + 90) % 360.0
         self.gp.contrast = self.stimulus.contrast
         self.bgp.color = (self.stimulus.bgbrightness, self.stimulus.bgbrightness, self.stimulus.bgbrightness, 1.0)                         
-        self.sptp.text = 'x, y = (%5.1f, %5.1f) deg | size = (%.1f, %.1f) deg | ori = %5.1f deg | tfreq = %.2f cyc/sec | sfreq = %.2f cyc/deg | contrast = %.2f' \
+
+class GratingInfoController(StimulusController):
+    """ update stimulus info """
+    def __init__(self,*args,**kwargs):
+        super(GratingInfoController, self).__init__(*args,**kwargs)
+        self.sptp = self.stimulus.sptp
+    def during_go_eval(self):                     
+        self.sptp.text = 'pos:(%5.1f,%5.1f) deg | size:(%.1f,%.1f) deg | ori:%5.1f deg | tfq:%.2f cps | sfq:%.2f cpd | contrast:%.2f' \
                          % ( self.viewport.pix2deg(self.stimulus.x - self.viewport.width_pix / 2), 
                              self.viewport.pix2deg(self.stimulus.y - self.viewport.height_pix / 2),
                              self.stimulus.widthDeg, self.stimulus.heightDeg,
                              self.stimulus.ori, self.stimulus.tfreqCycSec, self.stimulus.sfreqCycDeg, self.stimulus.contrast)
-
-        self.stp.text = self.stimulus.screenstring
-        if self.stimulus.brightenText == 'Manbar0':
-            self.sptp.color = (1.0, 1.0, 0.0, 1.0) # set to yellow
-        elif self.stimulus.brightenText == 'Manbar1':
-            self.sptp.color = (1.0, 0.0, 0.0, 1.0) # set to red
-        else:
-            self.stimulus.sptp.color = (0.0, 1.0, 0.0, 1.0) # set it back to green
-            self.stimulus.stp.color = (0.0, 1.0, 1.0, 1.0) # set it back to cyan
-
-        if self.stimulus.squarelock:
-            self.stimulus.sltp.on = True
-        else:
-            self.stimulus.sltp.on = False
-            
+                         
 class SpatialFrequencyController(StimulusController):
     def __init__(self,*args,**kwargs):
         super(SpatialFrequencyController, self).__init__(*args,**kwargs)
@@ -134,27 +124,24 @@ class ManGrating(ManStimulus):
                                                  color=(0.0, 1.0, 0.0, 0.0),
                                                  size=(3, 3),
                                                  on=True)
-        self.cp = self.centerspot.parameters
-        
-        # last entry will be topmost layer in viewport
-        self.basic_stimuli = (self.background, self.grating)
-        self.all_stimuli = (self.background, self.grating,
-                            self.fixationspot, self.centerspot,
-                            self.upperbar, self.squarelocktext, self.screentext,
-                            self.lowerbar, self.stimulusparamtext)
-        
+        self.cp = self.centerspot.parameters   
         if disp_info:
-            self.stimuli = self.all_stimuli
+            self.stimuli = (self.background, self.grating, self.fixationspot, self.centerspot) + self.info
         else:
-            self.stimuli = self.basic_stimuli
+            self.stimuli = (self.background, self.grating)
     
-    def register_controllers(self):
+    def register_stimulus_controller(self):
         self.controllers.append(SizeController(self))
         self.controllers.append(SpatialFrequencyController(self))
         self.controllers.append(TemporalFrequencyController(self))
         self.controllers.append(OrientationController(self))
         self.controllers.append(ContrastController(self))
         self.controllers.append(ManGratingController(self))
+        
+    def register_info_controller(self):
+        if self.viewport.name == 'control':
+            super(ManGrating,self).register_info_controller()
+            self.controllers.append(GratingInfoController(self))
         
     def register_event_handlers(self):
         super(ManGrating,self).register_event_handlers()
@@ -185,7 +172,7 @@ class ManGrating(ManStimulus):
             
     def load_preference(self, index):
         name = self.viewport.name
-        info = self.name + str(index) + ' in ' + name + '.'
+        info = self.name + str(index) + ' in ' + name + ' viewport.'
         logger = logging.getLogger('VisionEgg')
         logger.info('Load preference for ' + info)
         self.defalut_preference = {'xorigDeg':0.0,
@@ -215,12 +202,12 @@ class ManGrating(ManStimulus):
         self.x  = int(round(self.viewport.deg2pix(self.xorigDeg) + self.viewport.width_pix/2))
         self.y  = int(round(self.viewport.deg2pix(self.yorigDeg) + self.viewport.height_pix/2))
         self.fp.position = self.x, self.y
-        if self.viewport.name == 'Viewport_control':
+        if self.viewport.name == 'control':
             pygame.mouse.set_pos([self.x, self.viewport.height_pix - self.y])
             
     def save_preference(self, index):
         name = self.viewport.name
-        info = self.name + str(index) + ' in ' + name + '.'
+        info = self.name + str(index) + ' in ' + name + ' viewport.'
         logger = logging.getLogger('VisionEgg')
         logger.info('Save preference for ' + info)
         preferences_dict = {}

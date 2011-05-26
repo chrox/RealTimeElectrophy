@@ -35,10 +35,10 @@ p.brightnessstep = 0.005
 # orientation step size to snap to when scrolling mouse wheel (deg)
 p.snapDeg = 18
 
-stimulus_control = ManBar(disp_info=True, params=p, viewport='Viewport_control')
-stimulus_primary = ManBar(disp_info=False, params=p, viewport='Viewport_primary')
-stimulus_left = ManBar(disp_info=False, params=p, viewport='Viewport_left')
-stimulus_right = ManBar(disp_info=False, params=p, viewport='Viewport_right')
+stimulus_control = ManBar(disp_info=True, params=p, viewport='control')
+stimulus_primary = ManBar(disp_info=False, params=p, viewport='primary')
+stimulus_left = ManBar(disp_info=False, params=p, viewport='left')
+stimulus_right = ManBar(disp_info=False, params=p, viewport='right')
 sweep = FrameSweep()
 sweep.add_stimulus(stimulus_control)
 sweep.add_stimulus(stimulus_primary)
