@@ -1,0 +1,31 @@
+TODO:
+
+- Bug fix:
+	- (potential bug) If multiple viewports with same name are created, are all these stimuli drawn in the screen? not tested yet.
+	- Building VisionEgg Text stimulus in real time will lag the sweep for 2ms. I have to write my fast text stimulus to display info. 
+
+- Requested Feature:
+	- viewport position calibration
+	- add Mask in mangrating
+	- stimulus can be copied from one viewport to another
+	- add Preference module to serialize the preference parameter objects
+	- screen gamma calibration
+	- specifying 2/3 or 4 viewports in client code
+	- create a global vsynctable for SweepTableController so that runtime modification could be easier.
+	- GUI control of the LightStim with WxPython and pyro
+    
+MEMO:
+	Test-driven development is urgently needed.
+	Beautiful is better than ugly. Simple is better than complex. Complex is better than complicated. Sparse is better than dense.
+	
+DONE:
+	- (BUG) viewport_control cannot display information of the viewport in control
+	+ control each viewport individually 
+	- (BUG) remove replicated event handler in subclass of manstimulus 
+	+ add manbar and mangrating demos
+	+ add pause_sweep_controllers for FrameSweep (But it's useless. On what condition should the neuron respond to static stimulus?)
+	- event state should stay in each viewport? But we cannot. Because all 4 viewports are in one pygame screen.
+	- logger doesn't work (logger should have handler. Use the logger in visionegg instead.)
+	. clean up init call in subclass of SweepTableController using *args etc.
+	+ multiple screen stimulus (pygame implementation)
+	. Code Refactoring: use object composition instead of class inheritance to build new functionality
