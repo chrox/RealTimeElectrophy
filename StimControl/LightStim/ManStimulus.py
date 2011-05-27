@@ -48,8 +48,6 @@ class ViewportInfoController(StimulusController):
 #            if name not in viewport_names:
 #                name_list = name_list.replace(name,' '*len(name))
 #        self.vitp.text = "interactive viewports: " + name_list
-        
-        
         if self.stimulus.brightenText == 'Manbar0':
             self.sptp.color = (1.0, 1.0, 0.0, 1.0) # set to yellow
         elif self.stimulus.brightenText == 'Manbar1':
@@ -139,7 +137,7 @@ class ManStimulus(LightStim.Core.Stimulus):
         self.sptp = self.stimulusparamtext.parameters
         self.viewportinfotext = Text(position=(1, self.viewport.height_pix - 1),
                                      anchor='upperleft',
-                                     text='interactive viewport: ',
+                                     text='Viewports in control: ',
                                      color=(0.0, 1.0, 1.0, 1.0),
                                      texture_mag_filter=gl.GL_NEAREST,
                                      font_name=fontname,

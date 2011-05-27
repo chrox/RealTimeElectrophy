@@ -134,29 +134,34 @@ class Viewport(VisionEgg.Core.Viewport):
         return self.size
     def is_interactive(self):
         return self.interactive
-    def set_interactive(self,interactive):
-        self.interactive = interactive
+    def set_interactivity(self,interactivity):
+        self.interactive = interactivity
     def is_current(self):
         return self.current
     def set_current(self,current):
         self.current = current
     def keydown_callback(self,event):
+        mods = pygame.key.get_mods()
         key = event.key
+        def set_viewport(name):
+            if self.name == name:
+                if mods & pygame.locals.KMOD_CTRL:
+                    self.set_interactivity(True)
+                else:
+                    self.set_interactivity(not self.is_interactive())
+            else:
+                if mods & pygame.locals.KMOD_CTRL:
+                    self.set_interactivity(False)
         if key == pygame.locals.K_F1:
-            # control viewport should never be deactivated
-            pass
+            pass  # control viewport should never be deactivated
         elif key == pygame.locals.K_F2:
-            if self.name == 'primary':
-                self.interactive = not self.interactive
+            set_viewport('primary')
         elif key == pygame.locals.K_F3:
-            if self.name == 'left':
-                self.interactive = not self.interactive
+            set_viewport('left')
         elif key == pygame.locals.K_F4:
-            if self.name == 'right':
-                self.interactive = not self.interactive
+            set_viewport('right')
         elif key == pygame.locals.K_TAB:
             if self.name == 'control':
-                cycle_viewports = [viewport for viewport in Viewport.registered_viewports if not viewport.name == 'control']
                 viewport_it = itertools.cycle(Viewport.registered_viewports)
                 for viewport in viewport_it:
                     if viewport.is_current():
