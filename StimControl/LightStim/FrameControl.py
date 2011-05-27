@@ -37,7 +37,7 @@ class RemoveViewportController(SweepController):
                 
 class EventHandlerController(SweepController):
     """ Per viewport control of the stimulus event handler.
-        If the stimulus is interactive then attach its event handlers to framesweep.
+        If the stimulus is active then attach its event handlers to framesweep.
     """
     def during_go_eval(self):
         p = self.framesweep.parameters
@@ -45,9 +45,9 @@ class EventHandlerController(SweepController):
             for stimulus in viewport.parameters.stimuli:
                 if hasattr(stimulus,'event_handlers'):
                     for event_handler in stimulus.event_handlers:
-                        if event_handler not in p.handle_event_callbacks and viewport.interactive:
+                        if event_handler not in p.handle_event_callbacks and viewport.active:
                             p.handle_event_callbacks.append(event_handler)
-                        elif event_handler in p.handle_event_callbacks and not viewport.interactive:
+                        elif event_handler in p.handle_event_callbacks and not viewport.active:
                             p.handle_event_callbacks.remove(event_handler)
 
 class FrameSweep(VisionEgg.FlowControl.Presentation):

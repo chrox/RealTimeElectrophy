@@ -13,11 +13,8 @@ This module contains classes for multiply displays stimulation.
 """
 from __future__ import division
 import os
-import itertools
-import copy
 import math
 import numpy as np
-import pygame
 import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 import VisionEgg.GL as gl
@@ -53,9 +50,10 @@ class Screen(VisionEgg.Core.Screen):
 #class Stimulus(VisionEgg.Core.Stimulus):
 class Stimulus(object):
     """ One stimulus has one and only one viewport to make things not so hard."""
-    def __init__(self, viewport, sweeptable=None, **kwargs):
+    def __init__(self, viewport=None, sweeptable=None, **kwargs):
         super(Stimulus, self).__init__(**kwargs)
-        self.viewport = Viewport(name=viewport)
+        if viewport:
+            self.viewport = Viewport(name=viewport)
         self.sweeptable = sweeptable
         self.sweep_completed = False
         self.stimuli = []
@@ -100,6 +98,7 @@ class Viewport(VisionEgg.Core.Viewport):
     default_screen = Screen(num_displays=4, bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8)
     registered_viewports = [] # registered viewports in screen. Update when stimulus is added. And viewport is deleted.
     def __init__(self, name, **kw):
+        self.name = name
         self.width_pix = LightStim.config.get_viewport_width_pix(name)
         self.height_pix = LightStim.config.get_viewport_height_pix(name)
         self.width_cm = LightStim.config.get_viewport_width_cm(name)
@@ -115,14 +114,6 @@ class Viewport(VisionEgg.Core.Viewport):
         self.xorig = self.width_pix / 2
         self.yorig = self.height_pix / 2
         
-        self.name = name
-        self.interactive = True
-        if self.name == 'control':
-            self.current = True
-        else:
-            self.current = False
-        
-        self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback)]
         if self.mirrored:
             mirror_view = HorizontalMirrorView(width=self.width_pix)
         else:
@@ -132,50 +123,6 @@ class Viewport(VisionEgg.Core.Viewport):
         return self.name
     def get_size(self):
         return self.size
-    def is_interactive(self):
-        return self.interactive
-    def set_interactivity(self,interactivity):
-        self.interactive = interactivity
-    def is_current(self):
-        return self.current
-    def set_current(self,current):
-        self.current = current
-    def keydown_callback(self,event):
-        mods = pygame.key.get_mods()
-        key = event.key
-        def set_viewport(name):
-            if self.name == name:
-                if mods & pygame.locals.KMOD_CTRL:
-                    self.set_interactivity(True)
-                else:
-                    self.set_interactivity(not self.is_interactive())
-            else:
-                if mods & pygame.locals.KMOD_CTRL:
-                    self.set_interactivity(False)
-        if key == pygame.locals.K_F1:
-            pass  # control viewport should never be deactivated
-        elif key == pygame.locals.K_F2:
-            set_viewport('primary')
-        elif key == pygame.locals.K_F3:
-            set_viewport('left')
-        elif key == pygame.locals.K_F4:
-            set_viewport('right')
-        elif key == pygame.locals.K_TAB:
-            if self.name == 'control':
-                viewport_it = itertools.cycle(Viewport.registered_viewports)
-                for viewport in viewport_it:
-                    if viewport.is_current():
-                        viewport.set_current(False)
-                        next_viewport = viewport_it.next()
-                        if next_viewport.name == 'control':
-                            next_viewport = viewport_it.next()
-                        next_viewport.set_current(True)
-                        self.parameters.stimuli = []
-                        for stimulus in next_viewport.parameters.stimuli:
-                            control_stimulus = copy.copy(stimulus)
-                            control_stimulus.stimuli = stimulus.complete_stimuli
-                            self.parameters.stimuli.append(control_stimulus)
-                        break
     ############# Some spatial utilities #############
     def deg2pix(self, deg):
         """Convert from degrees of visual space to pixels"""

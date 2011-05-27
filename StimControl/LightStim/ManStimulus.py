@@ -9,6 +9,8 @@
 from __future__ import division
 import numpy as np
 np.seterr(all='raise')
+import copy
+import itertools
 
 import pygame
 from pygame.locals import K_UP,K_DOWN,K_RIGHT,K_LEFT,K_EQUALS,K_MINUS,K_RSHIFT,K_LSHIFT,K_SPACE,K_RETURN,K_KP_ENTER,KMOD_CTRL
@@ -19,6 +21,7 @@ from VisionEgg.Text import Text
 from SweepController import StimulusController
 
 import LightStim.Core
+from LightStim.Core import Viewport
 
 STATUSBARHEIGHT = 15 # height of upper and lower status bars (pix)
 
@@ -29,12 +32,12 @@ class ViewportInfoController(StimulusController):
         self.sltp = self.stimulus.sltp
         self.sptp = self.stimulus.sptp
     def during_go_eval(self):
-        # display interactive viewports list and indicate the current viewport
+        # display active viewports list and indicate the current viewport
         for viewport in LightStim.Core.Viewport.registered_viewports:
-            if viewport.is_interactive(): 
+            if viewport.is_active(): 
                 for indicator in self.vips:
                     if viewport.name == indicator.text:
-                        indicator.on = True # display interactive viewport indicator
+                        indicator.on = True # display active viewport indicator
                         if viewport.is_current():
                             indicator.color = (0.0, 1.0, 0.0, 1.0) # set current viewport indicator color to green
                         else:
@@ -47,7 +50,7 @@ class ViewportInfoController(StimulusController):
 #        for name in name_list.split():
 #            if name not in viewport_names:
 #                name_list = name_list.replace(name,' '*len(name))
-#        self.vitp.text = "interactive viewports: " + name_list
+#        self.vitp.text = "active viewports: " + name_list
         if self.stimulus.brightenText == 'Manbar0':
             self.sptp.color = (1.0, 1.0, 0.0, 1.0) # set to yellow
         elif self.stimulus.brightenText == 'Manbar1':
@@ -60,9 +63,96 @@ class ViewportInfoController(StimulusController):
         else:
             self.stimulus.sltp.on = False
 
+class ManViewport(LightStim.Core.Viewport):
+    # add event control callback
+    def __init__(self,**kwargs):
+        super(ManViewport, self).__init__(**kwargs)
+        self.active = True
+        if self.name == 'control':
+            self.visible = True
+            self.current = True
+        else:
+            self.visible = False
+            self.current = False
+        self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback)]
+    def draw(self):
+        if not self.is_active() or not self.is_visible():
+            return
+        self.make_current()
+        self._is_drawing = True
+        for stimulus in self.parameters.stimuli:
+            stimulus.draw()
+        self._is_drawing = False
+    def is_active(self):
+        return self.active
+    def set_activity(self,activity):
+        self.active = activity
+    def is_visible(self):
+        return self.visible
+    def set_visibility(self,visibility):
+        self.visible = visibility
+    def is_current(self):
+        return self.current
+    def set_current(self,current):
+        self.current = current
+    def keydown_callback(self,event):
+        mods = pygame.key.get_mods()
+        key = event.key
+        # set viewport activity and currenty this should be no business with control viewport 
+        def set_viewport(name):
+            if self.name == 'control': return
+#            if self.is_current():
+#                return
+            if mods & pygame.locals.KMOD_CTRL:
+                if self.name == name:
+                    self.set_activity(True)
+                    self.set_current(True)
+                else:
+                    self.set_activity(False)
+                    self.set_current(False)
+            else:
+                if self.name == name:
+                    self.set_activity(not self.is_active())
+        if key == K_h:
+            if not self.name == 'control':
+                self.set_visibility(not self.is_visible())
+        elif key == pygame.locals.K_F1:
+            pass  # control viewport should never be deactivated
+        elif key == pygame.locals.K_F2:
+            set_viewport('primary')
+        elif key == pygame.locals.K_F3:
+            set_viewport('left')
+        elif key == pygame.locals.K_F4:
+            set_viewport('right')
+        elif key == pygame.locals.K_TAB:
+            if self.name == 'control':
+                active_viewports = [viewport for viewport in Viewport.registered_viewports if viewport.is_active()]
+                # assert there is at least one current viewport
+                assert len(active_viewports) > 0
+                viewport_it = itertools.cycle(active_viewports)
+                for viewport in viewport_it:
+                    if viewport.is_current():
+                        viewport.set_current(False)
+                        next_viewport = viewport_it.next()
+                        if next_viewport.name == 'control':
+                            next_viewport = viewport_it.next()
+                        next_viewport.set_current(True)
+                        self.parameters.stimuli = []
+                        # clone the complete stimulus to control viewport
+                        for stimulus in next_viewport.parameters.stimuli:
+                            cloned_stimulus = copy.copy(stimulus)
+                            cloned_stimulus.stimuli = stimulus.complete_stimuli
+                            cloned_viewport = copy.copy(stimulus.viewport)
+                            cloned_viewport.name = 'control'
+                            cloned_stimulus.viewport = cloned_viewport # set to control viewport in case the event callbacks are picked off
+                            cloned_stimulus.on = True # in control viewport it's not necessary to hide a stimulus
+                            self.parameters.stimuli.append(cloned_stimulus)
+                        break
+
 class ManStimulus(LightStim.Core.Stimulus):
-    def __init__(self, disp_info, params, **kwargs):
+    def __init__(self, disp_info, params, viewport, **kwargs):
         super(ManStimulus, self).__init__(**kwargs)
+        self.viewport = ManViewport(name=viewport) # use viewport 
         for paramname, paramval in params.items():
             setattr(self, paramname, paramval) # bind all parameter names to self
         
@@ -143,7 +233,6 @@ class ManStimulus(LightStim.Core.Stimulus):
                                      font_name=fontname,
                                      font_size=10)
         self.vitp = self.viewportinfotext.parameters
-        
         self.pvpindicatortext = Text(position=(150, self.viewport.height_pix - 1),
                                      anchor='upperleft',
                                      text='primary',
@@ -201,9 +290,6 @@ class ManStimulus(LightStim.Core.Stimulus):
             self.MINUS = True
         elif key in [K_RSHIFT,K_LSHIFT]:
             self.squarelock = True
-        elif key == K_h:
-            if not self.viewport.name == 'control':
-                self.on = not self.on
         elif key in [K_0, K_KP0]: # set pos and ori to 0
             self.x = self.viewport.width_pix / 2
             self.y = self.viewport.height_pix / 2
