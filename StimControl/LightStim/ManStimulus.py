@@ -25,29 +25,37 @@ STATUSBARHEIGHT = 15 # height of upper and lower status bars (pix)
 class ViewportInfoController(StimulusController):
     def __init__(self,*args,**kwargs):
         super(ViewportInfoController, self).__init__(*args,**kwargs)
-        self.vitp = self.stimulus.vitp
-        self.stp = self.stimulus.stp
+        self.vips = self.stimulus.viewport_indicators
         self.sltp = self.stimulus.sltp
         self.sptp = self.stimulus.sptp
     def during_go_eval(self):
-        viewport_names = []
+        # display interactive viewports list and indicate the current viewport
         for viewport in LightStim.Core.Viewport.registered_viewports:
-            if viewport.interactive:
-                viewport_names.append(viewport.name)
-        name_list = 'primary left right'
-        for name in name_list.split(' '):
-            if name not in viewport_names:
-                name_list = name_list.replace(name,' '*len(name))
-        self.vitp.text = "interactive viewports: " + name_list
+            if viewport.is_interactive(): 
+                for indicator in self.vips:
+                    if viewport.name == indicator.text:
+                        indicator.on = True # display interactive viewport indicator
+                        if viewport.is_current():
+                            indicator.color = (0.0, 1.0, 0.0, 1.0) # set current viewport indicator color to green
+                        else:
+                            indicator.color = (0.0, 1.0, 1.0, 1.0) # set other indicator color to cyan
+            else:
+                for indicator in self.vips:
+                    if viewport.name == indicator.text:
+                        indicator.on = False
+#        name_list = 'primary left right'
+#        for name in name_list.split():
+#            if name not in viewport_names:
+#                name_list = name_list.replace(name,' '*len(name))
+#        self.vitp.text = "interactive viewports: " + name_list
         
-        self.stp.text = self.stimulus.screenstring
+        
         if self.stimulus.brightenText == 'Manbar0':
             self.sptp.color = (1.0, 1.0, 0.0, 1.0) # set to yellow
         elif self.stimulus.brightenText == 'Manbar1':
             self.sptp.color = (1.0, 0.0, 0.0, 1.0) # set to red
         else:
             self.stimulus.sptp.color = (0.0, 1.0, 0.0, 1.0) # set it back to green
-            self.stimulus.stp.color = (0.0, 1.0, 1.0, 1.0) # set it back to cyan
 
         if self.stimulus.squarelock:
             self.stimulus.sltp.on = True
@@ -71,6 +79,7 @@ class ManStimulus(LightStim.Core.Stimulus):
 
         self.make_screen_info()
         self.info = (self.upperbar, self.squarelocktext, self.viewportinfotext, self.screentext,
+                     self.pvpindicatortext, self.lvpindicatortext, self.rvpindicatortext,
                      self.lowerbar, self.stimulusparamtext)
         self.make_stimuli()
         if disp_info:
@@ -101,7 +110,7 @@ class ManStimulus(LightStim.Core.Stimulus):
                                texture_mag_filter=gl.GL_NEAREST,
                                font_name=fontname,
                                font_size=10)
-        self.stp = self.screentext.parameters
+        self.screentext.parameters.text = self.screenstring
         self.squarelocktext = Text(position=(1, self.viewport.height_pix - STATUSBARHEIGHT + 1),
                                    anchor='upperleft',
                                    text='SQUARELOCK',
@@ -130,20 +139,35 @@ class ManStimulus(LightStim.Core.Stimulus):
         self.sptp = self.stimulusparamtext.parameters
         self.viewportinfotext = Text(position=(1, self.viewport.height_pix - 1),
                                      anchor='upperleft',
-                                     text='Interactive viewport: ',
+                                     text='interactive viewport: ',
                                      color=(0.0, 1.0, 1.0, 1.0),
                                      texture_mag_filter=gl.GL_NEAREST,
                                      font_name=fontname,
                                      font_size=10)
         self.vitp = self.viewportinfotext.parameters
-        self.control_viewport = Text(position=(1, self.viewport.height_pix - 1),
+        
+        self.pvpindicatortext = Text(position=(150, self.viewport.height_pix - 1),
                                      anchor='upperleft',
-                                     text='Interactive viewport: ',
+                                     text='primary',
                                      color=(0.0, 1.0, 1.0, 1.0),
                                      texture_mag_filter=gl.GL_NEAREST,
                                      font_name=fontname,
                                      font_size=10)
-        
+        self.lvpindicatortext = Text(position=(200, self.viewport.height_pix - 1),
+                                     anchor='upperleft',
+                                     text='left',
+                                     color=(0.0, 1.0, 1.0, 1.0),
+                                     texture_mag_filter=gl.GL_NEAREST,
+                                     font_name=fontname,
+                                     font_size=10)
+        self.rvpindicatortext = Text(position=(230, self.viewport.height_pix - 1),
+                                     anchor='upperleft',
+                                     text='right',
+                                     color=(0.0, 1.0, 1.0, 1.0),
+                                     texture_mag_filter=gl.GL_NEAREST,
+                                     font_name=fontname,
+                                     font_size=10)
+        self.viewport_indicators = (self.pvpindicatortext.parameters,self.lvpindicatortext.parameters,self.rvpindicatortext.parameters)
 
     def make_stimuli(self):
         raise RuntimeError("%s: Definition of make_stimuli() in abstract base class ManStimulus must be overriden."%(str(self),))

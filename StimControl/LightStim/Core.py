@@ -132,6 +132,10 @@ class Viewport(VisionEgg.Core.Viewport):
         return self.name
     def get_size(self):
         return self.size
+    def is_interactive(self):
+        return self.interactive
+    def set_interactive(self,interactive):
+        self.interactive = interactive
     def is_current(self):
         return self.current
     def set_current(self,current):
