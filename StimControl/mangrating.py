@@ -57,14 +57,14 @@ p.contrastmultiplier = 1.005
 # orientation step size to snap to when scrolling mouse wheel (deg)
 p.snapDeg = 18
 
-#stimulus_control = ManGrating(disp_info=True, params=p, viewport='control')
+stimulus_control = ManGrating(disp_info=True, params=p, viewport='control')
 stimulus_primary = ManGrating(disp_info=False, params=p, viewport='primary')
 stimulus_left = ManGrating(disp_info=False, params=p, viewport='left')
 stimulus_right = ManGrating(disp_info=False, params=p, viewport='right')
 
 if __name__ == "__main__":
     sweep = FrameSweep()
-    #sweep.add_stimulus(stimulus_control)
+    sweep.add_stimulus(stimulus_control)
     sweep.add_stimulus(stimulus_primary)
     sweep.add_stimulus(stimulus_left)
     sweep.add_stimulus(stimulus_right)

@@ -33,24 +33,18 @@ class ViewportInfoController(StimulusController):
         self.sptp = self.stimulus.sptp
     def during_go_eval(self):
         # display active viewports list and indicate the current viewport
-        for viewport in LightStim.Core.Viewport.registered_viewports:
-            if viewport.is_active(): 
-                for indicator in self.vips:
-                    if viewport.name == indicator.text:
-                        indicator.on = True # display active viewport indicator
-                        if viewport.is_current():
-                            indicator.color = (0.0, 1.0, 0.0, 1.0) # set current viewport indicator color to green
-                        else:
-                            indicator.color = (0.0, 1.0, 1.0, 1.0) # set other indicator color to cyan
+        active_viewports_names = [viewport.name for viewport in Viewport.registered_viewports if viewport.is_active()]
+        current_viewport_name = [viewport.name for viewport in Viewport.registered_viewports if viewport.is_current()]
+        for indicator in self.vips:
+            if indicator.text in active_viewports_names:
+                indicator.on = True # display active viewport indicator
+                if indicator.text in current_viewport_name:
+                    indicator.color = (0.0, 1.0, 0.0, 1.0) # set current viewport indicator color to green
+                else:
+                    indicator.color = (0.0, 1.0, 1.0, 1.0) # set other indicator color to cyan
             else:
-                for indicator in self.vips:
-                    if viewport.name == indicator.text:
-                        indicator.on = False
-#        name_list = 'primary left right'
-#        for name in name_list.split():
-#            if name not in viewport_names:
-#                name_list = name_list.replace(name,' '*len(name))
-#        self.vitp.text = "active viewports: " + name_list
+                indicator.on = False
+
         if self.stimulus.brightenText == 'Manbar0':
             self.sptp.color = (1.0, 1.0, 0.0, 1.0) # set to yellow
         elif self.stimulus.brightenText == 'Manbar1':
@@ -98,21 +92,43 @@ class ManViewport(LightStim.Core.Viewport):
     def keydown_callback(self,event):
         mods = pygame.key.get_mods()
         key = event.key
-        # set viewport activity and currenty this should be no business with control viewport 
+        # set viewport activity and currenty this should have no business with control viewport 
         def set_viewport(name):
-            if self.name == 'control': return
-#            if self.is_current():
+#            if self.is_current(): #  must clear other activity state.
 #                return
             if mods & pygame.locals.KMOD_CTRL:
                 if self.name == name:
                     self.set_activity(True)
                     self.set_current(True)
+                elif self.name == 'control':
+                    colone_stimuli('control', name)
                 else:
                     self.set_activity(False)
                     self.set_current(False)
             else:
                 if self.name == name:
                     self.set_activity(not self.is_active())
+       
+        def colone_stimuli(dest_viewport_name, src_viewport_name):
+            dest_viewports = [viewport for viewport in Viewport.registered_viewports if viewport.name == dest_viewport_name]
+            src_viewports = [viewport for viewport in Viewport.registered_viewports if viewport.name == src_viewport_name]
+            if dest_viewports == []:
+                raise RuntimeError("Cannot find destined viewport " + dest_viewport_name + ' in registered viewports.')
+            if src_viewports == []:
+                raise RuntimeError("Cannot find source viewport " + dest_viewport_name + ' in registered viewports.')
+            dest_viewport = dest_viewports[0]
+            src_viewport = src_viewports[0]
+            dest_viewport.parameters.stimuli = []
+            # clone the complete stimulus to control viewport
+            for stimulus in src_viewport.parameters.stimuli:
+                cloned_stimulus = copy.copy(stimulus)
+                cloned_stimulus.stimuli = stimulus.complete_stimuli
+                cloned_viewport = copy.copy(stimulus.viewport)
+                cloned_viewport.name = 'control'
+                cloned_stimulus.viewport = cloned_viewport # set to control viewport in case the event callbacks are picked off
+                cloned_stimulus.on = True # in control viewport it's not necessary to hide a stimulus
+                dest_viewport.parameters.stimuli.append(cloned_stimulus)
+                
         if key == K_h:
             if not self.name == 'control':
                 self.set_visibility(not self.is_visible())
@@ -137,16 +153,7 @@ class ManViewport(LightStim.Core.Viewport):
                         if next_viewport.name == 'control':
                             next_viewport = viewport_it.next()
                         next_viewport.set_current(True)
-                        self.parameters.stimuli = []
-                        # clone the complete stimulus to control viewport
-                        for stimulus in next_viewport.parameters.stimuli:
-                            cloned_stimulus = copy.copy(stimulus)
-                            cloned_stimulus.stimuli = stimulus.complete_stimuli
-                            cloned_viewport = copy.copy(stimulus.viewport)
-                            cloned_viewport.name = 'control'
-                            cloned_stimulus.viewport = cloned_viewport # set to control viewport in case the event callbacks are picked off
-                            cloned_stimulus.on = True # in control viewport it's not necessary to hide a stimulus
-                            self.parameters.stimuli.append(cloned_stimulus)
+                        colone_stimuli('control',next_viewport.name)
                         break
 
 class ManStimulus(LightStim.Core.Stimulus):
