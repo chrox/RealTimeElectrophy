@@ -31,7 +31,7 @@ class ViewportInfoController(StimulusController):
         self.sptp = self.stimulus.sptp
     def during_go_eval(self):
         viewport_names = []
-        for viewport in LightStim.Core.Viewport.current_viewports:
+        for viewport in LightStim.Core.Viewport.registered_viewports:
             if viewport.interactive:
                 viewport_names.append(viewport.name)
         name_list = 'primary left right'
@@ -55,7 +55,7 @@ class ViewportInfoController(StimulusController):
             self.stimulus.sltp.on = False
 
 class ManStimulus(LightStim.Core.Stimulus):
-    def __init__(self, params, **kwargs):
+    def __init__(self, disp_info, params, **kwargs):
         super(ManStimulus, self).__init__(**kwargs)
         for paramname, paramval in params.items():
             setattr(self, paramname, paramval) # bind all parameter names to self
@@ -70,9 +70,14 @@ class ManStimulus(LightStim.Core.Stimulus):
         self.LEFTBUTTON, self.RIGHTBUTTON, self.SCROLL_UP, self.SCROLL_DOWN = False, False, False, False
 
         self.make_screen_info()
-        self.register_event_handlers()
         self.info = (self.upperbar, self.squarelocktext, self.viewportinfotext, self.screentext,
                      self.lowerbar, self.stimulusparamtext)
+        self.make_stimuli()
+        if disp_info:
+            self.stimuli = self.complete_stimuli
+        else:
+            self.stimuli = self.essential_stimuli
+        self.register_event_handlers()
         
     def make_screen_info(self):
         size = self.viewport.get_size()
@@ -117,21 +122,28 @@ class ManStimulus(LightStim.Core.Stimulus):
                                  anti_aliasing=self.antialiase,
                                  color=(0.0, 0.0, 0.0, 1.0))
         self.stimulusparamtext = Text(position=(1, 1),
-                               anchor='lowerleft',
-                               color=(0.0, 1.0, 0.0, 1.0),
-                               texture_mag_filter=gl.GL_NEAREST,
-                               font_name=fontname,
-                               font_size=10)
+                                    anchor='lowerleft',
+                                    color=(0.0, 1.0, 0.0, 1.0),
+                                    texture_mag_filter=gl.GL_NEAREST,
+                                    font_name=fontname,
+                                    font_size=10)
         self.sptp = self.stimulusparamtext.parameters
         self.viewportinfotext = Text(position=(1, self.viewport.height_pix - 1),
-                               anchor='upperleft',
-                               text='Interactive viewport: ',
-                               color=(0.0, 1.0, 1.0, 1.0),
-                               texture_mag_filter=gl.GL_NEAREST,
-                               font_name=fontname,
-                               font_size=10,
-                               on=True)
+                                     anchor='upperleft',
+                                     text='Interactive viewport: ',
+                                     color=(0.0, 1.0, 1.0, 1.0),
+                                     texture_mag_filter=gl.GL_NEAREST,
+                                     font_name=fontname,
+                                     font_size=10)
         self.vitp = self.viewportinfotext.parameters
+        self.control_viewport = Text(position=(1, self.viewport.height_pix - 1),
+                                     anchor='upperleft',
+                                     text='Interactive viewport: ',
+                                     color=(0.0, 1.0, 1.0, 1.0),
+                                     texture_mag_filter=gl.GL_NEAREST,
+                                     font_name=fontname,
+                                     font_size=10)
+        
 
     def make_stimuli(self):
         raise RuntimeError("%s: Definition of make_stimuli() in abstract base class ManStimulus must be overriden."%(str(self),))

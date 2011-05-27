@@ -59,7 +59,7 @@ class GratingInfoController(StimulusController):
         super(GratingInfoController, self).__init__(*args,**kwargs)
         self.sptp = self.stimulus.sptp
     def during_go_eval(self):                     
-        self.sptp.text = 'pos:(%5.1f,%5.1f) deg | size:(%.1f,%.1f) deg | ori:%5.1f deg | tfq:%.2f cps | sfq:%.2f cpd | contrast:%.2f' \
+        self.sptp.text = 'pos:(%5.1f,%5.1f) deg | size:(%4.1f,%4.1f) deg | ori:%5.1f deg | tfq:%.2f cps | sfq:%.2f cpd | contrast:%.2f' \
                          % ( self.viewport.pix2deg(self.stimulus.x - self.viewport.width_pix / 2), 
                              self.viewport.pix2deg(self.stimulus.y - self.viewport.height_pix / 2),
                              self.stimulus.widthDeg, self.stimulus.heightDeg,
@@ -95,18 +95,17 @@ class ContrastController(StimulusController):
 #        self.stimulus.contrast = min(self.stimulus.contrast, 1) # keep it <= 1
             
 class ManGrating(ManStimulus):
-    def __init__(self, disp_info, **kwargs):
+    def __init__(self, **kwargs):
         super(ManGrating, self).__init__(**kwargs)
         self.name = 'mangrating'
         self.COMMA, self.PERIOD = False,False
         self.LEFTBRACKET, self.RIGHTBRACKET = False,False
 
-        self.make_stimuli(disp_info)
         self.register_controllers()
-        self.register_event_handlers()
+        #self.register_event_handlers()
         # load preference from saved file
         self.load_preference(0)
-    def make_stimuli(self, disp_info):
+    def make_stimuli(self):
         
         nsinsamples = 2048 # number of samples of sine f'n, must be power of 2, quality/performance tradeoff
         self.grating = SinGrating2D(anchor='center',
@@ -124,11 +123,9 @@ class ManGrating(ManStimulus):
                                                  color=(0.0, 1.0, 0.0, 0.0),
                                                  size=(3, 3),
                                                  on=True)
-        self.cp = self.centerspot.parameters   
-        if disp_info:
-            self.stimuli = (self.background, self.grating, self.fixationspot, self.centerspot) + self.info
-        else:
-            self.stimuli = (self.background, self.grating)
+        self.cp = self.centerspot.parameters
+        self.complete_stimuli = (self.background, self.grating, self.fixationspot, self.centerspot) + self.info
+        self.essential_stimuli = (self.background, self.grating)
     
     def register_stimulus_controller(self):
         self.controllers.append(SizeController(self))
@@ -139,9 +136,8 @@ class ManGrating(ManStimulus):
         self.controllers.append(ManGratingController(self))
         
     def register_info_controller(self):
-        if self.viewport.name == 'control':
-            super(ManGrating,self).register_info_controller()
-            self.controllers.append(GratingInfoController(self))
+        super(ManGrating,self).register_info_controller()
+        self.controllers.append(GratingInfoController(self))
         
     def register_event_handlers(self):
         super(ManGrating,self).register_event_handlers()

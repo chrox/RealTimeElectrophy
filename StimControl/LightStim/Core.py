@@ -13,6 +13,8 @@ This module contains classes for multiply displays stimulation.
 """
 from __future__ import division
 import os
+import itertools
+import copy
 import math
 import numpy as np
 import pygame
@@ -54,7 +56,6 @@ class Stimulus(object):
     def __init__(self, viewport, sweeptable=None, **kwargs):
         super(Stimulus, self).__init__(**kwargs)
         self.viewport = Viewport(name=viewport)
-        self.viewport_name = viewport
         self.sweeptable = sweeptable
         self.sweep_completed = False
         self.stimuli = []
@@ -94,10 +95,10 @@ class HorizontalMirrorView(VisionEgg.Core.ModelView):
 
 class Viewport(VisionEgg.Core.Viewport):
     """ Named viewport in hardware configuration file LightStim.cfg
-        Register the this viewport in current viewports list
+        Register this viewport in viewport list when .
     """
     default_screen = Screen(num_displays=4, bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8)
-    current_viewports = []
+    registered_viewports = [] # registered viewports in screen. Update when stimulus is added. And viewport is deleted.
     def __init__(self, name, **kw):
         self.width_pix = LightStim.config.get_viewport_width_pix(name)
         self.height_pix = LightStim.config.get_viewport_height_pix(name)
@@ -116,18 +117,30 @@ class Viewport(VisionEgg.Core.Viewport):
         
         self.name = name
         self.interactive = True
-        self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback)]
+        if self.name == 'control':
+            self.current = True
+        else:
+            self.current = False
         
+        self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback)]
         if self.mirrored:
             mirror_view = HorizontalMirrorView(width=self.width_pix)
         else:
             mirror_view = None
         super(Viewport,self).__init__(position=(self.offset_pix,0), size=self.size, camera_matrix=mirror_view, screen=Viewport.default_screen, **kw)
+    def get_name(self):
+        return self.name
+    def get_size(self):
+        return self.size
+    def is_current(self):
+        return self.current
+    def set_current(self,current):
+        self.current = current
     def keydown_callback(self,event):
         key = event.key
         if key == pygame.locals.K_F1:
-            if self.name == 'control':
-                self.interactive = not self.interactive
+            # control viewport should never be deactivated
+            pass
         elif key == pygame.locals.K_F2:
             if self.name == 'primary':
                 self.interactive = not self.interactive
@@ -137,9 +150,23 @@ class Viewport(VisionEgg.Core.Viewport):
         elif key == pygame.locals.K_F4:
             if self.name == 'right':
                 self.interactive = not self.interactive
-    def get_size(self):
-        return self.size
-    
+        elif key == pygame.locals.K_TAB:
+            if self.name == 'control':
+                cycle_viewports = [viewport for viewport in Viewport.registered_viewports if not viewport.name == 'control']
+                viewport_it = itertools.cycle(Viewport.registered_viewports)
+                for viewport in viewport_it:
+                    if viewport.is_current():
+                        viewport.set_current(False)
+                        next_viewport = viewport_it.next()
+                        if next_viewport.name == 'control':
+                            next_viewport = viewport_it.next()
+                        next_viewport.set_current(True)
+                        self.parameters.stimuli = []
+                        for stimulus in next_viewport.parameters.stimuli:
+                            control_stimulus = copy.copy(stimulus)
+                            control_stimulus.stimuli = stimulus.complete_stimuli
+                            self.parameters.stimuli.append(control_stimulus)
+                        break
     ############# Some spatial utilities #############
     def deg2pix(self, deg):
         """Convert from degrees of visual space to pixels"""

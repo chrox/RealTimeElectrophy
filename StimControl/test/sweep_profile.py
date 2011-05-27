@@ -6,7 +6,7 @@
 # Distributed under the terms of the GNU Lesser General Public License
 # (LGPL). See LICENSE.TXT that came with this file.
 import cProfile,pstats
-from StimControl.mangrating import *
+from StimControl.mangrating import FrameSweep,stimulus_control,stimulus_primary,stimulus_left,stimulus_right
 
 sweep = FrameSweep()
 sweep.add_stimulus(stimulus_control)

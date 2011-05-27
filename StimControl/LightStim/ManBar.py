@@ -28,9 +28,7 @@ class ManBarController(StimulusController):
         self.bgp = self.stimulus.bgp
         self.tipp = self.stimulus.tipp
         self.cp = self.stimulus.cp
-        self.sptp = self.stimulus.sptp
-        self.stp = self.stimulus.stp
-        self.sltp = self.stimulus.sltp 
+
     def during_go_eval(self):
         self.stimulus.tp.on = self.stimulus.on
         width = self.viewport.deg2pix(self.stimulus.widthDeg) # convenience
@@ -106,17 +104,14 @@ class OrientationController(StimulusController):
         self.stimulus.ori = self.stimulus.ori % 360 # keep it in [0, 360)
 
 class ManBar(ManStimulus):
-    def __init__(self, disp_info, **kwargs):
+    def __init__(self, **kwargs):
         super(ManBar, self).__init__(**kwargs)
         
         self.name = 'manbar'
-        self.make_stimuli(disp_info)
         self.register_controllers()
-        # load preference from saved file
         self.load_preference(0)
         
-    def make_stimuli(self, disp_info):
-        
+    def make_stimuli(self):
         self.target = Target2D(anchor='center',
                                anti_aliasing=self.antialiase,
                                color=(self.brightness, self.brightness, self.brightness, 1.0))
@@ -135,11 +130,9 @@ class ManBar(ManStimulus):
                                                  color=(0.0, 1.0, 0.0, 0.0),
                                                  size=(3, 3),
                                                  on=True)
-        self.cp = self.centerspot.parameters    
-        if disp_info:
-            self.stimuli = (self.background, self.target, self.tip, self.fixationspot, self.centerspot) + self.info
-        else:
-            self.stimuli = (self.background, self.target)
+        self.cp = self.centerspot.parameters
+        self.complete_stimuli = (self.background, self.target, self.tip, self.fixationspot, self.centerspot) + self.info
+        self.essential_stimuli = (self.background, self.target)
     
     def register_stimulus_controller(self):
         self.controllers.append(SizeController(self))
@@ -148,9 +141,8 @@ class ManBar(ManStimulus):
         self.controllers.append(ManBarController(self))
 
     def register_info_controller(self):
-        if self.viewport.name == 'control':
-            super(ManBar,self).register_info_controller()
-            self.controllers.append(BarInfoController(self))
+        super(ManBar,self).register_info_controller()
+        self.controllers.append(BarInfoController(self))
 
     def register_event_handlers(self):
         super(ManBar,self).register_event_handlers()

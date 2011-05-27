@@ -32,7 +32,7 @@ class RemoveViewportController(SweepController):
             for stimulus in viewport.parameters.stimuli:
                 viewport_cleaned &= stimulus.sweep_completed
             if viewport_cleaned:
-                Viewport.current_viewports.remove(viewport)
+                Viewport.registered_viewports.remove(viewport)
                 self.framesweep.parameters.viewports.remove(viewport)
                 
 class EventHandlerController(SweepController):
@@ -81,13 +81,17 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
             stimulus.viewport = Viewport(name='control')
         if not hasattr(stimulus,'sweep_completed'):
             stimulus.sweep_completed = False
-        stimulus.viewport.parameters.stimuli.append(stimulus)    
-#        if isinstance(stimulus.viewport.parameters.screen, Dummy_Screen):
-#            stimulus.viewport.parameters.screen = self.screen
-        if stimulus.viewport not in p.viewports:
-            Viewport.current_viewports.append(stimulus.viewport)
+        stimulus.viewport.parameters.stimuli.append(stimulus)
+        # for a new viewport not registered in the screen
+        if stimulus.viewport.name not in [viewport.name for viewport in p.viewports]:
+            Viewport.registered_viewports.append(stimulus.viewport)
             p.viewports.append(stimulus.viewport)
             p.handle_event_callbacks += stimulus.viewport.event_handlers 
+        # there is already one viewport with the same viewport name
+        else:
+            for viewport in p.viewports:
+                if stimulus.viewport.name == viewport.name:
+                    viewport.parameters.stimuli.append(stimulus)
             
     def add_controllers(self):
         """ Update the controllers in framesweep. The controller of each stimulus should be delayed to add into the sweep.
