@@ -106,7 +106,9 @@ class ManViewport(LightStim.Core.Viewport):
                     self.set_activity(False)
                     self.set_current(False)
             else:
-                if self.name == name:
+                if self.is_current():
+                    return
+                elif self.name == name:
                     self.set_activity(not self.is_active())
        
         def colone_stimuli(dest_viewport_name, src_viewport_name):
@@ -124,7 +126,7 @@ class ManViewport(LightStim.Core.Viewport):
                 cloned_stimulus = copy.copy(stimulus)
                 cloned_stimulus.stimuli = stimulus.complete_stimuli
                 cloned_viewport = copy.copy(stimulus.viewport)
-                cloned_viewport.name = 'control'
+                cloned_viewport.name = dest_viewport_name
                 cloned_stimulus.viewport = cloned_viewport # set to control viewport in case the event callbacks are picked off
                 cloned_stimulus.on = True # in control viewport it's not necessary to hide a stimulus
                 dest_viewport.parameters.stimuli.append(cloned_stimulus)
@@ -144,7 +146,8 @@ class ManViewport(LightStim.Core.Viewport):
             if self.name == 'control':
                 active_viewports = [viewport for viewport in Viewport.registered_viewports if viewport.is_active()]
                 # assert there is at least one current viewport
-                assert len(active_viewports) > 0
+                if len(active_viewports) == 1:
+                    return
                 viewport_it = itertools.cycle(active_viewports)
                 for viewport in viewport_it:
                     if viewport.is_current():
@@ -154,7 +157,7 @@ class ManViewport(LightStim.Core.Viewport):
                             next_viewport = viewport_it.next()
                         next_viewport.set_current(True)
                         colone_stimuli('control',next_viewport.name)
-                        break
+                        return
 
 class ManStimulus(LightStim.Core.Stimulus):
     def __init__(self, disp_info, params, viewport, **kwargs):
