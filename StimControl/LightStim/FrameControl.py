@@ -36,19 +36,26 @@ class RemoveViewportController(SweepController):
                 self.framesweep.parameters.viewports.remove(viewport)
                 
 class EventHandlerController(SweepController):
-    """ Per viewport control of the stimulus event handler.
-        If the stimulus is active then attach its event handlers to framesweep.
+    """ Per viewport control of the stimulus event handlers.
+        Attach viewport event handlers to framesweep.
     """
     def during_go_eval(self):
         p = self.framesweep.parameters
+        p.handle_event_callbacks = []
+        p.handle_event_callbacks += self.framesweep.event_handlers
         for viewport in p.viewports:
-            for stimulus in viewport.parameters.stimuli:
-                if hasattr(stimulus,'event_handlers'):
-                    for event_handler in stimulus.event_handlers:
-                        if event_handler not in p.handle_event_callbacks and viewport.active:
-                            p.handle_event_callbacks.append(event_handler)
-                        elif event_handler in p.handle_event_callbacks and not viewport.active:
-                            p.handle_event_callbacks.remove(event_handler)
+            if hasattr(viewport,'event_handlers'):
+                p.handle_event_callbacks += viewport.event_handlers
+        
+#        p = self.framesweep.parameters
+#        for viewport in p.viewports:
+#            for stimulus in viewport.parameters.stimuli:
+#                if hasattr(stimulus,'event_handlers'):
+#                    for event_handler in stimulus.event_handlers:
+#                        if event_handler not in p.handle_event_callbacks and viewport.is_current():
+#                            p.handle_event_callbacks.append(event_handler)
+#                        elif event_handler in p.handle_event_callbacks and not viewport.is_current():
+#                            p.handle_event_callbacks.remove(event_handler)
 
 class FrameSweep(VisionEgg.FlowControl.Presentation):
     """ FrameSweep is a subclass of VisionEgg Presentation.The FrameSweep maintains the relationships among stimulus, viewport
@@ -63,9 +70,9 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.paused = False
         
         super(FrameSweep, self).__init__(go_duration=('forever',''))
-        self.parameters.handle_event_callbacks = [(pygame.locals.QUIT, self.quit_callback),
-                                                  (pygame.locals.KEYDOWN, self.keydown_callback),
-                                                  (pygame.locals.KEYUP, self.keyup_callback)]
+        self.event_handlers = [(pygame.locals.QUIT, self.quit_callback),
+                               (pygame.locals.KEYDOWN, self.keydown_callback),
+                               (pygame.locals.KEYUP, self.keyup_callback)]
         self.add_controller(None, None, EventHandlerController(self))
         self.add_controller(None, None, RemoveViewportController(self))
         self.add_controller(None, None, QuitSweepController(self))

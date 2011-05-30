@@ -10,7 +10,6 @@ import itertools
 import Pyro.core
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
-from LightStim.Core import Viewport 
 
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.

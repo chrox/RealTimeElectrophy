@@ -5,6 +5,9 @@ TODO:
 	- Building VisionEgg Text stimulus in real time will lag the sweep for 2ms. I have to write my fast text stimulus to display info. 
 
 - Requested Feature:
+	- since once sweep go runs, the simulus in every viewport no matter whether it's active or current or visible the controllers of that stimulus are always 
+	  evaluated by the sweep go function. So if the stimulus has a trigger controller it will will never stop triggering external device. The stimulus onset/offset and 
+	  characterization should be included in the trigger stamp by the trigger controller itself. Sweep and Viewport will never handle that thing.
 	- viewport position calibration
 	- add Mask in mangrating
 	- stimulus can be copied from one viewport to another
