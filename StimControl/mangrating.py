@@ -21,15 +21,14 @@ from LightStim.ManGrating import ManGrating
 # Manual Grating experiment parameters, all must be scalars
 
 p = StaticParams()
-p.xorigDeg = 0
-p.yorigDeg = 0
-p.ori = 0
-p.sfreqCycDeg = 0.07
-p.tfreqCycSec = 0.5
 # grating width (deg)
 p.widthDeg = 20
 # grating height (deg)
 p.heightDeg = 20
+# mask, one of:  None, 'gaussian', or 'circle'
+p.mask = 'circle'
+p.maskDiameterDeg = 5
+p.maskSizeStepDeg = 0.5
 # initial grating phase
 p.phase0 = 0
 # grating mean luminance (0-1)
@@ -37,15 +36,11 @@ p.ml = 0.5
 # grating contrast (0-1)
 p.contrast = 1
 # background brightness (0-1)
-p.bgbrightness = 0
+p.bgbrightness = 0.0
 # antialiase the bar?
 p.antialiase = True
-# flash the grating?
-p.flash = False
-# duration of each flash cycle (on and off) (sec)
-p.flashSec = 1
 # rate of change of size during buttonpress (deg/sec)
-p.sizerateDegSec = 10
+p.sizerateDegSec = 25
 # rate of change of orientation during mouse button press (deg/sec)
 p.orirateDegSec = 18
 # factor to change temporal freq by on up/down

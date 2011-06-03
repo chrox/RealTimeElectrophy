@@ -13,9 +13,10 @@ import pickle
 import logging
 
 import pygame
-from pygame.locals import K_COMMA,K_PERIOD,K_LEFTBRACKET,K_RIGHTBRACKET
+from pygame.locals import K_COMMA,K_PERIOD,K_LEFTBRACKET,K_RIGHTBRACKET,K_m
 from VisionEgg.Core import FixationSpot
 from VisionEgg.Gratings import SinGrating2D
+from VisionEgg.Textures import Mask2D
 
 from SweepController import StimulusController
 from ManStimulus import ManStimulus
@@ -26,6 +27,8 @@ class ManGratingController(StimulusController):
     def __init__(self,*args,**kwargs):
         super(ManGratingController, self).__init__(*args,**kwargs)
         self.gp = self.stimulus.gp
+        if self.stimulus.mask:
+            self.gmp = self.stimulus.gmp
         self.bgp = self.stimulus.bgp
         self.cp = self.stimulus.cp 
     def during_go_eval(self):
@@ -33,10 +36,31 @@ class ManGratingController(StimulusController):
                            self.viewport.deg2pix(self.stimulus.yorigDeg) + self.viewport.yorig # update center spot position
         self.gp.position = self.cp.position
         self.gp.on = self.stimulus.on
-        self.gp.size = self.viewport.deg2pix(self.stimulus.heightDeg), self.viewport.deg2pix(self.stimulus.widthDeg) # convert to pix
+        if self.stimulus.mask and self.stimulus.mask_on:
+            self.gp.size = [max(self.viewport.width_pix,self.viewport.height_pix) * 1.415] * 2
+            samplesperpix = self.stimulus.nmasksamples / min(self.gp.size[0],self.gp.size[1])
+            radius = self.viewport.deg2pix(self.stimulus.maskDiameterDeg) / 2.0
+            if self.gp.mask:
+                old_params = self.gp.mask.constant_parameters
+                if not radius*samplesperpix == old_params.radius_parameter:
+                    new_mask = Mask2D(function=old_params.function,
+                                      radius_parameter=radius*samplesperpix,
+                                      num_samples=old_params.num_samples)
+                    self.gp.mask = new_mask
+            elif hasattr(self.stimulus,'last_mask'):
+                self.gp.mask = self.stimulus.last_mask
+            else:
+                new_mask = Mask2D(function=self.stimulus.grating_mask.constant_parameters.function,
+                                  radius_parameter=radius*samplesperpix,
+                                  num_samples=self.stimulus.grating_mask.constant_parameters.num_samples)
+                self.gp.mask = new_mask
+            self.stimulus.last_mask = self.gp.mask
+        else:
+            self.gp.size = self.viewport.deg2pix(self.stimulus.heightDeg), self.viewport.deg2pix(self.stimulus.widthDeg) # convert to pix
+            self.gp.mask = None
         self.gp.spatial_freq = self.viewport.cycDeg2cycPix(self.stimulus.sfreqCycDeg)
         self.gp.temporal_freq_hz = self.stimulus.tfreqCycSec
-
+        
         # customize the drifting process so that when changing the grating size the drifting keeps smooth
         # have some hacks to rectify phase_at_t0
         try:
@@ -59,12 +83,18 @@ class GratingInfoController(StimulusController):
     def __init__(self,*args,**kwargs):
         super(GratingInfoController, self).__init__(*args,**kwargs)
         self.sptp = self.stimulus.sptp
-    def during_go_eval(self):                     
-        self.sptp.text = 'pos: (%5.1f, %5.1f) deg | size: (%4.1f, %4.1f) deg | ori: %5.1f deg | tfreq: %.2f cyc/sec | sfreq: %.2f cyc/deg | contrast: %.2f' \
-                         % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
-                             self.stimulus.widthDeg, self.stimulus.heightDeg,
-                             self.stimulus.ori, self.stimulus.tfreqCycSec, self.stimulus.sfreqCycDeg, self.stimulus.contrast)
-                         
+    def during_go_eval(self):
+        if not self.stimulus.mask_on:                     
+            self.sptp.text = 'pos: (%5.1f, %5.1f) deg | size: (%4.1f, %4.1f) deg | ori: %5.1f deg | tfreq: %.2f cyc/sec | sfreq: %.2f cyc/deg | contrast: %.2f' \
+                            % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
+                                self.stimulus.widthDeg, self.stimulus.heightDeg,
+                                self.stimulus.ori, self.stimulus.tfreqCycSec, self.stimulus.sfreqCycDeg, self.stimulus.contrast)
+        else:
+            self.sptp.text = 'pos: (%5.1f, %5.1f) deg | diameter: %5.1f deg | ori: %5.1f deg | tfreq: %.2f cyc/sec | sfreq: %.2f cyc/deg | contrast: %.2f' \
+                            % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
+                                self.stimulus.maskDiameterDeg,
+                                self.stimulus.ori, self.stimulus.tfreqCycSec, self.stimulus.sfreqCycDeg, self.stimulus.contrast)
+                 
 class SpatialFrequencyController(StimulusController):
     def __init__(self,*args,**kwargs):
         super(SpatialFrequencyController, self).__init__(*args,**kwargs)
@@ -93,7 +123,23 @@ class ContrastController(StimulusController):
             self.stimulus.contrast /= self.stimulus.contrastmultiplier
 #        self.stimulus.contrast = max(self.stimulus.contrast, 0) # keep it >= 0
 #        self.stimulus.contrast = min(self.stimulus.contrast, 1) # keep it <= 1
-            
+
+class GratingSizeController(SizeController):
+    def __init__(self,*args,**kwargs):
+        super(GratingSizeController, self).__init__(*args,**kwargs)
+    def during_go_eval(self):
+        if self.stimulus.mask and self.stimulus.mask_on:
+            if self.stimulus.UP or self.stimulus.RIGHT:
+                self.stimulus.maskDiameterDeg += self.stimulus.maskSizeStepDeg
+            elif self.stimulus.DOWN or self.stimulus.LEFT:
+                self.stimulus.maskDiameterDeg = max(self.stimulus.maskDiameterDeg - self.stimulus.maskSizeStepDeg, 0.1)
+            if self.stimulus.widthDeg < self.stimulus.heightDeg: # set smaller value of grating width and height to maskDiameter 
+                self.stimulus.widthDeg = self.stimulus.maskDiameterDeg
+            else:
+                self.stimulus.heightDeg = self.stimulus.maskDiameterDeg
+        else:
+            super(GratingSizeController, self).during_go_eval()
+    
 class ManGrating(ManStimulus):
     def __init__(self, **kwargs):
         super(ManGrating, self).__init__(**kwargs)
@@ -106,14 +152,21 @@ class ManGrating(ManStimulus):
         # load preference from saved file
         self.load_preference(0)
     def make_stimuli(self):
-        
-        nsinsamples = 2048 # number of samples of sine f'n, must be power of 2, quality/performance tradeoff
+        nsinsamples = 1024 # number of samples of sine f'n, must be power of 2, quality/performance tradeoff
         self.grating = SinGrating2D(anchor='center',
                                     pedestal=self.ml,
                                     ignore_time=True,
                                     num_samples=nsinsamples,
                                     max_alpha=1.0) # opaque
         self.gp = self.grating.parameters
+        if self.mask:
+            self.nmasksamples = 1024
+            self.grating_mask = Mask2D(function=self.mask, num_samples=(self.nmasksamples, self.nmasksamples)) # size of mask texture data (# of texels)
+            self.gmp = self.grating_mask.parameters
+            self.gp.mask = self.grating_mask
+            self.mask_on = True
+        else:
+            self.mask_on = False
         self.fixationspot = FixationSpot(anchor='center',
                                                  color=(1.0, 0.0, 0.0, 0.0),
                                                  size=(5, 5),
@@ -128,7 +181,7 @@ class ManGrating(ManStimulus):
         self.essential_stimuli = (self.background, self.grating)
     
     def register_stimulus_controller(self):
-        self.controllers.append(SizeController(self))
+        self.controllers.append(GratingSizeController(self))
         self.controllers.append(SpatialFrequencyController(self))
         self.controllers.append(TemporalFrequencyController(self))
         self.controllers.append(OrientationController(self))
@@ -156,6 +209,8 @@ class ManGrating(ManStimulus):
             self.LEFTBRACKET = True
         elif key == K_RIGHTBRACKET:
             self.RIGHTBRACKET = True
+        elif key == K_m:
+            self.mask_on = not self.mask_on
             
     def keyup_callback(self,event):
         super(ManGrating,self).keyup_callback(event)
@@ -178,6 +233,7 @@ class ManGrating(ManStimulus):
                                    'yorigDeg':0.0,
                                    'widthDeg':15.0,
                                    'heightDeg':15.0,
+                                   'maskDiameterDeg':15.0,
                                    'sfreqCycDeg':0.07,
                                    'tfreqCycSec':0.5,
                                    'ori': 0.0}
@@ -192,6 +248,8 @@ class ManGrating(ManStimulus):
         self.yorigDeg = self.preference['yorigDeg']
         self.widthDeg = self.preference['widthDeg']
         self.heightDeg = self.preference['widthDeg']
+        if 'maskDiameterDeg' in self.preference:
+            self.maskDiameterDeg = self.preference['maskDiameterDeg']
         if 'sfreqCycDeg' in self.preference:
             self.sfreqCycDeg = self.preference['sfreqCycDeg']
         if 'tfreqCycSec' in self.preference:
@@ -223,6 +281,7 @@ class ManGrating(ManStimulus):
                 self.preference['yorigDeg'] = self.yorigDeg
                 self.preference['widthDeg'] = self.widthDeg
                 #self.preference['heightDeg'] = self.heightDeg
+                self.preference['maskDiameterDeg'] = self.maskDiameterDeg
                 self.preference['sfreqCycDeg'] = self.sfreqCycDeg
                 self.preference['tfreqCycSec'] = self.tfreqCycSec
                 self.preference['ori'] = self.ori
