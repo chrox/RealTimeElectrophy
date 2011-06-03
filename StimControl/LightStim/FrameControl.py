@@ -41,22 +41,25 @@ class EventHandlerController(SweepController):
     """
     def during_go_eval(self):
         p = self.framesweep.parameters
-        p.handle_event_callbacks = []
-        p.handle_event_callbacks += self.framesweep.event_handlers
+        p.handle_event_callbacks = list(self.framesweep.event_handlers)
         for viewport in p.viewports:
             if hasattr(viewport,'event_handlers'):
                 p.handle_event_callbacks += viewport.event_handlers
+            if viewport.is_current():
+                for stimulus in viewport.parameters.stimuli:
+                    if hasattr(stimulus,'event_handlers'): # update the viewport event handler only when the viewport is the current viewport.
+                        p.handle_event_callbacks += stimulus.event_handlers
+                
+class StimulusControllersController(SweepController):
+    def during_go_eval(self):
+        p = self.framesweep.parameters
+        self.framesweep.controllers = list(self.framesweep.sweep_controllers)
+        for viewport in p.viewports:
+            for stimulus in viewport.parameters.stimuli:
+                if hasattr(stimulus,'controllers'):
+                    for controller in stimulus.controllers:
+                        self.framesweep.controllers.append((None,None,controller))
         
-#        p = self.framesweep.parameters
-#        for viewport in p.viewports:
-#            for stimulus in viewport.parameters.stimuli:
-#                if hasattr(stimulus,'event_handlers'):
-#                    for event_handler in stimulus.event_handlers:
-#                        if event_handler not in p.handle_event_callbacks and viewport.is_current():
-#                            p.handle_event_callbacks.append(event_handler)
-#                        elif event_handler in p.handle_event_callbacks and not viewport.is_current():
-#                            p.handle_event_callbacks.remove(event_handler)
-
 class FrameSweep(VisionEgg.FlowControl.Presentation):
     """ FrameSweep is a subclass of VisionEgg Presentation.The FrameSweep maintains the relationships among stimulus, viewport
         and screen. And it takes the responsibility for keeping proper order of these objects for VisionEgg presentation go method.
@@ -73,10 +76,10 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.event_handlers = [(pygame.locals.QUIT, self.quit_callback),
                                (pygame.locals.KEYDOWN, self.keydown_callback),
                                (pygame.locals.KEYUP, self.keyup_callback)]
-        self.add_controller(None, None, EventHandlerController(self))
-        self.add_controller(None, None, RemoveViewportController(self))
-        self.add_controller(None, None, QuitSweepController(self))
-
+        self.sweep_controllers = [(None,None,StimulusControllersController(self)),
+                                  (None,None,EventHandlerController(self)),
+                                  (None,None,QuitSweepController(self))]
+        self.add_controller(None, None, StimulusControllersController(self))
     def add_stimulus(self, stimulus):
         """ The main maniputate interface of framesweep.
             Update the stimulus in viewport and viewport in framesweep.
@@ -93,7 +96,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         if stimulus.viewport.name not in [viewport.name for viewport in p.viewports]:
             Viewport.registered_viewports.append(stimulus.viewport)
             p.viewports.append(stimulus.viewport)
-            p.handle_event_callbacks += stimulus.viewport.event_handlers 
+            #p.handle_event_callbacks += stimulus.viewport.event_handlers 
         # there is already one viewport with the same viewport name
         else:
             for viewport in p.viewports:

@@ -5,18 +5,22 @@ TODO:
 	- Building VisionEgg Text stimulus in real time will lag the sweep for 2ms. I have to write my fast text stimulus to display info. 
 
 - Requested Feature:
-	- since once sweep go runs, the simulus in every viewport no matter whether it's active or current or visible the controllers of that stimulus are always 
-	  evaluated by the sweep go function. So if the stimulus has a trigger controller it will will never stop triggering external device. The stimulus onset/offset and 
-	  characterization should be included in the trigger stamp by the trigger controller itself. Sweep and Viewport will never handle that thing.
 	- viewport position calibration
 	- add Mask in mangrating
-	- stimulus can be copied from one viewport to another
+	- stimulus can be copied from one viewport to another (copy stimulus is too complicated, try copy stimulus parameters)
 	- add Preference module to serialize the preference parameter objects
 	- screen gamma calibration
 	- specifying 2/3 or 4 viewports in client code
 	- create a global vsynctable for SweepTableController so that runtime modification could be easier.
 	- GUI control of the LightStim with WxPython and pyro
     
+DESIGN:
+	- Since once sweep go runs, the simulus in every viewport no matter whether it's active or current or visible the controllers of that stimulus are always 
+	  evaluated by the sweep go function. So if the stimulus has a trigger controller it will will never stop triggering external device. The stimulus onset/offset and 
+	  characterization should be included in the trigger stamp by the trigger controller itself. Sweep and Viewport will never handle that thing.
+	- Event handlers are like regulatory genes.They run when the environment has changed. While controllers are house-keeping genes which maintains basic program functions.
+	  
+
 MEMO:
 	Test-driven development is urgently needed.
 	Beautiful is better than ugly. Simple is better than complex. Complex is better than complicated. Sparse is better than dense.

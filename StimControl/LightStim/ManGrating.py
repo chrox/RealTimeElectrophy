@@ -59,7 +59,7 @@ class GratingInfoController(StimulusController):
         super(GratingInfoController, self).__init__(*args,**kwargs)
         self.sptp = self.stimulus.sptp
     def during_go_eval(self):                     
-        self.sptp.text = 'pos:(%5.1f,%5.1f) deg | size:(%4.1f,%4.1f) deg | ori:%5.1f deg | tfq:%.2f cps | sfq:%.2f cpd | contrast:%.2f' \
+        self.sptp.text = 'pos: (%5.1f, %5.1f) deg | size: (%4.1f, %4.1f) deg | ori: %5.1f deg | tfreq: %.2f cyc/sec | sfreq: %.2f cyc/deg | contrast: %.2f' \
                          % ( self.viewport.pix2deg(self.stimulus.x - self.viewport.width_pix / 2), 
                              self.viewport.pix2deg(self.stimulus.y - self.viewport.height_pix / 2),
                              self.stimulus.widthDeg, self.stimulus.heightDeg,
@@ -141,6 +141,9 @@ class ManGrating(ManStimulus):
         
     def register_event_handlers(self):
         super(ManGrating,self).register_event_handlers()
+        
+    def rebuild_event_handlers(self):
+        super(ManGrating,self).rebuild_event_handlers()
         
     def keydown_callback(self,event):
         super(ManGrating,self).keydown_callback(event)

@@ -9,12 +9,10 @@
 from __future__ import division
 import numpy as np
 np.seterr(all='raise')
-import copy
-import itertools
 
 import pygame
 from pygame.locals import K_UP,K_DOWN,K_RIGHT,K_LEFT,K_EQUALS,K_MINUS,K_RSHIFT,K_LSHIFT,K_SPACE,K_RETURN,K_KP_ENTER,KMOD_CTRL
-from pygame.locals import K_h,K_e,K_0,K_KP0,K_1,K_KP1,K_2,K_KP2
+from pygame.locals import K_e,K_0,K_KP0,K_1,K_KP1,K_2,K_KP2
 import VisionEgg.GL as gl
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Text import Text
@@ -22,6 +20,7 @@ from SweepController import StimulusController
 
 import LightStim.Core
 from LightStim.Core import Viewport
+from ManViewport import ManViewport
 
 STATUSBARHEIGHT = 15 # height of upper and lower status bars (pix)
 
@@ -33,8 +32,8 @@ class ViewportInfoController(StimulusController):
         self.sptp = self.stimulus.sptp
     def during_go_eval(self):
         # display active viewports list and indicate the current viewport
-        active_viewports_names = [viewport.name for viewport in Viewport.registered_viewports if viewport.is_active()]
-        current_viewport_name = [viewport.name for viewport in Viewport.registered_viewports if viewport.is_current()]
+        active_viewports_names = [viewport.get_name() for viewport in Viewport.registered_viewports if viewport.is_active()]
+        current_viewport_name = [viewport.get_name() for viewport in Viewport.registered_viewports if viewport.is_current()]
         for indicator in self.vips:
             if indicator.text in active_viewports_names:
                 indicator.on = True # display active viewport indicator
@@ -74,116 +73,6 @@ class ViewportEventHandlerController(StimulusController):
                     viewport.event_handlers.append(event_handler) 
                 elif event_handler in viewport.event_handlers and not viewport.is_current():
                     viewport.event_handlers.remove(event_handler) 
-
-class ManViewport(LightStim.Core.Viewport):
-    # add event control callback
-    def __init__(self,**kwargs):
-        super(ManViewport, self).__init__(**kwargs)
-        self.active = True
-        if self.name == 'control':
-            self.visible = True
-            self.current = True
-        else:
-            self.visible = False
-            self.current = False
-        self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback)]
-
-    def draw(self):
-        if not self.is_active() or not self.is_visible():
-            return
-        self.make_current()
-        self._is_drawing = True
-        for stimulus in self.parameters.stimuli:
-            stimulus.draw()
-        self._is_drawing = False
-        
-    def is_active(self):
-        return self.active
-    def set_activity(self,activity):
-        self.active = activity
-    def is_visible(self):
-        return self.visible
-    def set_visibility(self,visibility):
-        self.visible = visibility
-    def is_current(self):
-        return self.current
-    def set_current(self,current):
-        self.current = current
-        
-    def __colone_stimuli(self, dest_viewport_name, src_viewport_name):
-            dest_viewports = [viewport for viewport in Viewport.registered_viewports if viewport.name == dest_viewport_name]
-            src_viewports = [viewport for viewport in Viewport.registered_viewports if viewport.name == src_viewport_name]
-            if dest_viewports == []:
-                raise RuntimeError("Cannot find destined viewport " + dest_viewport_name + ' in registered viewports.')
-            if src_viewports == []:
-                raise RuntimeError("Cannot find source viewport " + dest_viewport_name + ' in registered viewports.')
-            dest_viewport = dest_viewports[0]
-            src_viewport = src_viewports[0]
-            dest_viewport.parameters.stimuli = []
-            # clone the complete stimulus to control viewport
-            for stimulus in src_viewport.parameters.stimuli:
-                cloned_stimulus = copy.copy(stimulus)
-                cloned_stimulus.stimuli = stimulus.complete_stimuli
-                cloned_viewport = copy.copy(stimulus.viewport)
-                cloned_viewport.name = dest_viewport_name
-                cloned_stimulus.viewport = cloned_viewport # set to control viewport in case the event callbacks are picked off
-                cloned_stimulus.on = True # in control viewport it's not necessary to hide a stimulus
-                dest_viewport.parameters.stimuli.append(cloned_stimulus)
-                
-    def keydown_callback(self,event):
-        mods = pygame.key.get_mods()
-        key = event.key
-        # set viewport activity and currenty this should have no business with control viewport 
-        def activate_viewport(name):
-#            if self.is_current(): #  must clear other activity state.
-#                return
-            if mods & pygame.locals.KMOD_CTRL:
-                if self.name == name:
-                    self.set_activity(True)
-                    self.set_current(True)
-                elif self.name == 'control':
-                    self.__colone_stimuli('control', name)
-                else:
-                    self.set_activity(False)
-                    self.set_current(False)
-            else:
-                if self.is_current():
-                    pass
-                if self.name == name:
-                    self.set_activity(not self.is_active())
-    
-        if key == K_h:
-            if not self.name == 'control':
-                self.set_visibility(not self.is_visible())
-        elif key == pygame.locals.K_F1:
-            pass  # control viewport should never be deactivated
-        elif key == pygame.locals.K_F2:
-            activate_viewport('primary')
-        elif key == pygame.locals.K_F3:
-            activate_viewport('left')
-        elif key == pygame.locals.K_F4:
-            activate_viewport('right')
-        elif key == pygame.locals.K_TAB:
-            if self.name == 'control':
-                active_viewports = [viewport for viewport in Viewport.registered_viewports if viewport.is_active()]
-                current_active_viewports = [viewport for viewport in active_viewports if viewport.is_current()]
-                if len(active_viewports) > 1: # there is only control viewport that is active. no need to change viewport.
-                    if len(current_active_viewports) == 0: # if current viewport is not active make the control the current viewport.
-                        for viewport in Viewport.registered_viewports:
-                            if viewport.name == 'control':
-                                viewport.set_current(True)
-                            else:
-                                viewport.set_current(False)
-                    viewport_it = itertools.cycle(active_viewports)
-                    for viewport in viewport_it: 
-                        if viewport.is_current(): # find next active viewport and make it current viewport.
-                            viewport.set_current(False)
-                            next_viewport = viewport_it.next()
-                            if next_viewport.name == 'control':
-                                next_viewport = viewport_it.next()
-                            next_viewport.set_current(True)
-                            self.__colone_stimuli('control',next_viewport.name)
-                            break
 
 class ManStimulus(LightStim.Core.Stimulus):
     def __init__(self, disp_info, params, viewport, **kwargs):
@@ -296,6 +185,7 @@ class ManStimulus(LightStim.Core.Stimulus):
         raise RuntimeError("%s: Definition of make_stimuli() in abstract base class ManStimulus must be overriden."%(str(self),))
         
     def register_controllers(self):
+        self.controllers = []
         self.register_stimulus_controller()
         self.register_viewport_controller()
         self.register_info_controller()
@@ -304,7 +194,8 @@ class ManStimulus(LightStim.Core.Stimulus):
         self.controllers.append(ViewportInfoController(self))
         
     def register_viewport_controller(self):
-        self.controllers.append(ViewportEventHandlerController(self))
+        #self.controllers.append(ViewportEventHandlerController(self))
+        pass
         
     def register_event_handlers(self):
         self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback),
@@ -312,7 +203,6 @@ class ManStimulus(LightStim.Core.Stimulus):
                                (pygame.locals.MOUSEMOTION, self.mousemotion_callback),
                                (pygame.locals.MOUSEBUTTONDOWN, self.mousebuttondown_callback),
                                (pygame.locals.MOUSEBUTTONUP, self.mousebuttonup_callback)]
-        
     def keydown_callback(self,event):
         mods = pygame.key.get_mods()
         key = event.key
