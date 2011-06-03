@@ -221,8 +221,8 @@ class ManStimulus(LightStim.Core.Stimulus):
         elif key in [K_RSHIFT,K_LSHIFT]:
             self.squarelock = True
         elif key in [K_0, K_KP0]: # set pos and ori to 0
-            self.x = self.viewport.width_pix / 2
-            self.y = self.viewport.height_pix / 2
+            self.x = self.viewport.xorig
+            self.y = self.viewport.yorig
             self.ori = 0
         elif key in [K_SPACE, K_RETURN, K_KP_ENTER] or mods & KMOD_CTRL and key in [K_1, K_KP1]:
             self.save_preference(0)  # save  Manbar state 0
@@ -263,6 +263,8 @@ class ManStimulus(LightStim.Core.Stimulus):
             x = self.viewport.width_pix
             pygame.mouse.set_pos([x,y])
         y = self.viewport.height_pix - y
+        self.xorigDeg = self.viewport.pix2deg(x - self.viewport.xorig)
+        self.yorigDeg = self.viewport.pix2deg(y - self.viewport.yorig)
         self.x = x
         self.y = y
     

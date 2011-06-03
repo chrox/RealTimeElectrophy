@@ -59,7 +59,7 @@ class ManViewport(LightStim.Core.Viewport):
         src_viewport = src_viewports[0]
         self.copied_stimuli = []
         for stimulus in src_viewport.parameters.stimuli:
-            cloned_stimulus = copy.deepcopy(stimulus)  # Explicit is better than implicit.
+            cloned_stimulus = copy.copy(stimulus)  # Explicit is better than implicit.
             self.copied_stimuli.append(cloned_stimulus)
         
     def __paste_stimuli(self, dest_viewport_name):

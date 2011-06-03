@@ -110,15 +110,19 @@ class Viewport(VisionEgg.Core.Viewport):
         
         self.pix_per_cm = (self.width_pix/self.width_cm + self.height_pix/self.height_cm)/2
         self.size = (self.width_pix, self.height_pix)
-        # the view angle in the viewport are based on xorig and yorig
-        self.xorig = self.width_pix / 2
-        self.yorig = self.height_pix / 2
+        
+        self.x_rectification_deg = LightStim.config.get_viewport_x_rectification_deg(name)
+        self.y_rectification_deg = LightStim.config.get_viewport_y_rectification_deg(name)
+        
+        self.xorig = self.width_pix / 2 + self.x_rectification_deg * math.pi / 180 * self.distance_cm * self.pix_per_cm
+        self.yorig = self.height_pix / 2 + self.y_rectification_deg * math.pi / 180 * self.distance_cm * self.pix_per_cm
         
         if self.mirrored:
             mirror_view = HorizontalMirrorView(width=self.width_pix)
         else:
             mirror_view = None
         super(Viewport,self).__init__(position=(self.offset_pix,0), size=self.size, camera_matrix=mirror_view, screen=Viewport.default_screen, **kw)
+        
     def get_name(self):
         return self.name
     def get_size(self):

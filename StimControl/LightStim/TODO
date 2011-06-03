@@ -5,7 +5,6 @@ TODO:
 	- Building VisionEgg Text stimulus in real time will lag the sweep for 2ms. I have to write my fast text stimulus to display info. 
 
 - Requested Feature:
-	- viewport position calibration
 	- add Mask in mangrating
 	- stimulus can be copied from one viewport to another (copy stimulus is too complicated, try copy stimulus parameters)
 	- add Preference module to serialize the preference parameter objects
@@ -26,6 +25,7 @@ MEMO:
 	Beautiful is better than ugly. Simple is better than complex. Complex is better than complicated. Sparse is better than dense.
 	
 DONE:
+	+ add viewport position rectification
 	- (BUG) viewport_control cannot display information of the viewport in control
 	+ control each viewport individually 
 	- (BUG) remove replicated event handler in subclass of manstimulus 

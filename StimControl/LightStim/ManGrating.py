@@ -29,8 +29,9 @@ class ManGratingController(StimulusController):
         self.bgp = self.stimulus.bgp
         self.cp = self.stimulus.cp 
     def during_go_eval(self):
-        self.cp.position = self.stimulus.x, self.stimulus.y # update center spot position
-        self.gp.position = self.stimulus.x, self.stimulus.y
+        self.cp.position = self.viewport.deg2pix(self.stimulus.xorigDeg) + self.viewport.xorig ,\
+                           self.viewport.deg2pix(self.stimulus.yorigDeg) + self.viewport.yorig # update center spot position
+        self.gp.position = self.cp.position
         self.gp.on = self.stimulus.on
         self.gp.size = self.viewport.deg2pix(self.stimulus.heightDeg), self.viewport.deg2pix(self.stimulus.widthDeg) # convert to pix
         self.gp.spatial_freq = self.viewport.cycDeg2cycPix(self.stimulus.sfreqCycDeg)
@@ -60,8 +61,7 @@ class GratingInfoController(StimulusController):
         self.sptp = self.stimulus.sptp
     def during_go_eval(self):                     
         self.sptp.text = 'pos: (%5.1f, %5.1f) deg | size: (%4.1f, %4.1f) deg | ori: %5.1f deg | tfreq: %.2f cyc/sec | sfreq: %.2f cyc/deg | contrast: %.2f' \
-                         % ( self.viewport.pix2deg(self.stimulus.x - self.viewport.width_pix / 2), 
-                             self.viewport.pix2deg(self.stimulus.y - self.viewport.height_pix / 2),
+                         % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
                              self.stimulus.widthDeg, self.stimulus.heightDeg,
                              self.stimulus.ori, self.stimulus.tfreqCycSec, self.stimulus.sfreqCycDeg, self.stimulus.contrast)
                          
@@ -198,8 +198,8 @@ class ManGrating(ManStimulus):
             self.tfreqCycSec = self.preference['tfreqCycSec']
         self.ori = self.preference['ori']
         # changes only after load/save a new preference
-        self.x  = int(round(self.viewport.deg2pix(self.xorigDeg) + self.viewport.width_pix/2))
-        self.y  = int(round(self.viewport.deg2pix(self.yorigDeg) + self.viewport.height_pix/2))
+        self.x  = int(round(self.viewport.deg2pix(self.xorigDeg) + self.viewport.xorig))
+        self.y  = int(round(self.viewport.deg2pix(self.yorigDeg) + self.viewport.yorig))
         self.fp.position = self.x, self.y
         if self.viewport.name == 'control':
             pygame.mouse.set_pos([self.x, self.viewport.height_pix - self.y])
@@ -219,8 +219,8 @@ class ManGrating(ManStimulus):
             if name not in preferences_dict:
                 preferences_dict[name] = [self.defalut_preference] * 2
             with open('Manbar_preference.pkl','wb') as pkl_output:
-                self.preference['xorigDeg'] = self.viewport.pix2deg(self.x - self.viewport.width_pix / 2)
-                self.preference['yorigDeg'] = self.viewport.pix2deg(self.y - self.viewport.height_pix / 2)
+                self.preference['xorigDeg'] = self.xorigDeg
+                self.preference['yorigDeg'] = self.yorigDeg
                 self.preference['widthDeg'] = self.widthDeg
                 #self.preference['heightDeg'] = self.heightDeg
                 self.preference['sfreqCycDeg'] = self.sfreqCycDeg

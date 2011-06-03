@@ -80,8 +80,8 @@ class TargetController(SweepTableStimulusController):
                     self.st.posindex[index][1]*self.static.gridcell[0]+self.static.widthDeg/2
         yposdeg = self.static.center[1]+self.static.size[1]/2 - \
                     self.st.posindex[index][0]*self.static.gridcell[1]-self.static.heightDeg/2
-        xorig = self.viewport.deg2pix(self.static.origDeg[0]) + self.viewport.width_pix / 2 
-        yorig = self.viewport.deg2pix(self.static.origDeg[1]) + self.viewport.height_pix / 2
+        xorig = self.viewport.deg2pix(self.static.origDeg[0]) + self.viewport.xorig 
+        yorig = self.viewport.deg2pix(self.static.origDeg[1]) + self.viewport.yorig
         
         """Update target contrast, given sweep table index index"""
         if self.st.contrast[index] == 0:

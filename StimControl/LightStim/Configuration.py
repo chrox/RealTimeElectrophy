@@ -24,7 +24,9 @@ default_conf = {
                         'GAMMA':    1.0,
                         'OFFSET':   0,
                         'MIRRORED': False,
-                        'REFRESH_RATE': 60.0
+                        'REFRESH_RATE': 60.0,
+                        'X_RECTIFICATION': 0.0,
+                        'Y_RECTIFICATION': 0.0
                         },
     'Viewport_primary' : {
                         'WIDTH':    38.6,
@@ -33,7 +35,9 @@ default_conf = {
                         'GAMMA':    1.0,
                         'OFFSET':   1,
                         'MIRRORED': False,
-                        'REFRESH_RATE': 120.0
+                        'REFRESH_RATE': 120.0,
+                        'X_RECTIFICATION': 0.0,
+                        'Y_RECTIFICATION': 0.0
                         },
     'Viewport_left' : {
                         'WIDTH':    42.6,
@@ -42,7 +46,9 @@ default_conf = {
                         'GAMMA':    1.0,
                         'OFFSET':   2,
                         'MIRRORED': True,
-                        'REFRESH_RATE': 120.0
+                        'REFRESH_RATE': 120.0,
+                        'X_RECTIFICATION': 0.0,
+                        'Y_RECTIFICATION': 0.0
                         },
     'Viewport_right' : {
                         'WIDTH':    42.6,
@@ -51,7 +57,9 @@ default_conf = {
                         'GAMMA':    1.0,
                         'OFFSET':   3,
                         'MIRRORED': True,
-                        'REFRESH_RATE': 120.0
+                        'REFRESH_RATE': 120.0,
+                        'X_RECTIFICATION': 0.0,
+                        'Y_RECTIFICATION': 0.0
                         },
     }
 
@@ -121,5 +129,8 @@ class Config:
         return getattr(self, Config.viewport_prefix+name.upper()+'_'+'GAMMA')
     def is_viewport_mirrored(self,name):
         return getattr(self, Config.viewport_prefix+name.upper()+'_'+'MIRRORED')
-        
+    def get_viewport_x_rectification_deg(self,name):
+        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'X_RECTIFICATION')
+    def get_viewport_y_rectification_deg(self,name):
+        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'Y_RECTIFICATION')
         

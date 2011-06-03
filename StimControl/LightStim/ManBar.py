@@ -33,15 +33,16 @@ class ManBarController(StimulusController):
         self.stimulus.tp.on = self.stimulus.on
         width = self.viewport.deg2pix(self.stimulus.widthDeg) # convenience
         height = self.viewport.deg2pix(self.stimulus.heightDeg)
-        self.tp.position = self.stimulus.x, self.stimulus.y
+        self.cp.position = self.viewport.deg2pix(self.stimulus.xorigDeg) + self.viewport.xorig ,\
+                           self.viewport.deg2pix(self.stimulus.yorigDeg) + self.viewport.yorig
+        self.tp.position = self.cp.position
         self.tp.size = width, height # convert to pix
         self.tp.orientation = self.stimulus.ori
         self.tp.color = (self.stimulus.brightness, self.stimulus.brightness, self.stimulus.brightness, 1.0)
         self.bgp.color = (self.stimulus.bgbrightness, self.stimulus.bgbrightness, self.stimulus.bgbrightness, 1.0)
-        self.tipp.position = ( self.stimulus.x + width / 2 * math.cos(math.pi / 180 * self.stimulus.ori),
-                               self.stimulus.y + width / 2 * math.sin(math.pi / 180 * self.stimulus.ori) )
+        self.tipp.position = ( self.cp.position[0] + width / 2 * math.cos(math.pi / 180 * self.stimulus.ori),
+                               self.cp.position[1] + width / 2 * math.sin(math.pi / 180 * self.stimulus.ori) )
         self.tipp.orientation = self.stimulus.ori
-        self.cp.position = self.stimulus.x, self.stimulus.y
 
 class BarInfoController(StimulusController):
     """ update stimulus info """
@@ -50,8 +51,7 @@ class BarInfoController(StimulusController):
         self.sptp = self.stimulus.sptp
     def during_go_eval(self):                     
         self.sptp.text = 'pos : (%5.1f, %5.1f) deg  |  size : (%.1f, %.1f) deg  |  ori : %5.1f deg' \
-                         % ( self.viewport.pix2deg(self.stimulus.x - self.viewport.width_pix / 2), \
-                             self.viewport.pix2deg(self.stimulus.y - self.viewport.height_pix / 2),
+                         % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
                              self.stimulus.widthDeg, self.stimulus.heightDeg, self.stimulus.ori)
 
 class SizeController(StimulusController):
@@ -176,8 +176,8 @@ class ManBar(ManStimulus):
         self.heightDeg = self.preference['heightDeg']
         self.ori = self.preference['ori']
         # changes only after load/save a new preference
-        self.x  = int(round(self.viewport.deg2pix(self.xorigDeg) + self.viewport.width_pix/2))
-        self.y  = int(round(self.viewport.deg2pix(self.yorigDeg) + self.viewport.height_pix/2))
+        self.x  = int(round(self.viewport.deg2pix(self.xorigDeg) + self.viewport.xorig))
+        self.y  = int(round(self.viewport.deg2pix(self.yorigDeg) + self.viewport.yorig))
         self.fp.position = self.x, self.y
         if self.viewport.name == 'control':
             pygame.mouse.set_pos([self.x, self.viewport.height_pix - self.y])
@@ -197,8 +197,8 @@ class ManBar(ManStimulus):
             if name not in preferences_dict:
                 preferences_dict[name] = [self.defalut_preference] * 2
             with open('Manbar_preference.pkl','wb') as pkl_output:
-                self.preference['xorigDeg'] = self.viewport.pix2deg(self.x - self.viewport.width_pix / 2)
-                self.preference['yorigDeg'] = self.viewport.pix2deg(self.y - self.viewport.height_pix / 2)
+                self.preference['xorigDeg'] = self.xorigDeg
+                self.preference['yorigDeg'] = self.yorigDeg
                 self.preference['widthDeg'] = self.widthDeg
                 self.preference['heightDeg'] = self.heightDeg
                 self.preference['ori'] = self.ori
