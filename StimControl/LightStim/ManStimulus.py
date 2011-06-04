@@ -76,13 +76,15 @@ class ViewportEventHandlerController(StimulusController):
 
 class ManStimulus(LightStim.Core.Stimulus):
     def __init__(self, disp_info, params, viewport, **kwargs):
-        super(ManStimulus, self).__init__(**kwargs)
-        self.viewport = ManViewport(name=viewport) # use viewport 
         for paramname, paramval in params.items():
             setattr(self, paramname, paramval) # bind all parameter names to self
-        
-        self.x = self.xorigDeg
-        self.y = self.yorigDeg
+        if hasattr(self,'bgbrightness'):
+            bgcolor = (self.bgbrightness, self.bgbrightness, self.bgbrightness)
+        else:
+            bgcolor = (0.0,0.0,0.0)
+        super(ManStimulus, self).__init__(**kwargs)
+        self.viewport = ManViewport(name=viewport, bgcolor=bgcolor) # use viewport 
+
         self.on = True
         
         self.squarelock, self.brightenText = False, False
@@ -137,12 +139,12 @@ class ManStimulus(LightStim.Core.Stimulus):
                                  anchor='upperleft',
                                  size=(self.viewport.width_pix, STATUSBARHEIGHT),
                                  anti_aliasing=self.antialiase,
-                                 color=(0.0, 0.0, 0.0, 1.0))
+                                 color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0))
         self.lowerbar = Target2D(position=(0, 0),
                                  anchor='lowerleft',
                                  size=(self.viewport.width_pix, STATUSBARHEIGHT),
                                  anti_aliasing=self.antialiase,
-                                 color=(0.0, 0.0, 0.0, 1.0))
+                                 color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0))
         self.stimulusparamtext = Text(position=(1, 1),
                                     anchor='lowerleft',
                                     color=(0.0, 1.0, 0.0, 1.0),

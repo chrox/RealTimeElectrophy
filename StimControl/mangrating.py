@@ -26,7 +26,7 @@ p.widthDeg = 20
 # grating height (deg)
 p.heightDeg = 20
 # mask, one of:  None, 'gaussian', or 'circle'
-p.mask = 'circle'
+p.mask = None
 p.maskDiameterDeg = 5
 p.maskSizeStepDeg = 0.5
 # initial grating phase
@@ -36,7 +36,7 @@ p.ml = 0.5
 # grating contrast (0-1)
 p.contrast = 1
 # background brightness (0-1)
-p.bgbrightness = 0.0
+p.bgbrightness = 0.5
 # antialiase the bar?
 p.antialiase = True
 # rate of change of size during buttonpress (deg/sec)

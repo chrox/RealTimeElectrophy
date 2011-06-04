@@ -13,7 +13,7 @@ import pickle
 import logging
 
 import pygame
-from pygame.locals import K_COMMA,K_PERIOD,K_LEFTBRACKET,K_RIGHTBRACKET,K_m
+from pygame.locals import K_COMMA,K_PERIOD,K_LEFTBRACKET,K_RIGHTBRACKET,K_m,K_c,K_g
 from VisionEgg.Core import FixationSpot
 from VisionEgg.Gratings import SinGrating2D
 from VisionEgg.Textures import Mask2D
@@ -37,24 +37,33 @@ class ManGratingController(StimulusController):
         self.gp.position = self.cp.position
         self.gp.on = self.stimulus.on
         if self.stimulus.mask and self.stimulus.mask_on:
-            self.gp.size = [max(self.viewport.width_pix,self.viewport.height_pix) * 1.415] * 2
-            samplesperpix = self.stimulus.nmasksamples / min(self.gp.size[0],self.gp.size[1])
             radius = self.viewport.deg2pix(self.stimulus.maskDiameterDeg) / 2.0
-            if self.gp.mask:
+            if self.stimulus.mask == 'gaussian':
+                self.gp.size = [max(self.viewport.width_pix,self.viewport.height_pix) * 1.415] * 2
+            else:
+                self.gp.size = [radius * 2] * 2
+            samplesperpix = self.stimulus.nmasksamples / self.gp.size[0]
+            if self.gp.mask: # mask is on in last sweep 
                 old_params = self.gp.mask.constant_parameters
-                if not radius*samplesperpix == old_params.radius_parameter:
-                    new_mask = Mask2D(function=old_params.function,
+                if not radius*samplesperpix == old_params.radius_parameter or not self.stimulus.mask == old_params.function:
+                    new_mask = Mask2D(function=self.stimulus.mask,
                                       radius_parameter=radius*samplesperpix,
                                       num_samples=old_params.num_samples)
                     self.gp.mask = new_mask
-            elif hasattr(self.stimulus,'last_mask'):
-                self.gp.mask = self.stimulus.last_mask
-            else:
-                new_mask = Mask2D(function=self.stimulus.grating_mask.constant_parameters.function,
+            # mask is not on in last sweep find last mask
+            elif self.stimulus.mask == 'circle' and hasattr(self.stimulus,'last_circle_mask'):
+                self.gp.mask = self.stimulus.last_circle_mask
+            elif self.stimulus.mask == 'gaussian' and hasattr(self.stimulus,'last_gaussian_mask'):
+                self.gp.mask = self.stimulus.last_gaussian_mask 
+            else: # first sweep
+                new_mask = Mask2D(function=self.stimulus.mask,
                                   radius_parameter=radius*samplesperpix,
                                   num_samples=self.stimulus.grating_mask.constant_parameters.num_samples)
                 self.gp.mask = new_mask
-            self.stimulus.last_mask = self.gp.mask
+            if self.stimulus.mask == 'circle':
+                self.stimulus.last_circle_mask = self.gp.mask
+            if self.stimulus.mask == 'gaussian':
+                self.stimulus.last_gaussian_mask = self.gp.mask
         else:
             self.gp.size = self.viewport.deg2pix(self.stimulus.heightDeg), self.viewport.deg2pix(self.stimulus.widthDeg) # convert to pix
             self.gp.mask = None
@@ -152,18 +161,17 @@ class ManGrating(ManStimulus):
         # load preference from saved file
         self.load_preference(0)
     def make_stimuli(self):
-        nsinsamples = 1024 # number of samples of sine f'n, must be power of 2, quality/performance tradeoff
+        nsinsamples = 512
         self.grating = SinGrating2D(anchor='center',
                                     pedestal=self.ml,
                                     ignore_time=True,
                                     num_samples=nsinsamples,
                                     max_alpha=1.0) # opaque
         self.gp = self.grating.parameters
+        self.nmasksamples = 512
+        self.grating_mask = Mask2D(function='circle', num_samples=(self.nmasksamples, self.nmasksamples)) # size of mask texture data (# of texels)
+        self.gmp = self.grating_mask.parameters
         if self.mask:
-            self.nmasksamples = 1024
-            self.grating_mask = Mask2D(function=self.mask, num_samples=(self.nmasksamples, self.nmasksamples)) # size of mask texture data (# of texels)
-            self.gmp = self.grating_mask.parameters
-            self.gp.mask = self.grating_mask
             self.mask_on = True
         else:
             self.mask_on = False
@@ -200,6 +208,7 @@ class ManGrating(ManStimulus):
         
     def keydown_callback(self,event):
         super(ManGrating,self).keydown_callback(event)
+        mods = pygame.key.get_mods()
         key = event.key
         if key == K_COMMA:
             self.COMMA = True
@@ -211,6 +220,12 @@ class ManGrating(ManStimulus):
             self.RIGHTBRACKET = True
         elif key == K_m:
             self.mask_on = not self.mask_on
+        elif key == K_c and not mods:
+            self.mask = 'circle'
+            self.mask_on = True
+        elif key == K_g and not mods:
+            self.mask = 'gaussian'
+            self.mask_on = True
             
     def keyup_callback(self,event):
         super(ManGrating,self).keyup_callback(event)
@@ -233,6 +248,7 @@ class ManGrating(ManStimulus):
                                    'yorigDeg':0.0,
                                    'widthDeg':15.0,
                                    'heightDeg':15.0,
+                                   'mask':'circle',
                                    'maskDiameterDeg':15.0,
                                    'sfreqCycDeg':0.07,
                                    'tfreqCycSec':0.5,
@@ -248,6 +264,10 @@ class ManGrating(ManStimulus):
         self.yorigDeg = self.preference['yorigDeg']
         self.widthDeg = self.preference['widthDeg']
         self.heightDeg = self.preference['widthDeg']
+        if 'mask' in self.preference:
+            self.mask = self.preference['mask']
+            if self.mask:
+                self.mask_on = True
         if 'maskDiameterDeg' in self.preference:
             self.maskDiameterDeg = self.preference['maskDiameterDeg']
         if 'sfreqCycDeg' in self.preference:
@@ -281,6 +301,7 @@ class ManGrating(ManStimulus):
                 self.preference['yorigDeg'] = self.yorigDeg
                 self.preference['widthDeg'] = self.widthDeg
                 #self.preference['heightDeg'] = self.heightDeg
+                self.preference['mask'] = self.mask
                 self.preference['maskDiameterDeg'] = self.maskDiameterDeg
                 self.preference['sfreqCycDeg'] = self.sfreqCycDeg
                 self.preference['tfreqCycSec'] = self.tfreqCycSec
