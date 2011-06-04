@@ -11,6 +11,7 @@ VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 
 from SweepController import SweepController
 from Core import Viewport
+from ManViewport import ManViewport
 
 class QuitSweepController(SweepController):
     """ Quit the frame sweep loop if there is no viewports in the screen.
@@ -45,7 +46,7 @@ class EventHandlerController(SweepController):
         for viewport in p.viewports:
             if hasattr(viewport,'event_handlers'):
                 p.handle_event_callbacks += viewport.event_handlers
-            if viewport.is_current():
+            if isinstance(viewport,ManViewport) and viewport.is_current():
                 for stimulus in viewport.parameters.stimuli:
                     if hasattr(stimulus,'event_handlers'): # update the viewport event handler only when the viewport is the current viewport.
                         p.handle_event_callbacks += stimulus.event_handlers
@@ -76,10 +77,13 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.event_handlers = [(pygame.locals.QUIT, self.quit_callback),
                                (pygame.locals.KEYDOWN, self.keydown_callback),
                                (pygame.locals.KEYUP, self.keyup_callback)]
-        self.sweep_controllers = [(None,None,StimulusControllersController(self)),
-                                  (None,None,EventHandlerController(self)),
-                                  (None,None,QuitSweepController(self))]
-        self.add_controller(None, None, StimulusControllersController(self))
+#        self.sweep_controllers = [(None,None,StimulusControllersController(self)),
+#                                  (None,None,EventHandlerController(self)),
+#                                  (None,None,QuitSweepController(self))]
+        #self.add_controller(None, None, StimulusControllersController(self))
+        self.add_controller(None, None, EventHandlerController(self))
+        self.add_controller(None, None, RemoveViewportController(self))
+        self.add_controller(None, None, QuitSweepController(self))
     def add_stimulus(self, stimulus):
         """ The main maniputate interface of framesweep.
             Update the stimulus in viewport and viewport in framesweep.
