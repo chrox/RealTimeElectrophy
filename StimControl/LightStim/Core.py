@@ -97,7 +97,7 @@ class Viewport(VisionEgg.Core.Viewport):
     """
     default_screen = Screen(num_displays=4, bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8)
     registered_viewports = [] # registered viewports in screen. Update when stimulus is added. And viewport is deleted.
-    def __init__(self, name, **kw):
+    def __init__(self, name, bgcolor=(0.0,0.0,0.0), **kw):
         self.name = name
         self.width_pix = LightStim.config.get_viewport_width_pix(name)
         self.height_pix = LightStim.config.get_viewport_height_pix(name)
@@ -121,6 +121,7 @@ class Viewport(VisionEgg.Core.Viewport):
             mirror_view = HorizontalMirrorView(width=self.width_pix)
         else:
             mirror_view = None
+        Viewport.default_screen.parameters.bgcolor = bgcolor
         super(Viewport,self).__init__(position=(self.offset_pix,0), size=self.size, camera_matrix=mirror_view, screen=Viewport.default_screen, **kw)
         
     def get_name(self):
