@@ -2,7 +2,8 @@ TODO:
 
 - Bug fix:
 	- If multiple viewports with same name are created, are all these stimuli drawn in the screen? 
-	- Building VisionEgg Text stimulus in real time will lag the sweep for 2ms. I have to write my fast text stimulus to display info. 
+	- Building VisionEgg Text stimulus in real time will lag the sweep for 2ms. I have to write my fast text stimulus to display info.
+	  by Phil's pyGame Utilities. 
 
 - Requested Feature:
 	- stimulus can be copied from one viewport to another (copy stimulus is too complicated, try copy stimulus parameters)
