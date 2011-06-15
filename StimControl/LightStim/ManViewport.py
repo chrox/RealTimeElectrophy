@@ -26,8 +26,9 @@ class ManViewport(LightStim.Core.Viewport):
             self.current = False
         
         self.copied_stimuli = None
-        self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback)]
-        self.viewport_event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback)]
+        self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback),
+                               (pygame.locals.MOUSEBUTTONDOWN, self.mousebuttondown_callback)]
+        #self.viewport_event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback)]
 
     def draw(self):
         if not self.is_active() or not self.is_visible():
@@ -153,3 +154,8 @@ class ManViewport(LightStim.Core.Viewport):
 #                for viewport in Viewport.registered_viewports:
 #                    for stimulus in viewport.parameters.stimuli:
 #                        print "current stimulus: " + str(hex(id(stimulus))) + " in viewport: " + str(hex(id(viewport))) + ' ' + viewport.get_name()
+    def mousebuttondown_callback(self,event):
+        button = event.button
+        if button == 2:  # scroll wheel button
+            if not self.get_name() == 'control':
+                self.set_visibility(not self.is_visible())

@@ -161,7 +161,7 @@ class ManGrating(ManStimulus):
         # load preference from saved file
         self.load_preference(0)
     def make_stimuli(self):
-        nsinsamples = 512
+        nsinsamples = 1024
         self.grating = SinGrating2D(anchor='center',
                                     pedestal=self.ml,
                                     ignore_time=True,

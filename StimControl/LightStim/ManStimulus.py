@@ -274,8 +274,8 @@ class ManStimulus(LightStim.Core.Stimulus):
         button = event.button
         if button == 1:
             self.LEFTBUTTON = True
-        elif button == 2:  # scroll wheel button
-            self.save_preference(0) # save Manbar state 0
+#        elif button == 2:  # scroll wheel button
+#            self.save_preference(0) # save Manbar state 0
         elif button == 3:
             self.RIGHTBUTTON = True
         elif button == 4:
