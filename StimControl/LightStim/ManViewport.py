@@ -119,6 +119,10 @@ class ManViewport(LightStim.Core.Viewport):
             activate_viewport('left')
         elif key == pygame.locals.K_F4:
             activate_viewport('right')
+        elif mods & pygame.locals.KMOD_CTRL and key == pygame.locals.K_g: # group active viewports 
+            for viewport in Viewport.registered_viewports:
+                if viewport.is_active():
+                    viewport.set_current(True)
         if self.get_name() == 'control':
             if key == pygame.locals.K_TAB:
                 active_viewports = [viewport for viewport in Viewport.registered_viewports if viewport.is_active()]

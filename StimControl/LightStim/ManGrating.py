@@ -94,12 +94,12 @@ class GratingInfoController(StimulusController):
         self.sptp = self.stimulus.sptp
     def during_go_eval(self):
         if not self.stimulus.mask_on:                     
-            self.sptp.text = 'pos: (%5.1f, %5.1f) deg | size: (%4.1f, %4.1f) deg | ori: %5.1f deg | tfreq: %.2f cyc/sec | sfreq: %.2f cyc/deg | contrast: %.2f' \
+            self.sptp.text = 'pos: (%5.1f, %5.1f) deg | size: (%4.1f, %4.1f) deg | ori: %5.1f deg | tfreq: %4.1f cyc/sec | sfreq: %4.1f cyc/deg | contrast: %.2f' \
                             % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
                                 self.stimulus.widthDeg, self.stimulus.heightDeg,
                                 self.stimulus.ori, self.stimulus.tfreqCycSec, self.stimulus.sfreqCycDeg, self.stimulus.contrast)
         else:
-            self.sptp.text = 'pos: (%5.1f, %5.1f) deg | diameter: %5.1f deg | ori: %5.1f deg | tfreq: %.2f cyc/sec | sfreq: %.2f cyc/deg | contrast: %.2f' \
+            self.sptp.text = 'pos: (%5.1f, %5.1f) deg | diameter: %5.1f deg | ori: %5.1f deg | tfreq: %4.1f cyc/sec | sfreq: %4.1f cyc/deg | contrast: %.2f' \
                             % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
                                 self.stimulus.maskDiameterDeg,
                                 self.stimulus.ori, self.stimulus.tfreqCycSec, self.stimulus.sfreqCycDeg, self.stimulus.contrast)
