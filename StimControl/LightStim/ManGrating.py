@@ -188,6 +188,14 @@ class ManGrating(ManStimulus):
         self.complete_stimuli = (self.background, self.grating, self.fixationspot, self.centerspot) + self.info
         self.essential_stimuli = (self.background, self.grating)
     
+    def get_parameters(self):
+        param_names = ['xorigDeg','yorigDeg','widthDeg','heightDeg','ori','mask','maskDiameterDeg','sfreqCycDeg','tfreqCycSec']
+        return dict((paramname,getattr(self,paramname)) for paramname in param_names)
+
+    def set_parameters(self,parameters):
+        for paramname, paramval in parameters.items():
+            setattr(self, paramname, paramval)
+    
     def register_stimulus_controller(self):
         self.controllers.append(GratingSizeController(self))
         self.controllers.append(SpatialFrequencyController(self))

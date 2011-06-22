@@ -1,12 +1,11 @@
 TODO:
 
 - Bug fix:
-	- If multiple viewports with same name are created, are all these stimuli drawn in the screen? 
 	- Building VisionEgg Text stimulus in real time will lag the sweep for 2ms. I have to write my fast text stimulus to display info.
 	  by Phil's pyGame Utilities. 
 
 - Requested Feature:
-	- stimulus can be copied from one viewport to another (copy stimulus is too complicated, try copy stimulus parameters)
+	
 	- add Preference module to serialize the preference parameter objects
 	- screen gamma calibration
 	- specifying 2/3 or 4 viewports in client code
@@ -25,6 +24,8 @@ MEMO:
 	Beautiful is better than ugly. Simple is better than complex. Complex is better than complicated. Sparse is better than dense.
 	
 DONE:
+	+ stimulus can be copied from one viewport to another (copy stimulus is too complicated, try copy stimulus parameters)
+	- If multiple viewports with same name are created, are all these stimuli drawn in the screen? Nope,the former drawn viewport will be overlaid by the later ones.
 	+ add Mask in mangrating
 	+ add viewport position rectification
 	- (BUG) viewport_control cannot display information of the viewport in control

@@ -26,6 +26,7 @@ class ManViewport(LightStim.Core.Viewport):
             self.current = False
         
         self.copied_stimuli = None
+        self.copied_parameters = {}
         self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback),
                                (pygame.locals.MOUSEBUTTONDOWN, self.mousebuttondown_callback)]
         #self.viewport_event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback)]
@@ -146,18 +147,15 @@ class ManViewport(LightStim.Core.Viewport):
                             break
             elif mods & pygame.locals.KMOD_CTRL and key == pygame.locals.K_c:
                 current_viewport = [viewport for viewport in Viewport.registered_viewports if viewport.is_current()][0]
-                self.__copy_stimuli(current_viewport.get_name())
+                for stimulus in current_viewport.parameters.stimuli:  # save stimuli parameters in control viewport
+                    if hasattr(stimulus,'get_parameters'):
+                        self.copied_parameters[type(stimulus).__name__] = stimulus.get_parameters()
             elif mods & pygame.locals.KMOD_CTRL and key == pygame.locals.K_v:
-                logger = logging.getLogger('VisionEgg')
-                logger.info('Stimulus copy is not completed yet.')
-#                current_viewport = [viewport for viewport in Viewport.registered_viewports if viewport.is_current()][0]
-#                self.__paste_stimuli(current_viewport.get_name())
-#                current_viewport.set_current(True)
-#                self.__clone_viewport('control', current_viewport.get_name())
-#                
-#                for viewport in Viewport.registered_viewports:
-#                    for stimulus in viewport.parameters.stimuli:
-#                        print "current stimulus: " + str(hex(id(stimulus))) + " in viewport: " + str(hex(id(viewport))) + ' ' + viewport.get_name()
+                current_viewport = [viewport for viewport in Viewport.registered_viewports if viewport.is_current()][0]
+                for stimulus in current_viewport.parameters.stimuli:
+                    if hasattr(stimulus,'set_parameters') and type(stimulus).__name__ in self.copied_parameters:
+                        stimulus.set_parameters(self.copied_parameters[type(stimulus).__name__])
+    
     def mousebuttondown_callback(self,event):
         button = event.button
         if button == 2:  # scroll wheel button

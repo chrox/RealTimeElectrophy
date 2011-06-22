@@ -134,6 +134,14 @@ class ManBar(ManStimulus):
         self.complete_stimuli = (self.background, self.target, self.tip, self.fixationspot, self.centerspot) + self.info
         self.essential_stimuli = (self.background, self.target)
     
+    def get_parameters(self):
+        param_names = ['xorigDeg','yorigDeg','widthDeg','heightDeg','ori']
+        return dict((paramname,getattr(self,paramname)) for paramname in param_names)
+
+    def set_parameters(self,parameters):
+        for paramname, paramval in parameters.items():
+            setattr(self, paramname, paramval)
+    
     def register_stimulus_controller(self):
         self.controllers.append(SizeController(self))
         self.controllers.append(OrientationController(self))
