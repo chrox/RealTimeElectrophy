@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # MarBar stimulus
 #
 # Copyright (C) 2010-2011 Huang Xin
@@ -50,9 +51,9 @@ class BarInfoController(StimulusController):
         super(BarInfoController, self).__init__(*args,**kwargs)
         self.sptp = self.stimulus.sptp
     def during_go_eval(self):                     
-        self.sptp.text = 'pos : (%5.1f, %5.1f) deg  |  size : (%.1f, %.1f) deg  |  ori : %5.1f deg' \
+        self.sptp.text = u'pos : (%5.1f, %5.1f) º  |  size : (%.1f, %.1f) º  |  ori : %5.1f º | brightness : %.2f' \
                          % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
-                             self.stimulus.widthDeg, self.stimulus.heightDeg, self.stimulus.ori)
+                             self.stimulus.widthDeg, self.stimulus.heightDeg, self.stimulus.ori, self.stimulus.brightness)
 
 class SizeController(StimulusController):
     # Set bar size 

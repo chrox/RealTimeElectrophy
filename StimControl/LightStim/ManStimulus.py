@@ -16,6 +16,7 @@ from pygame.locals import K_e,K_0,K_KP0,K_1,K_KP1,K_2,K_KP2
 import VisionEgg.GL as gl
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Text import Text
+from LightStim.InfoText import BitmapText
 from SweepController import StimulusController
 
 import LightStim.Core
@@ -118,22 +119,29 @@ class ManStimulus(LightStim.Core.Stimulus):
         fontname = pygame.font.match_font('lucidaconsole', bold=False, italic=False)
         self.screenstring = 'screen (w, h, d) = (%.1f, %.1f, %.1f) cm' % \
                             (self.viewport.width_cm, self.viewport.height_cm, self.viewport.distance_cm)
-        self.screentext = Text(position=(self.viewport.width_pix-1, self.viewport.height_pix-1),
-                               anchor='upperright',
-                               text=self.screenstring,
-                               color=(0.0, 1.0, 1.0, 1.0),
-                               texture_mag_filter=gl.GL_NEAREST,
-                               font_name=fontname,
-                               font_size=10)
+#        self.screentext = Text(position=(self.viewport.width_pix-1, self.viewport.height_pix-1),
+#                               anchor='upperright',
+#                               text=self.screenstring,
+#                               color=(0.0, 1.0, 1.0, 1.0),
+#                               texture_mag_filter=gl.GL_NEAREST,
+#                               font_name=fontname,
+#                               font_size=10)
+        self.screentext = BitmapText(lowerleft=(self.viewport.width_pix-320, self.viewport.height_pix-12),
+                                     text=self.screenstring,
+                                     color=(0.0, 1.0, 1.0, 1.0))
         self.screentext.parameters.text = self.screenstring
-        self.squarelocktext = Text(position=(1, self.viewport.height_pix - STATUSBARHEIGHT + 1),
-                                   anchor='upperleft',
-                                   text='SQUARELOCK',
-                                   color=(0.0, 1.0, 1.0, 1.0),
-                                   texture_mag_filter=gl.GL_NEAREST,
-                                   font_name=fontname,
-                                   font_size=10,
-                                   on=False) # leave it off for now
+#        self.squarelocktext = Text(position=(1, self.viewport.height_pix - STATUSBARHEIGHT + 1),
+#                                   anchor='upperleft',
+#                                   text='SQUARELOCK',
+#                                   color=(0.0, 1.0, 1.0, 1.0),
+#                                   texture_mag_filter=gl.GL_NEAREST,
+#                                   font_name=fontname,
+#                                   font_size=10,
+#                                   on=False) # leave it off for now
+        self.squarelocktext = BitmapText(lowerleft=(1, self.viewport.height_pix - STATUSBARHEIGHT + 1),
+                                         text='SQUARELOCK',
+                                         color=(0.0, 1.0, 1.0, 1.0),
+                                         on=False) # leave it off for now
         self.sltp = self.squarelocktext.parameters
         self.upperbar = Target2D(position=(0, self.viewport.height_pix),
                                  anchor='upperleft',
@@ -145,42 +153,56 @@ class ManStimulus(LightStim.Core.Stimulus):
                                  size=(self.viewport.width_pix, STATUSBARHEIGHT),
                                  anti_aliasing=self.antialiase,
                                  color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0))
-        self.stimulusparamtext = Text(position=(1, 1),
-                                    anchor='lowerleft',
-                                    color=(0.0, 1.0, 0.0, 1.0),
-                                    texture_mag_filter=gl.GL_NEAREST,
-                                    font_name=fontname,
-                                    font_size=10)
+#        self.stimulusparamtext = Text(position=(1, 1),
+#                                    anchor='lowerleft',
+#                                    color=(0.0, 1.0, 0.0, 1.0),
+#                                    texture_mag_filter=gl.GL_NEAREST,
+#                                    font_name=fontname,
+#                                    font_size=10)
+        self.stimulusparamtext = BitmapText(lowerleft=(2, 2),
+                                            color=(0.0, 1.0, 0.0, 1.0))
         self.sptp = self.stimulusparamtext.parameters
-        self.viewportinfotext = Text(position=(1, self.viewport.height_pix - 1),
-                                     anchor='upperleft',
-                                     text='Viewports in control: ',
-                                     color=(0.0, 1.0, 1.0, 1.0),
-                                     texture_mag_filter=gl.GL_NEAREST,
-                                     font_name=fontname,
-                                     font_size=10)
+#        self.viewportinfotext = Text(position=(1, self.viewport.height_pix - 1),
+#                                     anchor='upperleft',
+#                                     text='Viewports in control: ',
+#                                     color=(0.0, 1.0, 1.0, 1.0),
+#                                     texture_mag_filter=gl.GL_NEAREST,
+#                                     font_name=fontname,
+#                                     font_size=10)
+        self.viewportinfotext = BitmapText(lowerleft=(1, self.viewport.height_pix - 12),
+                                           text='Viewports in control: ',
+                                           color=(0.0, 1.0, 1.0, 1.0))
         self.vitp = self.viewportinfotext.parameters
-        self.pvpindicatortext = Text(position=(150, self.viewport.height_pix - 1),
-                                     anchor='upperleft',
-                                     text='primary',
-                                     color=(0.0, 1.0, 1.0, 1.0),
-                                     texture_mag_filter=gl.GL_NEAREST,
-                                     font_name=fontname,
-                                     font_size=10)
-        self.lvpindicatortext = Text(position=(200, self.viewport.height_pix - 1),
-                                     anchor='upperleft',
-                                     text='left',
-                                     color=(0.0, 1.0, 1.0, 1.0),
-                                     texture_mag_filter=gl.GL_NEAREST,
-                                     font_name=fontname,
-                                     font_size=10)
-        self.rvpindicatortext = Text(position=(230, self.viewport.height_pix - 1),
-                                     anchor='upperleft',
-                                     text='right',
-                                     color=(0.0, 1.0, 1.0, 1.0),
-                                     texture_mag_filter=gl.GL_NEAREST,
-                                     font_name=fontname,
-                                     font_size=10)
+#        self.pvpindicatortext = Text(position=(150, self.viewport.height_pix - 1),
+#                                     anchor='upperleft',
+#                                     text='primary',
+#                                     color=(0.0, 1.0, 1.0, 1.0),
+#                                     texture_mag_filter=gl.GL_NEAREST,
+#                                     font_name=fontname,
+#                                     font_size=10)
+        self.pvpindicatortext = BitmapText(lowerleft=(180, self.viewport.height_pix - 12),
+                                           text='primary',
+                                           color=(0.0, 1.0, 1.0, 1.0))
+#        self.lvpindicatortext = Text(position=(200, self.viewport.height_pix - 1),
+#                                     anchor='upperleft',
+#                                     text='left',
+#                                     color=(0.0, 1.0, 1.0, 1.0),
+#                                     texture_mag_filter=gl.GL_NEAREST,
+#                                     font_name=fontname,
+#                                     font_size=10)
+        self.lvpindicatortext = BitmapText(lowerleft=(248, self.viewport.height_pix - 12),
+                                           text='left',
+                                           color=(0.0, 1.0, 1.0, 1.0))
+#        self.rvpindicatortext = Text(position=(230, self.viewport.height_pix - 1),
+#                                     anchor='upperleft',
+#                                     text='right',
+#                                     color=(0.0, 1.0, 1.0, 1.0),
+#                                     texture_mag_filter=gl.GL_NEAREST,
+#                                     font_name=fontname,
+#                                     font_size=10)
+        self.rvpindicatortext = BitmapText(lowerleft=(290, self.viewport.height_pix - 12),
+                                           text='right',
+                                           color=(0.0, 1.0, 1.0, 1.0))
         self.viewport_indicators = (self.pvpindicatortext.parameters,self.lvpindicatortext.parameters,self.rvpindicatortext.parameters)
 
     def make_stimuli(self):

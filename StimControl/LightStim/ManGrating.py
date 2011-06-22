@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ManGrating Stimulus
 #
 # Copyright (C) 2010-2011 Huang Xin
@@ -13,7 +14,7 @@ import pickle
 import logging
 
 import pygame
-from pygame.locals import K_COMMA,K_PERIOD,K_LEFTBRACKET,K_RIGHTBRACKET,K_m,K_c,K_g
+from pygame.locals import K_COMMA,K_PERIOD,K_LEFTBRACKET,K_RIGHTBRACKET,K_m,K_c,K_g,KMOD_CTRL
 from VisionEgg.Core import FixationSpot
 from VisionEgg.Gratings import SinGrating2D
 from VisionEgg.Textures import Mask2D
@@ -94,12 +95,12 @@ class GratingInfoController(StimulusController):
         self.sptp = self.stimulus.sptp
     def during_go_eval(self):
         if not self.stimulus.mask_on:                     
-            self.sptp.text = 'pos: (%5.1f, %5.1f) deg | size: (%4.1f, %4.1f) deg | ori: %5.1f deg | tfreq: %4.1f cyc/sec | sfreq: %4.1f cyc/deg | contrast: %.2f' \
+            self.sptp.text = u'pos:(%5.1f,%5.1f)º| size:(%4.1f,%4.1f)º| ori:%5.1fº| tfreq:%.2fcyc/s| sfreq:%.2f cyc/º| contrast:%.2f' \
                             % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
                                 self.stimulus.widthDeg, self.stimulus.heightDeg,
                                 self.stimulus.ori, self.stimulus.tfreqCycSec, self.stimulus.sfreqCycDeg, self.stimulus.contrast)
         else:
-            self.sptp.text = 'pos: (%5.1f, %5.1f) deg | diameter: %5.1f deg | ori: %5.1f deg | tfreq: %4.1f cyc/sec | sfreq: %4.1f cyc/deg | contrast: %.2f' \
+            self.sptp.text = u'pos:(%5.1f,%5.1f)º | diameter:%5.1fº | ori:%5.1fº| tfreq:%.2fcyc/s| sfreq:%.2f cyc/º| contrast:%.2f' \
                             % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
                                 self.stimulus.maskDiameterDeg,
                                 self.stimulus.ori, self.stimulus.tfreqCycSec, self.stimulus.sfreqCycDeg, self.stimulus.contrast)
@@ -228,10 +229,10 @@ class ManGrating(ManStimulus):
             self.RIGHTBRACKET = True
         elif key == K_m:
             self.mask_on = not self.mask_on
-        elif key == K_c and not mods:
+        elif key == K_c and not mods & KMOD_CTRL:
             self.mask = 'circle'
             self.mask_on = True
-        elif key == K_g and not mods:
+        elif key == K_g and not mods & KMOD_CTRL:
             self.mask = 'gaussian'
             self.mask_on = True
             
