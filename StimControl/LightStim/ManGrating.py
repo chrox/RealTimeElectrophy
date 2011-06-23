@@ -19,7 +19,7 @@ from VisionEgg.Core import FixationSpot
 from VisionEgg.Gratings import SinGrating2D
 from VisionEgg.Textures import Mask2D
 
-from SweepController import StimulusController
+from SweepController import StimulusController,DTSweepStampController
 from ManStimulus import ManStimulus
 from ManBar import SizeController,OrientationController
 
@@ -149,7 +149,7 @@ class GratingSizeController(SizeController):
                 self.stimulus.heightDeg = self.stimulus.maskDiameterDeg
         else:
             super(GratingSizeController, self).during_go_eval()
-    
+
 class ManGrating(ManStimulus):
     def __init__(self, **kwargs):
         super(ManGrating, self).__init__(**kwargs)
@@ -204,6 +204,7 @@ class ManGrating(ManStimulus):
         self.controllers.append(OrientationController(self))
         self.controllers.append(ContrastController(self))
         self.controllers.append(ManGratingController(self))
+        self.controllers.append(DTSweepStampController(self))
         
     def register_info_controller(self):
         super(ManGrating,self).register_info_controller()

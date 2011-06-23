@@ -10,6 +10,7 @@ import itertools
 import Pyro.core
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
+from SweepStamp import DT,DTBOARDINSTALLED,SWEEP
 
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.
@@ -25,6 +26,26 @@ class StimulusController(VisionEgg.FlowControl.Controller):
         pass
     def between_go_eval(self):
         pass
+    
+class DTSweepStampController(StimulusController):
+    """ Digital output for triggering and frame timing verification
+        First 4 bits are used to indicate viewport visibility.
+    """
+    def __init__(self,*args,**kwargs):
+        super(DTSweepStampController, self).__init__(*args,**kwargs)
+        if DTBOARDINSTALLED: DT.initBoard()
+    def during_go_eval(self):
+        if DTBOARDINSTALLED: DT.setBitsNoDelay(SWEEP)
+        postval = self.viewport.is_visible() and self.viewport.is_active()
+        if self.viewport.name == 'control':
+            postval = postval << 0
+        if self.viewport.name == 'primary':
+            postval = postval << 1
+        if self.viewport.name == 'left':
+            postval = postval << 2
+        if self.viewport.name == 'right':
+            postval = postval << 3
+        if DTBOARDINSTALLED: DT.postInt16NoDelay(postval) # post value to port, no delay
         
 class SweepTableStimulusController(StimulusController):
     """ 
