@@ -35,13 +35,18 @@ class ViewportInfoController(StimulusController):
         # display active viewports list and indicate the current viewport
         active_viewports_names = [viewport.get_name() for viewport in Viewport.registered_viewports if viewport.is_active()]
         current_viewport_name = [viewport.get_name() for viewport in Viewport.registered_viewports if viewport.is_current()]
+        visible_viewport_name = [viewport.get_name() for viewport in Viewport.registered_viewports if viewport.is_visible()]
         for indicator in self.vips:
             if indicator.text in active_viewports_names:
                 indicator.on = True # display active viewport indicator
                 if indicator.text in current_viewport_name:
-                    indicator.color = (0.0, 1.0, 0.0, 1.0) # set current viewport indicator color to green
+                    indicator.color = (0.0, 1.0, 0.0, 0.0) # set current viewport indicator color to green
+                    if indicator.text in visible_viewport_name:
+                        indicator.color = (1.0, 1.0, 0.0, 0.0)
                 else:
-                    indicator.color = (0.0, 1.0, 1.0, 1.0) # set other indicator color to cyan
+                    indicator.color = (0.0, 1.0, 1.0, 0.0) # set other indicator color to cyan
+                    if indicator.text in visible_viewport_name:
+                        indicator.color = (1.0, 1.0, 1.0, 0.0)
             else:
                 indicator.on = False
 
