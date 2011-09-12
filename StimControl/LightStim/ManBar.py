@@ -94,12 +94,7 @@ class OrientationController(StimulusController):
         self.stimulus.ori += self.stimulus.SCROLL_UP * (self.stimulus.snapDeg - mod)
         if mod == 0:
             mod = self.stimulus.snapDeg
-        self.stimulus.ori -= self.stimulus.SCROLL_DOWN * mod
-        if self.stimulus.LEFTBUTTON:
-            self.stimulus.ori += self.stimulus.orirateDegSec / self.viewport.refresh_rate
-        elif self.stimulus.RIGHTBUTTON:
-            self.stimulus.ori -= self.stimulus.orirateDegSec / self.viewport.refresh_rate
-        
+        self.stimulus.ori -= self.stimulus.SCROLL_DOWN * mod  
         self.stimulus.SCROLL_UP = False
         self.stimulus.SCROLL_DOWN = False
         self.stimulus.ori = self.stimulus.ori % 360 # keep it in [0, 360)

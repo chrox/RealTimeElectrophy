@@ -13,9 +13,7 @@ np.seterr(all='raise')
 import pygame
 from pygame.locals import K_UP,K_DOWN,K_RIGHT,K_LEFT,K_EQUALS,K_MINUS,K_RSHIFT,K_LSHIFT,K_SPACE,K_RETURN,K_KP_ENTER,KMOD_CTRL
 from pygame.locals import K_e,K_0,K_KP0,K_1,K_KP1,K_2,K_KP2
-import VisionEgg.GL as gl
 from VisionEgg.MoreStimuli import Target2D
-from VisionEgg.Text import Text
 from LightStim.InfoText import BitmapText
 from SweepController import StimulusController
 
@@ -299,13 +297,7 @@ class ManStimulus(LightStim.Core.Stimulus):
     
     def mousebuttondown_callback(self,event):
         button = event.button
-        if button == 1:
-            self.LEFTBUTTON = True
-#        elif button == 2:  # scroll wheel button
-#            self.save_preference(0) # save Manbar state 0
-        elif button == 3:
-            self.RIGHTBUTTON = True
-        elif button == 4:
+        if button == 4:
             self.SCROLL_UP = True
         elif button == 5:
             self.SCROLL_DOWN = True

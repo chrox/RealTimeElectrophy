@@ -158,6 +158,12 @@ class ManViewport(LightStim.Core.Viewport):
     
     def mousebuttondown_callback(self,event):
         button = event.button
-        if button == 2:  # scroll wheel button
+        if button == 1:  # left button
+            if self.get_name() == 'left':
+                self.set_visibility(not self.is_visible())
+        elif button == 2:  # scroll wheel button
             if not self.get_name() == 'control':
+                self.set_visibility(not self.is_visible())
+        if button == 3:  # right button
+            if self.get_name() == 'right':
                 self.set_visibility(not self.is_visible())
