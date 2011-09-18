@@ -9,22 +9,26 @@ if __name__ == "__main__":
         while True:
             #print "reading from server"
             data = pc.GetTimeStampArrays()
-            spikes = PlexUtil.GetSpikes(data)
-            events = PlexUtil.GetExtEvents(data)
-            events = {'start':events['start']}
-            for i in range(spikes['num']):
-                print "spike:DSP%d%c t=%f <--------------" % \
-                      (spikes['channel'][i],\
-                       spikes['unit'][i],\
-                       spikes['timestamp'][i])
-            for key,value in events.items():
-                if key in ('first_strobe','second_strobe'):
-                    for i in range(len(value['value'])):
-                        print "event:%s,value:%d t=%f" % (key, value['value'][i], value['timestamp'][i])
-                else:
-                    for i in range(len(value)):
-                        print "event:%s t=%f" % (key, value[i])
-            time.sleep(0.04)
+            spike_info = PlexUtil.GetSpikesInfo(data)
+            for channel,units in spike_info:
+                print 'found spikes in channel:%d unit:%s' % (channel, ', '.join(unit for unit in units))
+                for unit in units:
+                    spikes = PlexUtil.GetSpikeTrain(data, channel=channel, unit=unit)
+                    for timestamp in spikes:
+                        print "spike:DSP%d%c t=%f" % (channel, unit, timestamp)
+            
+            bit_2_events = PlexUtil.GetExtEvents(data, event='unstrobed_bit', bit=2)
+            bit_3_events = PlexUtil.GetExtEvents(data, event='unstrobed_bit', bit=3)
+            for timestamp in bit_2_events:
+                print "event:unstrobed bit 2 t=%f" % timestamp
+            for timestamp in bit_3_events:
+                print "event:unstrobed bit 3 t=%f" % timestamp
+            
+            unstrobed_word = PlexUtil.GetExtEvents(data, event='unstrobed_word')
+            for value,timestamp in zip(unstrobed_word['value'],unstrobed_word['timestamp']) :
+                print "event:unstrobed word:%d t=%f" % (value,timestamp)
+            
+            time.sleep(1.0)
 
             #print h.heap()
 
