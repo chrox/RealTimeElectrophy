@@ -82,10 +82,8 @@ variable.contrast = Variable(vals=dynamic.contrast, dim=2, shuffle=True)
 
 sweeptable = SweepTable(static=static, dynamic=dynamic, variables=variable, runs=runs)
 stimulus_left = WhiteNoise(viewport='left', sweeptable=sweeptable)
-stimulus_prim = WhiteNoise(viewport='primary', sweeptable=sweeptable)
 
 sweep = FrameSweep()
 sweep.add_stimulus(stimulus_left)
-sweep.add_stimulus(stimulus_prim)
 
 sweep.go(sweeptable.static.preframesweepSec, sweeptable.static.postframesweepSec)

@@ -28,17 +28,6 @@ default_conf = {
                         'X_RECTIFICATION': 0.0,
                         'Y_RECTIFICATION': 0.0
                         },
-    'Viewport_primary' : {
-                        'WIDTH':    38.6,
-                        'HEIGHT':   29.0,
-                        'DISTANCE': 57.0,
-                        'GAMMA':    1.0,
-                        'OFFSET':   1,
-                        'MIRRORED': False,
-                        'REFRESH_RATE': 120.0,
-                        'X_RECTIFICATION': 0.0,
-                        'Y_RECTIFICATION': 0.0
-                        },
     'Viewport_left' : {
                         'WIDTH':    42.6,
                         'HEIGHT':   32.0,
@@ -119,8 +108,8 @@ class Config:
         return getattr(self, Config.viewport_prefix+name.upper()+'_'+'HEIGHT')
     def get_viewport_distance_cm(self,name):
         return getattr(self, Config.viewport_prefix+name.upper()+'_'+'DISTANCE')
-    def get_viewport_offset_pix(self,name):
-        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'OFFSET') * self.get_screen_width_pix()
+    def get_viewport_offset(self,name):
+        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'OFFSET')
     def get_viewport_mirrored(self,name):
         return getattr(self, Config.viewport_prefix+name.upper()+'_'+'MIRRORED')
     def get_viewport_refresh_rate(self,name):

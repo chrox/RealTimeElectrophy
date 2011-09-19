@@ -38,10 +38,10 @@ class Dummy_Viewport(VisionEgg.Core.Viewport):
 class Screen(VisionEgg.Core.Screen):
     """ Large screen occupies multiply displays
     """
-    def __init__(self, num_displays, **kw):
+    def __init__(self, num_displays, position, **kw):
 #        # Make sure that SDL_VIDEO_WINDOW_POS takes effect.
         VisionEgg.config.VISIONEGG_FRAMELESS_WINDOW = 0
-        os.environ['SDL_VIDEO_WINDOW_POS']="0,0"
+        os.environ['SDL_VIDEO_WINDOW_POS']="%d,%d" %position
         self.screen_width = num_displays*LightStim.config.get_screen_width_pix()
         self.screen_height = LightStim.config.get_screen_height_pix()
         self.displays = num_displays
@@ -95,19 +95,25 @@ class Viewport(VisionEgg.Core.Viewport):
     """ Named viewport in hardware configuration file LightStim.cfg
         Register this viewport in viewport list when .
     """
-    default_screen = Screen(num_displays=4, bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8)
+    index_base = 0
     registered_viewports = [] # registered viewports in screen. Update when stimulus is added. And viewport is deleted.
     def __init__(self, name, bgcolor=(0.0,0.0,0.0), **kw):
+        if not hasattr(Viewport, 'default_screen'):
+            if name is 'control':
+                Viewport.default_screen = Screen(num_displays=3, position=(0,0), bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8)
+                Viewport.index_base = 0
+            else:
+                Viewport.default_screen = Screen(num_displays=2, position=(800,0), bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8)
+                Viewport.index_base = -1
         self.name = name
         self.width_pix = LightStim.config.get_viewport_width_pix(name)
         self.height_pix = LightStim.config.get_viewport_height_pix(name)
         self.width_cm = LightStim.config.get_viewport_width_cm(name)
         self.height_cm = LightStim.config.get_viewport_height_cm(name)
         self.distance_cm = LightStim.config.get_viewport_distance_cm(name)
-        self.offset_pix = LightStim.config.get_viewport_offset_pix(name)
+        self.offset = LightStim.config.get_viewport_offset(name) + Viewport.index_base
         self.mirrored = LightStim.config.is_viewport_mirrored(name)
         self.refresh_rate = LightStim.config.get_viewport_refresh_rate(name)
-        
         self.pix_per_cm = (self.width_pix/self.width_cm + self.height_pix/self.height_cm)/2
         self.size = (self.width_pix, self.height_pix)
         
@@ -122,7 +128,7 @@ class Viewport(VisionEgg.Core.Viewport):
         else:
             mirror_view = None
         Viewport.default_screen.parameters.bgcolor = bgcolor
-        super(Viewport,self).__init__(position=(self.offset_pix,0), size=self.size, camera_matrix=mirror_view, screen=Viewport.default_screen, **kw)
+        super(Viewport,self).__init__(position=(self.offset*self.width_pix, 0), size=self.size, camera_matrix=mirror_view, screen=Viewport.default_screen, **kw)
         
     def get_name(self):
         return self.name

@@ -37,10 +37,6 @@ class DTSweepStampController(StimulusController):
     def during_go_eval(self):
         if DTBOARDINSTALLED: DT.setBitsNoDelay(SWEEP)
         postval = self.viewport.is_visible() and self.viewport.is_active()
-        if self.viewport.name == 'control':
-            postval = postval << 0
-        if self.viewport.name == 'primary':
-            postval = postval << 1
         if self.viewport.name == 'left':
             postval = postval << 2
         if self.viewport.name == 'right':
