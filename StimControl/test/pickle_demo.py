@@ -5,7 +5,7 @@
 #
 # Distributed under the terms of the GNU Lesser General Public License
 # (LGPL). See LICENSE.TXT that came with this file.
-from StimControl.mangrating import *
+from StimControl.mangrating import FrameSweep
 from VisionEgg.Gratings import SinGrating2D
 grating = SinGrating2D()
 import pickle
@@ -15,9 +15,6 @@ with open('test_pickle.pkl','r') as file:
     unpckled_stim = pickle.load(file)
     
 sweep = FrameSweep()
-sweep.add_stimulus(stimulus_control)
-sweep.add_stimulus(stimulus_primary)
-sweep.add_stimulus(stimulus_left)
 sweep.add_stimulus(unpckled_stim)
 
 sweep.go()
