@@ -26,22 +26,6 @@ class StimulusController(VisionEgg.FlowControl.Controller):
         pass
     def between_go_eval(self):
         pass
-    
-class DTSweepStampController(StimulusController):
-    """ Digital output for triggering and frame timing verification
-        First 4 bits are used to indicate viewport visibility.
-    """
-    def __init__(self,*args,**kwargs):
-        super(DTSweepStampController, self).__init__(*args,**kwargs)
-        if DTBOARDINSTALLED: DT.initBoard()
-    def during_go_eval(self):
-        if DTBOARDINSTALLED: DT.setBitsNoDelay(SWEEP)
-        postval = self.viewport.is_visible() and self.viewport.is_active()
-        if self.viewport.name == 'left':
-            postval = postval << 2
-        if self.viewport.name == 'right':
-            postval = postval << 3
-        if DTBOARDINSTALLED: DT.postInt16NoDelay(postval) # post value to port, no delay
         
 class SweepTableStimulusController(StimulusController):
     """ 
@@ -66,6 +50,19 @@ class SweepTableStimulusController(StimulusController):
         except StopIteration:
             self.stimulus.sweep_completed = True
             return None
+
+class DTSweepStampController(SweepTableStimulusController):
+    """ Digital output for triggering and frame timing verification
+    """
+    def __init__(self,*args,**kwargs):
+        super(DTSweepStampController, self).__init__(*args,**kwargs)
+        if DTBOARDINSTALLED: DT.initBoard()
+    def set_stamp(self,bits):
+        if DTBOARDINSTALLED: DT.setBitsNoDelay(bits)
+    def post_stamp(self,postval):
+        if DTBOARDINSTALLED: 
+            DT.postInt16NoDelay(postval)
+            DT.clearBitsNoDelay(postval)
 
 class SaveParamsController(SweepTableStimulusController):
     """ Use Every_Frame evaluation controller in case of real time sweep table modification

@@ -16,7 +16,7 @@ from VisionEgg.Core import FixationSpot
 
 import LightStim.Core
 from SweepStamp import DT,DTBOARDINSTALLED,SWEEP
-from SweepController import SweepTableStimulusController,SaveParamsController
+from SweepController import SweepTableStimulusController,SaveParamsController,DTSweepStampController
 from CheckBoard import CheckBoard
 
 class RFModel(object):
@@ -31,12 +31,11 @@ class RFModel(object):
         else:
             return min(0,self.gabor_func(xpos,ypos)) 
 
-class DTSweepStampController(SweepTableStimulusController):
+class WhiteNoiseSweepStampController(DTSweepStampController):
     """Digital output for triggering and frame timing verification 
     """
     def __init__(self,*args,**kwargs):
-        super(DTSweepStampController, self).__init__(*args,**kwargs)
-        if DTBOARDINSTALLED: DT.initBoard()
+        super(WhiteNoiseSweepStampController, self).__init__(*args,**kwargs)
     def during_go_eval(self):
         index = self.next_index()
         if index == None: return
@@ -48,9 +47,8 @@ class DTSweepStampController(SweepTableStimulusController):
                  |  |-----------------contrast
                  |--------------------reserved 
         """
-        if DTBOARDINSTALLED: DT.setBitsNoDelay(SWEEP)
         postval = (self.st.contrast[index]<<12) + (self.st.posindex[index][0]<<6) + self.st.posindex[index][1]
-        if DTBOARDINSTALLED: DT.postInt16NoDelay(postval) # post value to port, no delay
+        self.post_stamp(postval)
         
 class TargetController(SweepTableStimulusController):
     """Target noise in the white noise stimulus"""
@@ -188,7 +186,7 @@ class WhiteNoise(LightStim.Core.Stimulus):
         self.stimuli = (self.background, self.checkboard, self.targetstimulus, self.fixationspot)
     
     def register_controllers(self):
-        self.controllers.append(DTSweepStampController(self))
+        self.controllers.append(WhiteNoiseSweepStampController(self))
         self.controllers.append(SavePosParamsController(self))
         self.controllers.append(TargetController(self))
         self.controllers.append(CheckBoardController(self))

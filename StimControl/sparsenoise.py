@@ -54,7 +54,7 @@ static.diameterDeg = 10
 # screen gamma: None, or single value, or 3-tuple
 static.gamma = None
 """CheckBoard settings"""
-static.checkbdon = False
+static.checkbdon = True
 static.cbcolormap = 'ggr'
 
 """Dynamic parameters can potentially vary from one sweep to the next. 
