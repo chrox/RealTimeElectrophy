@@ -13,8 +13,11 @@ class PlexUtil(object):
     """
     Utilities for data collection
     """
-    @staticmethod
-    def GetSpikesInfo(data):
+    def __init__(self):
+        self.last_word = None
+        self.last_timestamp = None
+        
+    def GetSpikesInfo(self,data):
         """
         GetSpikesInfo(data) -> info
 
@@ -35,8 +38,7 @@ class PlexUtil(object):
             info.append((channel, channel_units))
         return info
         
-    @staticmethod
-    def GetSpikeTrains(data):
+    def GetSpikeTrains(self,data):
         spike_trains = {}
         sorted_spikes = (data['type'] == Plexon.PL_SingleWFType) & (data['unit'] > 0)
         for channel in np.unique(data['channel'][sorted_spikes]):
@@ -45,8 +47,7 @@ class PlexUtil(object):
                 spike_trains[str(channel)][unit] = PlexUtil.GetSpikeTrain(data, channel=channel, unit=unit)
         return spike_trains
             
-    @staticmethod
-    def GetSpikeTrain(data, channel, unit):
+    def GetSpikeTrain(self, data, channel, unit):
         """
         GetSpikeTrain(data) -> spike_train
 
@@ -71,8 +72,7 @@ class PlexUtil(object):
 
         return np.copy(data['timestamp'][unit_spikes])
     
-    @staticmethod
-    def GetExtEvents(data, event, bit=None):
+    def GetExtEvents(self, data, event, bit=None):
         """
         GetExtEvents(data) -> extevents
 
@@ -138,7 +138,11 @@ class PlexUtil(object):
                 word = reduce(add, [1<<bit for bit in word_bits])
                 word_list.append(word)
                 bits_indices[word_bits] += 1
-            return {'value': np.array(word_list), 'timestamp': np.array(timestamp_list)}
+            if self.last_timestamp is timestamp_list[0]:
+                word_list[0] += self.last_word
+            self.last_word = word_list[-1]
+            self.last_timestamp = timestamp_list[-1]
+            return {'value': np.array(word_list[:-1]), 'timestamp': np.array(timestamp_list[:-1])}
             
             
             
