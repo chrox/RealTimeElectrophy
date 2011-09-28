@@ -138,10 +138,18 @@ class PlexUtil(object):
                 word = reduce(add, [1<<bit for bit in word_bits])
                 word_list.append(word)
                 bits_indices[word_bits] += 1
-            if self.last_timestamp is timestamp_list[0]:
+            if len(timestamp_list) and self.last_timestamp == timestamp_list[0]:
                 word_list[0] += self.last_word
-            self.last_word = word_list[-1]
-            self.last_timestamp = timestamp_list[-1]
+            elif self.last_word is not None:
+                word_list.insert(0,self.last_word)
+                timestamp_list.insert(0,self.last_timestamp)
+                if len(timestamp_list)==1: 
+                    self.last_word = None
+                    self.last_timestamp = None
+                    return {'value': np.array(word_list), 'timestamp': np.array(timestamp_list)}
+            if len(timestamp_list):
+                self.last_word = word_list[-1]
+                self.last_timestamp = timestamp_list[-1]
             return {'value': np.array(word_list[:-1]), 'timestamp': np.array(timestamp_list[:-1])}
             
             
