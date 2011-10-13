@@ -51,7 +51,21 @@ class SweepTableStimulusController(StimulusController):
             self.stimulus.sweep_completed = True
             return None
 
-class DTSweepStampController(SweepTableStimulusController):
+class SweepController(VisionEgg.FlowControl.Controller):
+    """ Base sweep controller 
+    """
+    def __init__(self, framesweep):
+        VisionEgg.FlowControl.Controller.__init__(self,
+                                           return_type=ve_types.NoneType,
+                                           eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
+        self.framesweep = framesweep
+    def during_go_eval(self):
+        pass
+    def between_go_eval(self):
+        pass 
+
+
+class DTSweepStampController(StimulusController):
     """ Digital output for triggering and frame timing verification
     """
     def __init__(self,*args,**kwargs):
@@ -83,19 +97,6 @@ class SaveParamsController(SweepTableStimulusController):
         pass
     def between_go_eval(self):
         pass
-
-class SweepController(VisionEgg.FlowControl.Controller):
-    """ Base sweep controller 
-    """
-    def __init__(self, framesweep):
-        VisionEgg.FlowControl.Controller.__init__(self,
-                                           return_type=ve_types.NoneType,
-                                           eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
-        self.framesweep = framesweep
-    def during_go_eval(self):
-        pass
-    def between_go_eval(self):
-        pass 
 
 class StimulusPoolController(SweepController,Pyro.core.ObjBase):
     """ Maintain a stimulus pool and synchronize the pool with sweep viewport

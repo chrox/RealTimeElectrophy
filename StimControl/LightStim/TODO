@@ -1,8 +1,10 @@
 TODO:
 
 - Bug fix:
+	- control viewport lost info bars
 
 - Requested Feature:
+	- set viewport size individually
 	- add Preference module to serialize the preference parameter objects
 	- screen gamma calibration
 	- specifying 2/3 or 4 viewports in client code

@@ -9,51 +9,26 @@
 import os
 import ConfigParser
 
-default_conf = {
+class Config:
+    """Reads and writes the config file, adds an update function"""
+    template = {
     'DTBoard' : {
                 'INSTALLED': False
                 },
-    'Screen_common' : {
-                       'WIDTH':    800,
-                       'HEIGHT':   600
-                       },
-    'Viewport_control' : {
-                        'WIDTH':    38.6,
-                        'HEIGHT':   29.0,
+    'Viewport' : {
+                        'WIDTH_PIX': 1280,
+                        'HEIGHT_PIX': 800,
+                        'WIDTH_CM':    38.6,
+                        'HEIGHT_CM':   29.0,
                         'DISTANCE': 57.0,
                         'GAMMA':    1.0,
-                        'OFFSET':   0,
+                        'INDEX':   0,
                         'MIRRORED': False,
                         'REFRESH_RATE': 60.0,
                         'X_RECTIFICATION': 0.0,
                         'Y_RECTIFICATION': 0.0
-                        },
-    'Viewport_left' : {
-                        'WIDTH':    42.6,
-                        'HEIGHT':   32.0,
-                        'DISTANCE': 57.0,
-                        'GAMMA':    1.0,
-                        'OFFSET':   2,
-                        'MIRRORED': True,
-                        'REFRESH_RATE': 120.0,
-                        'X_RECTIFICATION': 0.0,
-                        'Y_RECTIFICATION': 0.0
-                        },
-    'Viewport_right' : {
-                        'WIDTH':    42.6,
-                        'HEIGHT':   32.0,
-                        'DISTANCE': 57.0,
-                        'GAMMA':    1.0,
-                        'OFFSET':   3,
-                        'MIRRORED': True,
-                        'REFRESH_RATE': 120.0,
-                        'X_RECTIFICATION': 0.0,
-                        'Y_RECTIFICATION': 0.0
-                        },
+                        }
     }
-
-class Config:
-    """Reads and writes the config file, adds an update function"""
     viewport_prefix = 'LIGHTSTIM_VIEWPORT_'
     def __init__(self):
         self.cfg = ConfigParser.ConfigParser()
@@ -70,56 +45,74 @@ class Config:
         if configFile:
             self.cfg.read(configFile)
         else:
-            # pretend we have a config file
-            for section_name,section in default_conf.iteritems():
-                self.cfg.add_section(section_name)
-                for key,value in section.iteritems():
-                    self.cfg.set(section_name,key,str(value))
+            raise RuntimeError('No hardware configuration file was found.')
 
         # Get the values from the configFile
-        for section_name,section in default_conf.iteritems():
-            for option in self.cfg.options(section_name):
+        self.sections = self.cfg.sections()
+        for section in self.sections:
+            for template_section in Config.template.iterkeys():
+                if section.startswith(template_section):
+                    section_template = Config.template[template_section]
+            for option in self.cfg.options(section):
                 name = option.upper()
-                value = self.cfg.get(section_name,option)
+                value = self.cfg.get(section,option)
                 if value == 'False' or value == 'false':
                     value = False
                 elif value == 'True' or value == 'true':
                     value = True
-                if isinstance(section[name], int):
-                    if isinstance(section[name], bool):
-                        value = bool(value)
-                    else:
-                        value = int(value)
-                elif isinstance(section[name], float):
-                    value = float(value)
-                setattr(self,'LIGHTSTIM_'+section_name.upper()+'_'+name,value)
+                if isinstance(section_template[name], bool):
+                    value = self.cfg.getboolean(section, option)
+                elif isinstance(section_template[name], int):
+                    value = self.cfg.getint(section, option)
+                elif isinstance(section_template[name], float):
+                    value = self.cfg.getfloat(section, option)
+                setattr(self,'LIGHTSTIM_'+section.upper()+'_'+name,value)
 
-    def get_screen_width_pix(self):
-        return self.LIGHTSTIM_SCREEN_COMMON_WIDTH
-    def get_screen_height_pix(self):
-        return self.LIGHTSTIM_SCREEN_COMMON_HEIGHT
-    def get_viewport_width_pix(self,name):
-        return self.LIGHTSTIM_SCREEN_COMMON_WIDTH
-    def get_viewport_height_pix(self,name):
-        return self.LIGHTSTIM_SCREEN_COMMON_HEIGHT
-    def get_viewport_width_cm(self,name):
-        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'WIDTH')
-    def get_viewport_height_cm(self,name):
-        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'HEIGHT')
-    def get_viewport_distance_cm(self,name):
-        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'DISTANCE')
-    def get_viewport_offset(self,name):
-        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'OFFSET')
-    def get_viewport_mirrored(self,name):
-        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'MIRRORED')
-    def get_viewport_refresh_rate(self,name):
-        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'REFRESH_RATE')
-    def get_viewport_gamma(self,name):
-        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'GAMMA')
-    def is_viewport_mirrored(self,name):
-        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'MIRRORED')
-    def get_viewport_x_rectification_deg(self,name):
-        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'X_RECTIFICATION')
-    def get_viewport_y_rectification_deg(self,name):
-        return getattr(self, Config.viewport_prefix+name.upper()+'_'+'Y_RECTIFICATION')
+    def get_screen_width_pix(self,viewports_list):
+        known_viewports = self.get_known_viewports()
+        min_viewport_order = min([self.get_viewport_index(viewport_name) for viewport_name in viewports_list])
+        max_viewport_order = max([self.get_viewport_index(viewport_name) for viewport_name in viewports_list])
+        screen_viewports = known_viewports[min_viewport_order:max_viewport_order+1]
+        return sum([self.get_viewport_width_pix(viewport_name) for viewport_name in screen_viewports])
+    def get_screen_height_pix(self,viewports_list):
+        return max([self.get_viewport_height_pix(viewport_name) for viewport_name in viewports_list])
+    def get_known_viewports(self):
+        viewports = [section[len('Viewport_'):] for section in self.sections if section.startswith('Viewport_')]
+        # sorted from viewport index
+        return sorted(viewports,key=self.get_viewport_index)
+    def get_viewport_width_pix(self,viewport_name):
+        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'WIDTH_PIX')
+    def get_viewport_height_pix(self,viewport_name):
+        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'HEIGHT_PIX')
+    def get_viewport_width_cm(self,viewport_name):
+        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'WIDTH_CM')
+    def get_viewport_height_cm(self,viewport_name):
+        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'HEIGHT_CM')
+    def get_viewport_distance_cm(self,viewport_name):
+        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'DISTANCE')
+    def get_viewport_index(self,viewport_name):
+        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'INDEX')
+    def get_viewport_offset(self,viewport_name):
+        known_viewports = self.get_known_viewports()
+        left_viewports = known_viewports[:self.get_viewport_index(viewport_name)]
+        return sum([self.get_viewport_width_pix(viewport_name) for viewport_name in left_viewports])
+    def get_viewport_mirrored(self,viewport_name):
+        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'MIRRORED')
+    def get_viewport_refresh_rate(self,viewport_name):
+        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'REFRESH_RATE')
+    def get_viewport_gamma(self,viewport_name):
+        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'GAMMA')
+    def is_viewport_mirrored(self,viewport_name):
+        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'MIRRORED')
+    def get_viewport_x_rectification_deg(self,viewport_name):
+        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'X_RECTIFICATION')
+    def get_viewport_y_rectification_deg(self,viewport_name):
+        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'Y_RECTIFICATION')
+    def get_viewport_position(self,viewports_list,vp_name):
+        known_viewports = self.get_known_viewports()
+        min_viewport_order = min([self.get_viewport_index(viewport_name) for viewport_name in viewports_list])
+        max_viewport_order = max([self.get_viewport_index(viewport_name) for viewport_name in viewports_list]) 
+        screen_viewports = known_viewports[min_viewport_order:max_viewport_order+1]
+        offset = sum([self.get_viewport_width_pix(viewport_name) for viewport_name in screen_viewports[:screen_viewports.index(vp_name)]])
+        return (offset,0)
         
