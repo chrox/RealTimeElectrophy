@@ -133,9 +133,9 @@ class Viewport(VisionEgg.Core.Viewport):
         else:
             mirror_view = None
         Viewport.default_screen.parameters.bgcolor = bgcolor
-        super(Viewport,self).__init__(size=self.size, camera_matrix=mirror_view, screen=Viewport.default_screen, **kw)
+        super(Viewport,self).__init__(anchor='upperleft', size=self.size, camera_matrix=mirror_view, screen=Viewport.default_screen, **kw)
     
-    def adjust_position(self):
+    def update_position(self):
         self.parameters.position = LightStim.config.get_viewport_position(Viewport.defined_viewports, self.name)
        
     def get_name(self):

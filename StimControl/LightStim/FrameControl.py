@@ -98,7 +98,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         stimulus.viewport.parameters.stimuli.append(stimulus)
         # for a new viewport not registered in the screen
         if stimulus.viewport.name not in [viewport.name for viewport in p.viewports]:
-            stimulus.viewport.adjust_position()
+            stimulus.viewport.update_position()
             Viewport.registered_viewports.append(stimulus.viewport)
             p.viewports.append(stimulus.viewport)
             #p.handle_event_callbacks += stimulus.viewport.event_handlers 

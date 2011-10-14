@@ -23,9 +23,32 @@ from ManViewport import ManViewport
 
 STATUSBARHEIGHT = 15 # height of upper and lower status bars (pix)
 
-class ViewportInfoController(StimulusController):
+class InfoController(StimulusController):
     def __init__(self,*args,**kwargs):
-        super(ViewportInfoController, self).__init__(*args,**kwargs)
+        super(InfoController, self).__init__(*args,**kwargs)
+        self.upbp = self.stimulus.upbp
+        self.lwbp = self.stimulus.lwbp
+        self.vitp = self.stimulus.vitp
+        self.vips = self.stimulus.viewport_indicators
+        self.stp = self.stimulus.stp
+        self.sltp = self.stimulus.sltp
+        self.sptp = self.stimulus.sptp
+    def during_go_eval(self):
+        viewport = self.viewport
+        self.upbp.position = (0, viewport.height_pix)
+        self.upbp.size = (viewport.width_pix, STATUSBARHEIGHT)
+        self.lwbp.position = (0, 0)
+        self.lwbp.size = (viewport.width_pix, STATUSBARHEIGHT)
+        self.vitp.lowerleft = (1, viewport.height_pix - 12)
+        self.vips[0].lowerleft = (200, viewport.height_pix - 12)
+        self.vips[1].lowerleft = (245, viewport.height_pix - 12)
+        self.stp.lowerleft = (viewport.width_pix-325, viewport.height_pix-12)
+        self.sltp.lowerleft = (1, viewport.height_pix - STATUSBARHEIGHT -12)
+        self.sptp.lowerleft = (2, 2)
+
+class ViewportIndicatorsController(StimulusController):
+    def __init__(self,*args,**kwargs):
+        super(ViewportIndicatorsController, self).__init__(*args,**kwargs)
         self.vips = self.stimulus.viewport_indicators
         self.sltp = self.stimulus.sltp
         self.sptp = self.stimulus.sptp
@@ -98,7 +121,7 @@ class ManStimulus(LightStim.Core.Stimulus):
 
         self.make_screen_info()
         self.info = (self.upperbar, self.squarelocktext, self.viewportinfotext, self.screentext,
-                     self.pvpindicatortext, self.lvpindicatortext, self.rvpindicatortext,
+                     self.lvpindicatortext, self.rvpindicatortext,
                      self.lowerbar, self.stimulusparamtext)
         self.make_stimuli()
         if disp_info:
@@ -124,7 +147,7 @@ class ManStimulus(LightStim.Core.Stimulus):
         self.screentext = BitmapText(lowerleft=(self.viewport.width_pix-320, self.viewport.height_pix-12),
                                      text=self.screenstring,
                                      color=(0.0, 1.0, 1.0, 1.0))
-        self.screentext.parameters.text = self.screenstring
+        self.stp = self.screentext.parameters
 
         self.squarelocktext = BitmapText(lowerleft=(1, self.viewport.height_pix - STATUSBARHEIGHT + 1),
                                          text='SQUARELOCK',
@@ -136,12 +159,13 @@ class ManStimulus(LightStim.Core.Stimulus):
                                  size=(self.viewport.width_pix, STATUSBARHEIGHT),
                                  anti_aliasing=self.antialiase,
                                  color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0))
+        self.upbp = self.upperbar.parameters
         self.lowerbar = Target2D(position=(0, 0),
                                  anchor='lowerleft',
                                  size=(self.viewport.width_pix, STATUSBARHEIGHT),
                                  anti_aliasing=self.antialiase,
                                  color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0))
-
+        self.lwbp = self.lowerbar.parameters
         self.stimulusparamtext = BitmapText(lowerleft=(2, 2),
                                             color=(0.0, 1.0, 0.0, 1.0))
         self.sptp = self.stimulusparamtext.parameters
@@ -151,18 +175,15 @@ class ManStimulus(LightStim.Core.Stimulus):
                                            color=(0.0, 1.0, 1.0, 1.0))
         self.vitp = self.viewportinfotext.parameters
 
-        self.pvpindicatortext = BitmapText(lowerleft=(180, self.viewport.height_pix - 12),
-                                           text='primary',
-                                           color=(0.0, 1.0, 1.0, 1.0))
-
-        self.lvpindicatortext = BitmapText(lowerleft=(248, self.viewport.height_pix - 12),
+        self.lvpindicatortext = BitmapText(lowerleft=(180, self.viewport.height_pix - 12),
                                            text='left',
                                            color=(0.0, 1.0, 1.0, 1.0))
 
-        self.rvpindicatortext = BitmapText(lowerleft=(290, self.viewport.height_pix - 12),
+        self.rvpindicatortext = BitmapText(lowerleft=(220, self.viewport.height_pix - 12),
                                            text='right',
                                            color=(0.0, 1.0, 1.0, 1.0))
-        self.viewport_indicators = (self.pvpindicatortext.parameters,self.lvpindicatortext.parameters,self.rvpindicatortext.parameters)
+        
+        self.viewport_indicators = (self.lvpindicatortext.parameters,self.rvpindicatortext.parameters)
 
     def make_stimuli(self):
         raise RuntimeError("%s: Definition of make_stimuli() in abstract base class ManStimulus must be overriden."%(str(self),))
@@ -174,7 +195,8 @@ class ManStimulus(LightStim.Core.Stimulus):
         self.register_info_controller()
         
     def register_info_controller(self):
-        self.controllers.append(ViewportInfoController(self))
+        self.controllers.append(InfoController(self))
+        self.controllers.append(ViewportIndicatorsController(self))
         
     def register_viewport_controller(self):
         #self.controllers.append(ViewportEventHandlerController(self))

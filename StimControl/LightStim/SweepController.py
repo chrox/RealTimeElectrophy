@@ -65,7 +65,7 @@ class SweepController(VisionEgg.FlowControl.Controller):
         pass 
 
 
-class DTSweepStampController(StimulusController):
+class DTSweepStampController(SweepTableStimulusController):
     """ Digital output for triggering and frame timing verification
     """
     def __init__(self,*args,**kwargs):

@@ -72,6 +72,9 @@ class ManViewport(LightStim.Core.Viewport):
         dest_viewport.parameters.stimuli = []
         for stimulus in self.copied_stimuli:
             stimulus.viewport = dest_viewport # set to control viewport to do viewport specific things.
+            if hasattr(stimulus,'controllers'):
+                for controller in stimulus.controllers:
+                    controller.viewport = dest_viewport
             if dest_viewport.get_name() == 'control':
                 stimulus.stimuli = stimulus.complete_stimuli
                 stimulus.on = True # in control viewport it's not necessary to hide a stimulus

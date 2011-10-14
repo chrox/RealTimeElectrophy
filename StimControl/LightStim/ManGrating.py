@@ -204,7 +204,6 @@ class ManGrating(ManStimulus):
         self.controllers.append(OrientationController(self))
         self.controllers.append(ContrastController(self))
         self.controllers.append(ManGratingController(self))
-        self.controllers.append(DTSweepStampController(self))
         
     def register_info_controller(self):
         super(ManGrating,self).register_info_controller()

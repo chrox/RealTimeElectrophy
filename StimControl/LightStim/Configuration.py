@@ -114,5 +114,7 @@ class Config:
         max_viewport_order = max([self.get_viewport_index(viewport_name) for viewport_name in viewports_list]) 
         screen_viewports = known_viewports[min_viewport_order:max_viewport_order+1]
         offset = sum([self.get_viewport_width_pix(viewport_name) for viewport_name in screen_viewports[:screen_viewports.index(vp_name)]])
-        return (offset,0)
+        height = self.get_screen_height_pix(viewports_list)
+        # use upperleft anchor
+        return (offset,height)
         

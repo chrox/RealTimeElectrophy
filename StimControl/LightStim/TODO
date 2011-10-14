@@ -1,13 +1,11 @@
 TODO:
 
 - Bug fix:
-	- control viewport lost info bars
+	
 
 - Requested Feature:
-	- set viewport size individually
 	- add Preference module to serialize the preference parameter objects
 	- screen gamma calibration
-	- specifying 2/3 or 4 viewports in client code
 	- create a global vsynctable for SweepTableController so that runtime modification could be easier.
 	- GUI control of the LightStim with WxPython and pyro
     
@@ -23,6 +21,9 @@ MEMO:
 	Beautiful is better than ugly. Simple is better than complex. Complex is better than complicated. Sparse is better than dense.
 	
 DONE:
+	- (BUG) control viewport lost info bars
+	+ set viewport size individually
+	+ specifying 2/3 or 4 viewports in client code (via implicitly declaring viewports)
 	- Building VisionEgg Text stimulus in real time will lag the sweep for 2ms. I have to write my fast text stimulus to display info.
 	  by Phil's pyGame Utilities. (use VisionEgg BitmapText)
 	+ stimulus can be copied from one viewport to another (copy stimulus is too complicated, try copy stimulus parameters)
