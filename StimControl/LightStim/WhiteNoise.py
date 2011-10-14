@@ -15,7 +15,6 @@ from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
 
 import LightStim.Core
-from SweepStamp import DT,DTBOARDINSTALLED,SWEEP
 from SweepController import SweepTableStimulusController,SaveParamsController,DTSweepStampController
 from CheckBoard import CheckBoard
 

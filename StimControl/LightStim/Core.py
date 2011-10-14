@@ -15,25 +15,12 @@ from __future__ import division
 import os
 import math
 import numpy as np
+import logging
 import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 import VisionEgg.GL as gl
 import VisionEgg.Core
-
 import LightStim
-
-class Dummy_Screen(VisionEgg.Core.Screen):
-    """ To trick viewport parameter checker
-    """
-    def __init__(self, **kw):
-        super(Dummy_Screen,self).__init__(size=(1,1), bgcolor=(0.0,0.0,0.0),frameless=True, hide_mouse=True, alpha_bits=8)
-        
-class Dummy_Viewport(VisionEgg.Core.Viewport):
-    """ A stimulus is binded to a dummy viewport when it is created in client side.
-        Once the stimulus is sent to the server side the right viewport would be binded.
-    """ 
-    def __init__(self, name):
-        self.name = name
     
 class Screen(VisionEgg.Core.Screen):
     """ Large screen occupies multiply displays
@@ -95,22 +82,13 @@ class Viewport(VisionEgg.Core.Viewport):
     """ Named viewport in hardware configuration file LightStim.cfg
         Register this viewport in viewport list when .
     """
-    default_screen = Dummy_Screen()
     index_base = 0
     defined_viewports = []
     registered_viewports = [] # registered viewports in screen. Update when stimulus is added. And viewport is deleted.
     def __init__(self, name, bgcolor=(0.0,0.0,0.0), **kw):
         if name not in Viewport.defined_viewports:
             Viewport.defined_viewports.append(name)
-        Viewport.default_screen.close()
         Viewport.default_screen = Screen(Viewport.defined_viewports)
-        #--------------------------- if not hasattr(Viewport, 'default_screen'):
-            #--------------------------------------------- if name is 'control':
-                #-------------- Viewport.default_screen = Screen(num_displays=3)
-                #--------------------------------------- Viewport.index_base = 0
-            #------------------------------------------------------------- else:
-                #-------------- Viewport.default_screen = Screen(num_displays=2)
-                #-------------------------------------- Viewport.index_base = -1
         self.name = name
         self.width_pix = LightStim.config.get_viewport_width_pix(name)
         self.height_pix = LightStim.config.get_viewport_height_pix(name)

@@ -19,7 +19,7 @@ from VisionEgg.Core import FixationSpot
 from VisionEgg.Gratings import SinGrating2D
 from VisionEgg.Textures import Mask2D
 
-from SweepController import StimulusController,DTSweepStampController
+from SweepController import StimulusController
 from ManStimulus import ManStimulus
 from ManBar import SizeController,OrientationController
 
@@ -251,7 +251,7 @@ class ManGrating(ManStimulus):
     def load_preference(self, index):
         name = self.viewport.name
         info = self.name + str(index) + ' in ' + name + ' viewport.'
-        logger = logging.getLogger('VisionEgg')
+        logger = logging.getLogger('Lightstim.ManGrating')
         logger.info('Load preference for ' + info)
         self.defalut_preference = {'xorigDeg':0.0,
                                    'yorigDeg':0.0,
@@ -294,7 +294,7 @@ class ManGrating(ManStimulus):
     def save_preference(self, index):
         name = self.viewport.name
         info = self.name + str(index) + ' in ' + name + ' viewport.'
-        logger = logging.getLogger('VisionEgg')
+        logger = logging.getLogger('Lightstim.ManGrating')
         logger.info('Save preference for ' + info)
         preferences_dict = {}
         try:

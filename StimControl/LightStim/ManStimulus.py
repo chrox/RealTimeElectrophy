@@ -9,7 +9,7 @@
 from __future__ import division
 import numpy as np
 np.seterr(all='raise')
-
+import logging
 import pygame
 from pygame.locals import K_UP,K_DOWN,K_RIGHT,K_LEFT,K_EQUALS,K_MINUS,K_RSHIFT,K_LSHIFT,K_SPACE,K_RETURN,K_KP_ENTER,KMOD_CTRL
 from pygame.locals import K_e,K_0,K_KP0,K_1,K_KP1,K_2,K_KP2
@@ -102,7 +102,10 @@ class ViewportEventHandlerController(StimulusController):
                     viewport.event_handlers.remove(event_handler) 
 
 class ManStimulus(LightStim.Core.Stimulus):
-    def __init__(self, disp_info, params, viewport, **kwargs):
+    def __init__(self, params, viewport, disp_info=False, **kwargs):
+        logger = logging.getLogger('Lightstim.ManStimulus')
+        if disp_info and viewport is not 'control':
+            logger.warning('Viewport ' + viewport +' may display incomplete stimulus information.')
         for paramname, paramval in params.items():
             setattr(self, paramname, paramval) # bind all parameter names to self
         if hasattr(self,'bgbrightness'):
@@ -144,44 +147,25 @@ class ManStimulus(LightStim.Core.Stimulus):
         
         self.screenstring = 'screen (w, h, d) = (%.1f, %.1f, %.1f) cm' % \
                             (self.viewport.width_cm, self.viewport.height_cm, self.viewport.distance_cm)
-        self.screentext = BitmapText(lowerleft=(self.viewport.width_pix-320, self.viewport.height_pix-12),
-                                     text=self.screenstring,
-                                     color=(0.0, 1.0, 1.0, 1.0))
+        self.screentext = BitmapText(text=self.screenstring, color=(0.0, 1.0, 1.0, 1.0))
         self.stp = self.screentext.parameters
 
-        self.squarelocktext = BitmapText(lowerleft=(1, self.viewport.height_pix - STATUSBARHEIGHT + 1),
-                                         text='SQUARELOCK',
-                                         color=(0.0, 1.0, 1.0, 1.0),
-                                         on=False) # leave it off for now
+        self.squarelocktext = BitmapText(text='SQUARELOCK', color=(0.0, 1.0, 1.0, 1.0), on=False) # leave it off for now
         self.sltp = self.squarelocktext.parameters
-        self.upperbar = Target2D(position=(0, self.viewport.height_pix),
-                                 anchor='upperleft',
-                                 size=(self.viewport.width_pix, STATUSBARHEIGHT),
-                                 anti_aliasing=self.antialiase,
-                                 color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0))
+        self.upperbar = Target2D(anchor='upperleft', anti_aliasing=self.antialiase, color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0))
         self.upbp = self.upperbar.parameters
-        self.lowerbar = Target2D(position=(0, 0),
-                                 anchor='lowerleft',
-                                 size=(self.viewport.width_pix, STATUSBARHEIGHT),
-                                 anti_aliasing=self.antialiase,
-                                 color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0))
+        self.lowerbar = Target2D(anchor='lowerleft', anti_aliasing=self.antialiase, color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0))
         self.lwbp = self.lowerbar.parameters
-        self.stimulusparamtext = BitmapText(lowerleft=(2, 2),
-                                            color=(0.0, 1.0, 0.0, 1.0))
+        
+        self.stimulusparamtext = BitmapText(color=(0.0, 1.0, 0.0, 1.0))
         self.sptp = self.stimulusparamtext.parameters
 
-        self.viewportinfotext = BitmapText(lowerleft=(1, self.viewport.height_pix - 12),
-                                           text='Viewports in control: ',
-                                           color=(0.0, 1.0, 1.0, 1.0))
+        self.viewportinfotext = BitmapText(text='Viewports in control: ', color=(0.0, 1.0, 1.0, 1.0))
         self.vitp = self.viewportinfotext.parameters
 
-        self.lvpindicatortext = BitmapText(lowerleft=(180, self.viewport.height_pix - 12),
-                                           text='left',
-                                           color=(0.0, 1.0, 1.0, 1.0))
+        self.lvpindicatortext = BitmapText(text='left')
 
-        self.rvpindicatortext = BitmapText(lowerleft=(220, self.viewport.height_pix - 12),
-                                           text='right',
-                                           color=(0.0, 1.0, 1.0, 1.0))
+        self.rvpindicatortext = BitmapText(text='right')
         
         self.viewport_indicators = (self.lvpindicatortext.parameters,self.rvpindicatortext.parameters)
 

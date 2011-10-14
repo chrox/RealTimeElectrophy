@@ -36,8 +36,8 @@ p.brightnessstep = 0.005
 p.snapDeg = 18
 
 stimulus_control = ManBar(disp_info=True, params=p, viewport='control')
-stimulus_left = ManBar(disp_info=False, params=p, viewport='left')
-stimulus_right = ManBar(disp_info=False, params=p, viewport='right')
+stimulus_left = ManBar(params=p, viewport='left')
+stimulus_right = ManBar(params=p, viewport='right')
 
 if __name__ == "__main__":
     sweep = FrameSweep()
