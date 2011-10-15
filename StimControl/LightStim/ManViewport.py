@@ -7,10 +7,12 @@
 # (LGPL). See LICENSE.TXT that came with this file.
 import copy
 import itertools
+import logging
 import pygame
 from pygame.locals import K_h
 import LightStim.Core
 from LightStim.Core import Viewport
+from LightStim.SweepController import ViewportController
 
 class ManViewport(LightStim.Core.Viewport):
     # add event control callback
@@ -71,16 +73,10 @@ class ManViewport(LightStim.Core.Viewport):
         dest_viewport = dest_viewports[0]
         dest_viewport.parameters.stimuli = []
         for stimulus in self.copied_stimuli:
-            stimulus.viewport = dest_viewport # set to control viewport to do viewport specific things.
-            if hasattr(stimulus,'controllers'):
-                for controller in stimulus.controllers:
-                    controller.viewport = dest_viewport
+            stimulus.update_viewportcontroller(dest_viewport)
             if dest_viewport.get_name() == 'control':
                 stimulus.stimuli = stimulus.complete_stimuli
                 stimulus.on = True # in control viewport it's not necessary to hide a stimulus
-            else:
-                stimulus.register_controllers()
-                stimulus.register_event_handlers() # register new stimulus event handlers
             dest_viewport.parameters.stimuli.append(stimulus)
         
     def __clone_viewport(self, dest_viewport_name, src_viewport_name):
@@ -88,8 +84,9 @@ class ManViewport(LightStim.Core.Viewport):
         self.__copy_stimuli(src_viewport_name)
         self.__paste_stimuli(dest_viewport_name)
         self.copied_stimuli = orignal_copied_stimuli
-                
+
     def keydown_callback(self,event):
+        logger = logging.getLogger('Lightstim.ManViewport')
         mods = pygame.key.get_mods()
         key = event.key
         # set viewport activity and currenty this should have no business with control viewport 

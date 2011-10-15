@@ -53,8 +53,8 @@ p.contrastmultiplier = 1.005
 p.snapDeg = 18
 
 stimulus_control = ManGrating(disp_info=True, params=p, viewport='control')
-stimulus_left = ManGrating(disp_info=False, params=p, viewport='left')
-stimulus_right = ManGrating(disp_info=False, params=p, viewport='right')
+stimulus_left = ManGrating(disp_info=True, params=p, viewport='left')
+stimulus_right = ManGrating(disp_info=True, params=p, viewport='right')
 
 if __name__ == "__main__":
     sweep = FrameSweep()

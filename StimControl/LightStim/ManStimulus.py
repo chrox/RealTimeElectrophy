@@ -7,6 +7,7 @@
 # (LGPL). See LICENSE.TXT that came with this file.
 
 from __future__ import division
+import copy
 import numpy as np
 np.seterr(all='raise')
 import logging
@@ -16,6 +17,8 @@ from pygame.locals import K_e,K_0,K_KP0,K_1,K_KP1,K_2,K_KP2
 from VisionEgg.MoreStimuli import Target2D
 from LightStim.InfoText import BitmapText
 from SweepController import StimulusController
+from SweepController import ViewportController
+
 
 import LightStim.Core
 from LightStim.Core import Viewport
@@ -23,7 +26,7 @@ from ManViewport import ManViewport
 
 STATUSBARHEIGHT = 15 # height of upper and lower status bars (pix)
 
-class InfoController(StimulusController):
+class InfoController(ViewportController):
     def __init__(self,*args,**kwargs):
         super(InfoController, self).__init__(*args,**kwargs)
         self.upbp = self.stimulus.upbp
@@ -34,16 +37,15 @@ class InfoController(StimulusController):
         self.sltp = self.stimulus.sltp
         self.sptp = self.stimulus.sptp
     def during_go_eval(self):
-        viewport = self.viewport
-        self.upbp.position = (0, viewport.height_pix)
-        self.upbp.size = (viewport.width_pix, STATUSBARHEIGHT)
+        self.upbp.position = (0, self.viewport.height_pix)
+        self.upbp.size = (self.viewport.width_pix, STATUSBARHEIGHT)
         self.lwbp.position = (0, 0)
-        self.lwbp.size = (viewport.width_pix, STATUSBARHEIGHT)
-        self.vitp.lowerleft = (1, viewport.height_pix - 12)
-        self.vips[0].lowerleft = (200, viewport.height_pix - 12)
-        self.vips[1].lowerleft = (245, viewport.height_pix - 12)
-        self.stp.lowerleft = (viewport.width_pix-325, viewport.height_pix-12)
-        self.sltp.lowerleft = (1, viewport.height_pix - STATUSBARHEIGHT -12)
+        self.lwbp.size = (self.viewport.width_pix, STATUSBARHEIGHT)
+        self.vitp.lowerleft = (1, self.viewport.height_pix - 12)
+        self.vips[0].lowerleft = (200, self.viewport.height_pix - 12)
+        self.vips[1].lowerleft = (245, self.viewport.height_pix - 12)
+        self.stp.lowerleft = (self.viewport.width_pix-325, self.viewport.height_pix-12)
+        self.sltp.lowerleft = (1, self.viewport.height_pix - STATUSBARHEIGHT -12)
         self.sptp.lowerleft = (2, 2)
 
 class ViewportIndicatorsController(StimulusController):
@@ -181,10 +183,15 @@ class ManStimulus(LightStim.Core.Stimulus):
     def register_info_controller(self):
         self.controllers.append(InfoController(self))
         self.controllers.append(ViewportIndicatorsController(self))
-        
+    
     def register_viewport_controller(self):
         #self.controllers.append(ViewportEventHandlerController(self))
         pass
+    
+    def update_viewportcontroller(self, viewport):
+        for controller in self.controllers:
+            if isinstance(controller,ViewportController):
+                controller.set_viewport(viewport)
         
     def register_event_handlers(self):
         self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback),

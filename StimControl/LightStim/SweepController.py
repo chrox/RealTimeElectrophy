@@ -10,7 +10,7 @@ import itertools
 import Pyro.core
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
-from SweepStamp import DT,DTBOARDINSTALLED,SWEEP
+from SweepStamp import DT,DTBOARDINSTALLED
 
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.
@@ -22,11 +22,22 @@ class StimulusController(VisionEgg.FlowControl.Controller):
                                            eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
         self.stimulus = stimulus
         self.viewport = stimulus.viewport
+    def set_viewport(self, viewport):
+        self.viewport = viewport
     def during_go_eval(self):
         pass
     def between_go_eval(self):
         pass
         
+class ViewportController(StimulusController):
+    """ Dummy class used to show that the controller is viewport sensitive.
+        SEE Lightstim.ManStimulus
+    """
+    def __init__(self,stimulus,viewport=None):
+        super(ViewportController,self).__init__(stimulus)
+        if viewport:
+            self.set_viewport(viewport)
+
 class SweepTableStimulusController(StimulusController):
     """ 
         Assume that all stimulus parameters come from the sweep table. 
