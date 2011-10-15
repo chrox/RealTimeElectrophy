@@ -12,7 +12,6 @@ import pygame
 from pygame.locals import K_h
 import LightStim.Core
 from LightStim.Core import Viewport
-from LightStim.SweepController import ViewportController
 
 class ManViewport(LightStim.Core.Viewport):
     # add event control callback
@@ -86,7 +85,6 @@ class ManViewport(LightStim.Core.Viewport):
         self.copied_stimuli = orignal_copied_stimuli
 
     def keydown_callback(self,event):
-        logger = logging.getLogger('Lightstim.ManViewport')
         mods = pygame.key.get_mods()
         key = event.key
         # set viewport activity and currenty this should have no business with control viewport 
