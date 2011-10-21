@@ -1,6 +1,7 @@
 TODO:
 
 - Bug fix:
+	- control viewport size should be the same as stimulus viewports when different screen resolutions are used.
 	
 
 - Requested Feature:
@@ -22,6 +23,7 @@ MEMO:
 	Beautiful is better than ugly. Simple is better than complex. Complex is better than complicated. Sparse is better than dense.
 	
 DONE:
+	+ add SweepSeque class to build stimulus sequence and two SweepSeque demos
 	- (BUG) control viewport lost info bars
 	+ set viewport size individually
 	+ specifying 2/3 or 4 viewports in client code (via implicitly declaring viewports)
