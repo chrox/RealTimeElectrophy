@@ -11,6 +11,7 @@ import Pyro.core
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
 from SweepStamp import DT,DTBOARDINSTALLED
+from LightUtil import ISOTimeFormat
 
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.
@@ -73,16 +74,18 @@ class SweepSequeStimulusController(StimulusController):
         # but in this line sweep means a frame defined in sweepseque.
         self.vsyncseque = [vsync for sweep in self.sweepseq.sequence_list for vsync in itertools.repeat(sweep,repeat)]
         self.sequence_iter = itertools.chain.from_iterable(self.vsyncseque)
-        duration = self.get_duration()
-        logger.info('Estimated stimulus duration is %d min %2.1fs.' %(duration//60, duration%60))
+        estemated_duration = self.get_estemated_duration()
+        logger.info('Estimated stimulus duration: %s' %str(ISOTimeFormat(estemated_duration)))
     def next_param(self):
         try:
             return self.sequence_iter.next()
         except StopIteration:
             self.stimulus.sweep_completed = True
             return None
-    def get_duration(self):
-        return len(list(itertools.chain.from_iterable(self.vsyncseque))) / self.viewport.refresh_rate
+    def get_vsyncs(self):
+        return len(list(itertools.chain.from_iterable(self.vsyncseque)))
+    def get_estemated_duration(self):
+        return self.get_vsyncs() / self.viewport.refresh_rate
 
 class SweepController(VisionEgg.FlowControl.Controller):
     """ Base sweep controller 

@@ -105,11 +105,8 @@ class Viewport(VisionEgg.Core.Viewport):
         
         self.xorig = self.width_pix / 2 + self.x_rectification_deg * math.pi / 180 * self.distance_cm * self.pix_per_cm
         self.yorig = self.height_pix / 2 + self.y_rectification_deg * math.pi / 180 * self.distance_cm * self.pix_per_cm
-        
-        if self.mirrored:
-            mirror_view = HorizontalMirrorView(width=self.width_pix)
-        else:
-            mirror_view = None
+        # Pythonic ternary operator
+        mirror_view = HorizontalMirrorView(width=self.width_pix) if self.mirrored else None
         Viewport.default_screen.parameters.bgcolor = bgcolor
         super(Viewport,self).__init__(anchor='upperleft', size=self.size, camera_matrix=mirror_view, screen=Viewport.default_screen, **kw)
     

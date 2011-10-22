@@ -5,13 +5,15 @@
 #
 # Distributed under the terms of the GNU Lesser General Public License
 # (LGPL). See LICENSE.TXT that came with this file.
+import logging
 import pygame
 import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 
-from SweepController import SweepController
 from Core import Viewport
+from LightUtil import ISOTimeFormat
 from ManViewport import ManViewport
+from SweepController import SweepController
 
 class QuitSweepController(SweepController):
     """ Quit the frame sweep loop if there is no viewports in the screen.
@@ -72,6 +74,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         # presentation state variables
         self.quit = False
         self.paused = False
+        self.interrupted = False
         
         super(FrameSweep, self).__init__(go_duration=('forever',''))
         self.event_handlers = [(pygame.locals.QUIT, self.quit_callback),
@@ -120,6 +123,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         
     def keydown_callback(self,event):
         if event.key == pygame.locals.K_ESCAPE:
+            self.interrupted = True
             self.quit_callback(event)
             
     def keyup_callback(self,event):
@@ -129,6 +133,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.parameters.go_duration = (0,'frames')
 
     def go(self,prestim=None,poststim=None):
+        logger = logging.getLogger('Lightstim.FrameControl')
         # pre stimulation go
         if prestim is not None:
             self.parameters.go_duration = (prestim, 'seconds')
@@ -136,11 +141,21 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         # stimulation go
         self.parameters.go_duration=('forever','')
         self.add_controllers()
+        # use VisionEgg timing function which handles platform specific problems
+        sweep_begin = VisionEgg.true_time_func()
         super(FrameSweep, self).go()
+        sweep_end = VisionEgg.true_time_func()
+        sweep_duration = sweep_end - sweep_begin
         # post stimulation go
         if poststim is not None:
             self.remove_controller(None,None,None)
             self.parameters.go_duration = (poststim, 'seconds')
             super(FrameSweep, self).go()
+        
+        if self.interrupted:
+            logger.warning('Stimulation was interrupted before completion.')
+        else:
+            logger.warning('Stimulation completes successfully.')
+        logger.info('Actual stimulus duration: %s' %str(ISOTimeFormat(sweep_duration)))
 
         
