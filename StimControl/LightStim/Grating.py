@@ -12,6 +12,7 @@ import numpy as np
 np.seterr(all='raise')
 import pickle
 import logging
+import random
 from LightStim.SweepTable import dictattr
 from LightStim.SweepSeque import TimingSeque, ParamSeque
 from VisionEgg.Gratings import SinGrating2D
@@ -20,7 +21,7 @@ from VisionEgg.MoreStimuli import Target2D
 
 from LightStim.Core import Stimulus
 
-from SweepController import StimulusController
+from SweepController import StimulusController,SweepSequeStimulusController
 
 class GratingController(StimulusController):
     """ update mangrating parameters """
@@ -45,21 +46,30 @@ class GratingController(StimulusController):
         self.gp.orientation = (self.params.ori + 90) % 360.0
         self.gp.contrast = self.params.contrast
         self.bgp.color = (self.params.bgbrightness, self.params.bgbrightness, self.params.bgbrightness, 1.0)
-        
-        if isinstance(self.stimulus.sweepseq, TimingSeque):
-            stimulus_on = self.stimulus.sweepseq.next()
-            if stimulus_on:
-                self.gp.on = True
-            else:
-                self.gp.on = False
-        if isinstance(self.stimulus.sweepseq, ParamSeque):
-            self.gp.temporal_freq_hz = 0.0
-            orientation, spatial_freq = self.stimulus.sweepseq.next()
-            #self.gp.phase_at_t0 = 
-            if orientation is not None:
-                self.gp.orientation = (orientation + 90) % 360.0
-            if spatial_freq is not None:
-                self.gp.spatial_freq = self.viewport.cycDeg2cycPix(spatial_freq)
+
+class TimingController(SweepSequeStimulusController):
+    def __init__(self,*args,**kwargs):
+        super(TimingController, self).__init__(*args,**kwargs)
+        self.gp = self.stimulus.gp
+    def during_go_eval(self):
+        stimulus_on = self.next_param()
+        if stimulus_on:
+            self.gp.on = True
+        else:
+            self.gp.on = False
+            
+class ParamController(SweepSequeStimulusController):
+    def __init__(self,*args,**kwargs):
+        super(ParamController, self).__init__(*args,**kwargs)
+        self.gp = self.stimulus.gp
+    def during_go_eval(self):
+        self.gp.temporal_freq_hz = 0.0
+        next_param = self.next_param()
+        if next_param is not None:
+            orientation, spatial_freq, phase_at_t0 = next_param
+            self.gp.phase_at_t0 = phase_at_t0
+            self.gp.orientation = (orientation + 90) % 360.0
+            self.gp.spatial_freq = self.viewport.cycDeg2cycPix(spatial_freq)
 
 class Grating(Stimulus):
     def __init__(self, params, sweepseq, **kwargs):
@@ -111,7 +121,14 @@ class Grating(Stimulus):
             setattr(dest_params, paramname, paramval)
     
     def register_controllers(self):
+        logger = logging.getLogger('Lightstim.Grating')
         self.controllers.append(GratingController(self))
+        if isinstance(self.sweepseq, TimingSeque):
+            logger.info('Register TimingController.')
+            self.controllers.append(TimingController(self))
+        if isinstance(self.sweepseq, ParamSeque):
+            logger.info('Register ParamController.')
+            self.controllers.append(ParamController(self))
         #self.controllers.append(DTSweepStampController(self))
             
     def load_params(self, index=0):

@@ -21,7 +21,8 @@ p.contrast = 1
 
 orientation = np.linspace(0.0, 180.0, 16)
 spatial_freq = np.linspace(0.05, 1.0, 16)
-param_sequence = ParamSeque(repeat=5, orientation=orientation, spatial_freq=spatial_freq, frame_duration=0.08, interval=1.0)
+phase = np.linspace(0.0, 360.0, 8)
+param_sequence = ParamSeque(repeat=2, orientation=orientation, spatial_freq=spatial_freq, phase=phase, frame_duration=0.1, interval=1.0)
 
 random_grating = Grating(viewport='left', params=p, sweepseq=param_sequence)
 sweep = FrameSweep()

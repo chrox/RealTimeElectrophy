@@ -5,7 +5,7 @@
 #
 # Distributed under the terms of the GNU Lesser General Public License
 # (LGPL). See LICENSE.TXT that came with this file.
-
+import logging
 import itertools
 import Pyro.core
 import VisionEgg.FlowControl
@@ -50,6 +50,7 @@ class SweepTableStimulusController(StimulusController):
         # multiply the sweeptable index with n vsync for every frame sweep
         nvsync = self.viewport.sec2intvsync(self.static.sweepSec)
         # TODO: create a global vsynctable so that run time modification could be easier.
+        # runtime control will be achived by pyro parameter pass.
         vsynctable = [vsync for sweep in stimulus.sweeptable.i for vsync in itertools.repeat(sweep,nvsync)]
         # iterator for every vsync sweep
         self.tableindex = iter(vsynctable)
@@ -61,6 +62,27 @@ class SweepTableStimulusController(StimulusController):
         except StopIteration:
             self.stimulus.sweep_completed = True
             return None
+
+class SweepSequeStimulusController(StimulusController):
+    def __init__(self,stimulus):
+        logger = logging.getLogger('Lightstim.SweepController')
+        super(SweepSequeStimulusController,self).__init__(stimulus)
+        self.sweepseq = stimulus.sweepseq
+        repeat = int(self.sweepseq.sweep_duration * self.viewport.refresh_rate) 
+        # frame and sweep are confusing names sometimes. Most of the time a sweep corresponse a vsync in screen sweeping.
+        # but in this line sweep means a frame defined in sweepseque.
+        self.vsyncseque = [vsync for sweep in self.sweepseq.sequence_list for vsync in itertools.repeat(sweep,repeat)]
+        self.sequence_iter = itertools.chain.from_iterable(self.vsyncseque)
+        duration = self.get_duration()
+        logger.info('Estimated stimulus duration is %d min %2.1fs.' %(duration//60, duration%60))
+    def next_param(self):
+        try:
+            return self.sequence_iter.next()
+        except StopIteration:
+            self.stimulus.sweep_completed = True
+            return None
+    def get_duration(self):
+        return len(list(itertools.chain.from_iterable(self.vsyncseque))) / self.viewport.refresh_rate
 
 class SweepController(VisionEgg.FlowControl.Controller):
     """ Base sweep controller 
