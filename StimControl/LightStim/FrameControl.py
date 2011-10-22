@@ -155,7 +155,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         if self.interrupted:
             logger.warning('Stimulation was interrupted before completion.')
         else:
-            logger.warning('Stimulation completes successfully.')
+            logger.info('Stimulation completes successfully.')
         logger.info('Actual stimulus duration: %s' %str(ISOTimeFormat(sweep_duration)))
 
         

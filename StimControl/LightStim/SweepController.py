@@ -98,9 +98,8 @@ class SweepController(VisionEgg.FlowControl.Controller):
     def during_go_eval(self):
         pass
     def between_go_eval(self):
-        pass 
-
-
+        pass
+    
 class DTSweepStampController(SweepTableStimulusController):
     """ Digital output for triggering and frame timing verification
     """
