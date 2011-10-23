@@ -52,10 +52,12 @@ class TimingSeque(SweepSeque):
         
 class ParamSeque(SweepSeque):
     """ stimulus sequence of random orientation and spatial frequency parameters."""
-    def __init__(self, repeat, orientation, spatial_freq, phase, frame_duration):
+    def __init__(self, repeat, orientation, spatial_freq, phase_at_t0, frame_duration, blank_duration):
         super(ParamSeque, self).__init__()
-        nsweep = int(frame_duration // self.sweep_duration)
-        params = itertools.product(orientation, spatial_freq, phase)
+        frame_sweeps = int(frame_duration // self.sweep_duration)
+        blank_sweeps = int(blank_duration // self.sweep_duration)
+        blank_sweep = (float('nan'),float('nan'),float('nan')) # will be checked in paramseque controller.
+        params = itertools.product(orientation, spatial_freq, phase_at_t0)
         param_sequence = np.random.permutation(list(params) * repeat)
-        self.sequence_list = [[param] * nsweep for param in param_sequence]
+        self.sequence_list = [[param]*frame_sweeps + [blank_sweep]*blank_sweeps for param in param_sequence]
         #self.sequence = itertools.chain.from_iterable(self.sequence_list)

@@ -13,6 +13,7 @@ np.seterr(all='raise')
 import pickle
 import logging
 import random
+import math
 from LightStim.SweepTable import dictattr
 from LightStim.SweepSeque import TimingSeque, ParamSeque
 from VisionEgg.Gratings import SinGrating2D
@@ -91,10 +92,17 @@ class ParamController(SweepSequeStimulusController):
         self.gp.temporal_freq_hz = 0.0
         next_param = self.next_param()
         if next_param is not None:
+            self.gp.on = True
+            if any(num != num for num in next_param):  # check has any nan
+                self.gp.on = False
+                return
             orientation, spatial_freq, phase_at_t0 = next_param
-            self.gp.orientation = (orientation + 90) % 360.0
-            self.gp.spatial_freq = self.viewport.cycDeg2cycPix(spatial_freq)
-            self.gp.phase_at_t0 = phase_at_t0
+            if orientation is not None:
+                self.gp.orientation = (orientation + 90) % 360.0
+            if spatial_freq is not None:
+                self.gp.spatial_freq = self.viewport.cycDeg2cycPix(spatial_freq)
+            if phase_at_t0 is not None:
+                self.gp.phase_at_t0 = phase_at_t0
 
 class ParamStampController(DTSweepSequeController):
     def __init__(self,*args,**kwargs):
