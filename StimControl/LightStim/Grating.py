@@ -93,26 +93,45 @@ class ParamController(SweepSequeStimulusController):
         next_param = self.next_param()
         if next_param is not None:
             self.gp.on = True
-            if any(num != num for num in next_param):  # check has any nan
-                self.gp.on = False
-                return
             orientation, spatial_freq, phase_at_t0 = next_param
-            if orientation is not None:
+            if orientation is not None and orientation == orientation:
                 self.gp.orientation = (orientation + 90) % 360.0
-            if spatial_freq is not None:
+            if spatial_freq is not None and spatial_freq == spatial_freq:
                 self.gp.spatial_freq = self.viewport.cycDeg2cycPix(spatial_freq)
-            if phase_at_t0 is not None:
+            if phase_at_t0 is not None and phase_at_t0 == phase_at_t0:
                 self.gp.phase_at_t0 = phase_at_t0
+            if any(num != num for num in next_param):  # check has any nan. assume that gp can handle nan parameter.
+                self.gp.on = False
 
 class ParamStampController(DTSweepSequeController):
     def __init__(self,*args,**kwargs):
         super(ParamStampController, self).__init__(*args,**kwargs)
+        self.ori_range = list(np.linspace(0.0, 180.0, 16))
+        self.spf_range = list(np.linspace(0.05, 1.0, 16))
+        self.pha_range = list(np.linspace(0.0, 360.0, 16))
         self.logger = logging.getLogger('Lightstim.Grating')
     def during_go_eval(self):
-        index = self.next_index()
-        if index is not None:
-            self.post_stamp(index)
-
+        next_param = self.next_param()
+        if next_param is not None and not any(num != num for num in next_param):
+            orientation, spatial_freq, phase_at_t0 = next_param
+            try:
+                ori_index = self.ori_range.index(orientation) if orientation is not None else 0x0F
+                spf_index = self.spf_range.index(spatial_freq) if spatial_freq is not None else 0x0F
+                pha_index = self.pha_range.index(phase_at_t0) if phase_at_t0 is not None else 0x0F
+            except ValueError:
+                self.logger.error('Cannot post parameters:(%f,%f,%f)' %(orientation, spatial_freq, phase_at_t0)) 
+            """ 
+            16-bits stimulus representation code will be posted to DT port
+              0000 0101 0001 0011 
+                 |   |    |    |------------orientation index (0.0, 180.0, 16)
+                 |   |    |-----------------spatial_freq index (0.05, 1.0, 16)
+                 |   |----------------------phase_at_t0 index (0.0, 360.0, 16)
+                 |--------------------------reserved 
+            """
+            post_val = ori_index + (spf_index<<4) + (pha_index<<8)
+            #print ori_index,spf_index,pha_index,post_val
+            self.post_stamp(post_val)
+        
 class Grating(Stimulus):
     def __init__(self, params, sweepseq, **kwargs):
         super(Grating, self).__init__(**kwargs)
