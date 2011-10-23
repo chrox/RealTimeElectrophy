@@ -11,7 +11,7 @@ import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 
 from Core import Viewport
-from LightUtil import ISOTimeFormat
+from LightUtil import TimeFormat
 from ManViewport import ManViewport
 from SweepController import SweepController
 
@@ -156,6 +156,6 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
             logger.warning('Stimulation was interrupted before completion.')
         else:
             logger.info('Stimulation completes successfully.')
-        logger.info('Actual stimulus duration: %s' %str(ISOTimeFormat(sweep_duration)))
+        logger.info('Actual stimulus duration: %s' %str(TimeFormat(sweep_duration)))
 
         

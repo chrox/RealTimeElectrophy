@@ -11,7 +11,7 @@ import Pyro.core
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
 from SweepStamp import DT,DTBOARDINSTALLED
-from LightUtil import ISOTimeFormat
+from LightUtil import TimeFormat
 
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.
@@ -75,7 +75,7 @@ class SweepSequeStimulusController(StimulusController):
         self.vsyncseque = [vsync for sweep in self.sweepseq.sequence_list for vsync in itertools.repeat(sweep,repeat)]
         self.sequence_iter = itertools.chain.from_iterable(self.vsyncseque)
         estemated_duration = self.get_estemated_duration()
-        logger.info('Estimated stimulus duration: %s' %str(ISOTimeFormat(estemated_duration)))
+        logger.info('Estimated stimulus duration: %s' %str(TimeFormat(estemated_duration)))
     def next_param(self):
         try:
             return self.sequence_iter.next()

@@ -6,7 +6,7 @@
 # Distributed under the terms of the GNU Lesser General Public License
 # (LGPL). See LICENSE.TXT that came with this file.
 
-class ISOTimeFormat(object):
+class TimeFormat(object):
     """Convert from sec to ISO HH:MM:SS[.mmmmmm] format"""
     def __init__(self,sec):
         h = int(sec // 3600)

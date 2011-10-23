@@ -1,10 +1,11 @@
 TODO:
 
 - Bug fix:
-	- control viewport size should be the same as stimulus viewports when different screen resolutions are used.
 	
 
 - Requested Feature:
+	- control viewport size should be the same as stimulus viewports when different screen resolutions are used.
+	- control viewport indicator frame.
 	- add Preference module to serialize the preference parameter objects
 	- screen gamma calibration
 	- create a global vsynctable for SweepTableController so that runtime modification could be easier.(client sweepseque will handle pyro request from server side)
