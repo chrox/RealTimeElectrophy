@@ -50,7 +50,7 @@ p.sfreqmultiplier = 1.01
 # factor to change contrast by on +/-
 p.contrastmultiplier = 1.005
 # orientation step size to snap to when scrolling mouse wheel (deg)
-p.snapDeg = 18
+p.snapDeg = 12
 
 stimulus_control = ManGrating(disp_info=True, params=p, viewport='control')
 stimulus_left = ManGrating(disp_info=False, params=p, viewport='left')
