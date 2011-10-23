@@ -18,10 +18,11 @@ from LightStim.SweepSeque import TimingSeque, ParamSeque
 from VisionEgg.Gratings import SinGrating2D
 from VisionEgg.Textures import Mask2D
 from VisionEgg.MoreStimuli import Target2D
+from LightUtil import TimeFormat
 
 from LightStim.Core import Stimulus
 
-from SweepController import StimulusController,SweepSequeStimulusController
+from SweepController import StimulusController,SweepSequeStimulusController,DTSweepSequeController
 
 class GratingController(StimulusController):
     """ update mangrating parameters """
@@ -57,6 +58,30 @@ class TimingController(SweepSequeStimulusController):
             self.gp.on = True
         else:
             self.gp.on = False
+
+class TimingStampController(DTSweepSequeController):
+    def __init__(self,*args,**kwargs):
+        super(TimingStampController, self).__init__(*args,**kwargs)
+        self.logger = logging.getLogger('Lightstim.Grating')
+    def during_go_eval(self):
+        stimulus_on = self.next_param()
+        if stimulus_on:
+            """ 
+                16-bits stimulus representation code will be posted to DT port
+                     0 1 1 000000000000 1 
+                     | | |              |------onset
+                     | | |---------------------left viewport
+                     | |---------------------- right viewport
+                     |------------------------ reserved 
+            """
+            if self.viewport.get_name() == 'left':
+                viewport_value = 1<<13
+            elif self.viewport.get_name() == 'right':
+                viewport_value = 1<<14
+            else:
+                self.logger.error('Currently TimingStamp can only support left and right viewport.')
+            post_val = viewport_value + 1
+            self.post_stamp(post_val)
             
 class ParamController(SweepSequeStimulusController):
     def __init__(self,*args,**kwargs):
@@ -67,9 +92,18 @@ class ParamController(SweepSequeStimulusController):
         next_param = self.next_param()
         if next_param is not None:
             orientation, spatial_freq, phase_at_t0 = next_param
-            self.gp.phase_at_t0 = phase_at_t0
             self.gp.orientation = (orientation + 90) % 360.0
             self.gp.spatial_freq = self.viewport.cycDeg2cycPix(spatial_freq)
+            self.gp.phase_at_t0 = phase_at_t0
+
+class ParamStampController(DTSweepSequeController):
+    def __init__(self,*args,**kwargs):
+        super(ParamStampController, self).__init__(*args,**kwargs)
+        self.logger = logging.getLogger('Lightstim.Grating')
+    def during_go_eval(self):
+        index = self.next_index()
+        if index is not None:
+            self.post_stamp(index)
 
 class Grating(Stimulus):
     def __init__(self, params, sweepseq, **kwargs):
@@ -126,9 +160,16 @@ class Grating(Stimulus):
         if isinstance(self.sweepseq, TimingSeque):
             logger.info('Register TimingController.')
             self.controllers.append(TimingController(self))
+            self.controllers.append(TimingStampController(self))
         if isinstance(self.sweepseq, ParamSeque):
             logger.info('Register ParamController.')
             self.controllers.append(ParamController(self))
+            self.controllers.append(ParamStampController(self))
+        if isinstance(self.controllers[-1],SweepSequeStimulusController):
+            controller = self.controllers[-1]
+            estimated_duration = controller.get_estimated_duration()
+            sweep_num = controller.get_sweeps_num()
+            logger.info('Estimated stimulus duration: %s for %d sweeps.' %(str(TimeFormat(estimated_duration)), sweep_num))
         #self.controllers.append(DTSweepStampController(self))
             
     def load_params(self, index=0):

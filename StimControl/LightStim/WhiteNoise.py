@@ -15,7 +15,7 @@ from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
 
 import LightStim.Core
-from SweepController import SweepTableStimulusController,SaveParamsController,DTSweepStampController
+from SweepController import SweepTableStimulusController,SaveParamsController,DTSweepTableController
 from CheckBoard import CheckBoard
 
 class RFModel(object):
@@ -30,7 +30,7 @@ class RFModel(object):
         else:
             return min(0,self.gabor_func(xpos,ypos)) 
 
-class WhiteNoiseSweepStampController(DTSweepStampController):
+class WhiteNoiseSweepStampController(DTSweepTableController):
     """Digital output for triggering and frame timing verification 
     """
     def __init__(self,*args,**kwargs):

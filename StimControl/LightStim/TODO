@@ -4,6 +4,7 @@ TODO:
 	
 
 - Requested Feature:
+	- add pyro index request handling support 
 	- control viewport size should be the same as stimulus viewports when different screen resolutions are used.
 	- control viewport indicator frame.
 	- add Preference module to serialize the preference parameter objects
@@ -23,6 +24,7 @@ MEMO:
 	Beautiful is better than ugly. Simple is better than complex. Complex is better than complicated. Sparse is better than dense.
 	
 DONE:
+	+ add stamp post for SweepSeque stimulus
 	+ standard logging support
 	+ add SweepSeque class to build stimulus sequence and two SweepSeque demos
 	- (BUG) control viewport lost info bars
