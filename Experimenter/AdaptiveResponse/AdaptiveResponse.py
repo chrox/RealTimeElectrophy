@@ -45,6 +45,7 @@ class AdaptiveResponse(object):
     def __init__(self):
         self.pc = PlexClient()
         self.pc.InitClient()
+        self.pu = PlexUtil()
 
         self.onset_que = deque()
         self.offset_que = deque()
@@ -56,7 +57,7 @@ class AdaptiveResponse(object):
         self.spike_trains = {}
         self.results = {}
 
-    def close(self):
+    def __close__(self):
         self.pc.CloseClient()
 
     def _process_spike_response(self, channel, unit, lefty, continuity, response_type, onset_timestamp, spike_train):
@@ -90,12 +91,12 @@ class AdaptiveResponse(object):
 
     def _update_data(self):
         data = self.pc.GetTimeStampArrays()
-        self.onset_que.extend(PlexUtil.GetExtEvents(data, event='unstrobed_bit', bit=ONSET_BIT))
-        self.offset_que.extend(PlexUtil.GetExtEvents(data, event='unstrobed_bit', bit=OFFSET_BIT))
-        self.left_stim_que.extend(PlexUtil.GetExtEvents(data, event='unstrobed_bit', bit=LEFT_STIM_BIT))
-        self.right_stim_que.extend(PlexUtil.GetExtEvents(data, event='unstrobed_bit', bit=RIGHT_STIM_BIT))
-        self.alt_stim_que.extend(PlexUtil.GetExtEvents(data, event='unstrobed_bit', bit=ALT_STIM_BIT))
-        self.con_stim_que.extend(PlexUtil.GetExtEvents(data, event='unstrobed_bit', bit=CON_STIM_BIT))
+        self.onset_que.extend(self.pu.GetExtEvents(data, event='unstrobed_bit', bit=ONSET_BIT))
+        self.offset_que.extend(self.pu.GetExtEvents(data, event='unstrobed_bit', bit=OFFSET_BIT))
+        self.left_stim_que.extend(self.pu.GetExtEvents(data, event='unstrobed_bit', bit=LEFT_STIM_BIT))
+        self.right_stim_que.extend(self.pu.GetExtEvents(data, event='unstrobed_bit', bit=RIGHT_STIM_BIT))
+        self.alt_stim_que.extend(self.pu.GetExtEvents(data, event='unstrobed_bit', bit=ALT_STIM_BIT))
+        self.con_stim_que.extend(self.pu.GetExtEvents(data, event='unstrobed_bit', bit=CON_STIM_BIT))
         # plexon should make sure that unstrobed bits will all arrive together in one GetTimeStampArrays call.
         # If this assert fails things will be much more complicated.
         if not len(self.onset_que):
@@ -108,7 +109,7 @@ class AdaptiveResponse(object):
             print "wrong stimulus configuration!"
             return
 
-        new_spike_trains = PlexUtil.GetSpikeTrains(data)
+        new_spike_trains = self.pu.GetSpikeTrains(data)
         for channel,channel_trains in new_spike_trains.iteritems():
             if channel not in self.spike_trains:
                 self.spike_trains[channel] = channel_trains
