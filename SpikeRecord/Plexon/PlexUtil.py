@@ -43,8 +43,8 @@ class PlexUtil(object):
         sorted_spikes = (data['type'] == Plexon.PL_SingleWFType) & (data['unit'] > 0)
         for channel in np.unique(data['channel'][sorted_spikes]):
             spike_trains[str(channel)] = {}
-            for unit in map(chr,np.unique(data['unit'][sorted_spikes & data['channel'] == channel]) + (ord('a')-1)):
-                spike_trains[str(channel)][unit] = PlexUtil.GetSpikeTrain(data, channel=channel, unit=unit)
+            for unit in map(chr,np.unique(data['unit'][sorted_spikes & (data['channel'] == channel)]) + (ord('a')-1)):
+                spike_trains[str(channel)][unit] = self.GetSpikeTrain(data, channel=channel, unit=unit)
         return spike_trains
             
     def GetSpikeTrain(self, data, channel, unit):
@@ -151,7 +151,3 @@ class PlexUtil(object):
                 self.last_word = word_list[-1]
                 self.last_timestamp = timestamp_list[-1]
             return {'value': np.array(word_list[:-1]), 'timestamp': np.array(timestamp_list[:-1])}
-            
-            
-            
-
