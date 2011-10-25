@@ -41,7 +41,7 @@ class UnitChoice(wx.Panel):
 
     def update_units(self,results):
         selected_unit = self.get_selected_unit()
-        self.units = [(channel,unit) for channel in sorted(results.iterkeys()) for unit in sorted(results[channel].iterkeys())]
+        self.units = [(channel,unit) for channel in sorted(results.iterkeys(),key=int) for unit in sorted(results[channel].iterkeys())]
         self.items = ['DSP%s%c' %(channel,unit) for channel,unit in self.units]
         self.unit_list.SetItems(self.items)
         if selected_unit:                                       # selected unit previously
