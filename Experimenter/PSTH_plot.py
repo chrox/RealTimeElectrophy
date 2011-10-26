@@ -14,7 +14,7 @@ import matplotlib
 matplotlib.use('WXAgg')
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
-import pylab
+from matplotlib import pylab
 
 from Experimenter.TimeHistogram import PSTH
 
@@ -62,7 +62,7 @@ class PSTHPanel(wx.Panel):
         super(PSTHPanel, self).__init__(parent, -1, name=name)
 
         self.psth = PSTH()
-        self.data = self.psth.get_data()
+        #self.data = self.psth.get_data()
         
         self.dpi = 100
         self.fig = Figure((8.0, 3.0), dpi=self.dpi, facecolor='w')
@@ -109,17 +109,17 @@ class PSTHPanel(wx.Panel):
         self.default_bins = []
         self.patches = []
         self.fig.clf()
-        row,col = (1,8)
+        row,col = (2,8)
         for i in range(row*col):
             axes = self.fig.add_subplot(row,col,i+1)
             axes.set_axis_bgcolor('white')
             #axes.set_title('PSTH', size=8)
             
             axes.set_ylim(0,200)
-            if i is range(row*col)[0]:
+            if i in np.arange(row)*col:
                 adjust_spines(axes,['left','bottom'])
                 axes.set_ylabel('spikes/sec')
-            elif i is range(row*col)[-1]:
+            elif i in np.arange(1,row+1)*col-1:
                 adjust_spines(axes,['right','bottom'])
             else:
                 adjust_spines(axes,['bottom'])
@@ -133,14 +133,19 @@ class PSTHPanel(wx.Panel):
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit:
             channel, unit = selected_unit
-            spike_data, hist_data, bins = self.data[channel][unit]
-            if len(bins) is not len(self.default_bins[0]):
-                self.make_chart(spike_data, bins)
-            else:
-                for i in range(len(self.patches)):
-                    for rect,h in zip(self.patches[i],hist_data):
+            for index in self.data[channel][unit].iterkeys():
+                spike_times = self.data[channel][unit][index]['spikes']
+                bins = self.data[channel][unit][index]['bins']
+                psth_data = self.data[channel][unit][index]['psth_data']
+                _trials = self.data[channel][unit][index]['trials']
+                _mean = self.data[channel][unit][index]['mean']
+                _std = self.data[channel][unit][index]['std']
+                if len(bins) is not len(self.default_bins[0]):
+                    self.make_chart(spike_times, bins)
+                else:
+                    for rect,h in zip(self.patches[index],psth_data):
                         rect.set_height(h)
-                self.fig.canvas.draw()
+            self.fig.canvas.draw()
 
     def on_update_data_timer(self, event):
         # update bars data and units

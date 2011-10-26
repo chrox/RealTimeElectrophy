@@ -120,16 +120,21 @@ class ParamStampController(DTSweepSequeController):
                 self.logger.error('Cannot post parameters:(%f,%f,%f)' %(orientation, spatial_freq, phase_at_t0)) 
             """ 
             16-bits stimulus representation code will be posted to DT port
-             000 1 0101 0001 0011 
-                 |   |    |    |------------orientation index (0.0, 180.0, 16)
-                 |   |    |-----------------spatial_freq index (0.05, 1.0, 16)
-                 |   |----------------------phase_at_t0 index (0.0, 360.0, 16)
-                 |--------------------------onset
+            00 1  1 0101 0001 0011 
+               |  |   |    |    |------------orientation index (0.0, 180.0, 16)
+               |  |   |    |-----------------spatial_freq index (0.05, 1.0, 16)
+               |  |   |----------------------phase_at_t0 index (0.0, 360.0, 16)
+               |  |--------------------------stimulus onset
+               |-----------------------------stimulus offset
             """
-            stimulus_on = 1
-            post_val = ori_index + (spf_index<<4) + (pha_index<<8) + (stimulus_on<<12)
+            onset = 1
+            post_val = ori_index + (spf_index<<4) + (pha_index<<8) + (onset<<12)
             #print ori_index,spf_index,pha_index,post_val
-            self.post_stamp(post_val)
+        else:
+            offset = 1
+            post_val = offset<<13
+        self.post_stamp(post_val)
+            
         
 class Grating(Stimulus):
     def __init__(self, params, sweepseq, **kwargs):
