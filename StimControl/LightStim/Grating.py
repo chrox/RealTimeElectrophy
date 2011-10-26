@@ -12,8 +12,6 @@ import numpy as np
 np.seterr(all='raise')
 import pickle
 import logging
-import random
-import math
 from LightStim.SweepTable import dictattr
 from LightStim.SweepSeque import TimingSeque, ParamSeque
 from VisionEgg.Gratings import SinGrating2D
@@ -73,7 +71,7 @@ class TimingStampController(DTSweepSequeController):
                      | | |              |------onset
                      | | |---------------------left viewport
                      | |---------------------- right viewport
-                     |------------------------ reserved 
+                     |------------------------ reserved
             """
             if self.viewport.get_name() == 'left':
                 viewport_value = 1<<13
@@ -122,13 +120,14 @@ class ParamStampController(DTSweepSequeController):
                 self.logger.error('Cannot post parameters:(%f,%f,%f)' %(orientation, spatial_freq, phase_at_t0)) 
             """ 
             16-bits stimulus representation code will be posted to DT port
-              0000 0101 0001 0011 
+             000 1 0101 0001 0011 
                  |   |    |    |------------orientation index (0.0, 180.0, 16)
                  |   |    |-----------------spatial_freq index (0.05, 1.0, 16)
                  |   |----------------------phase_at_t0 index (0.0, 360.0, 16)
-                 |--------------------------reserved 
+                 |--------------------------onset
             """
-            post_val = ori_index + (spf_index<<4) + (pha_index<<8)
+            stimulus_on = 1
+            post_val = ori_index + (spf_index<<4) + (pha_index<<8) + (stimulus_on<<12)
             #print ori_index,spf_index,pha_index,post_val
             self.post_stamp(post_val)
         
