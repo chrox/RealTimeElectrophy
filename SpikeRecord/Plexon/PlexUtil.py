@@ -7,6 +7,8 @@
 ###########################################################
 from operator import add
 import numpy as np
+import logging
+logger = logging.getLogger('SpikeRecord.Plexon')
 import Plexon
 
 class PlexUtil(object):

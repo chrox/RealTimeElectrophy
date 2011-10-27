@@ -5,9 +5,12 @@
 ### A Python wrapper of PlexClient
 ### Written by Huangxin
 ###########################################################
+
 from __future__ import division
 import ctypes 
 import numpy as np
+import logging
+logger = logging.getLogger('SpikeRecord.Plexon')
 import Plexon
 
 MAX_MAP_EVENTS_PER_READ = 8000
@@ -35,8 +38,11 @@ class PlexClient(object):
 
         Initializes PlexClient.dll for a client. Opens MMF's and registers the client with the server. Remeber to close the client by yourself. Or try the 'with' statement to initialize the PlexClient class.
         """
+        if not self.library: 
+            logger.error('Fail to load Plexon client library.')
+            return
         if not Plexon.PL_InitClientEx3(0, None, None):
-            raise RuntimeError("Fail to initiate the client.")
+            raise RuntimeError("Fail to initiate Plexon client.")
         TimeStampTick = self.GetTimeStampTick()
         if not TimeStampTick in (25, 40, 50):
             raise RuntimeError("Fail to get timestamp tick.")
@@ -49,6 +55,7 @@ class PlexClient(object):
         Sends ClientDisconnected command to the server.
         The server decrements the counter for the number of connected clients.
         """
+        if not self.library: return
         Plexon.PL_CloseClient()
 
     def IsSortClientRunning(self):
@@ -100,16 +107,22 @@ class PlexClient(object):
         if not hasattr(self, 'EventTimestampArray'):
             self.EventTimestampArray = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.int32)
             #self.TimestampSeconds    = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.float32)
-        Plexon.PL_GetTimeStampArrays(ctypes.byref(num), 
-                              self.EventTypeArray.ctypes.data_as(ctypes.POINTER(ctypes.c_short)),
-                              self.EventChannelArray.ctypes.data_as(ctypes.POINTER(ctypes.c_short)),
-                              self.EventUnitArray.ctypes.data_as(ctypes.POINTER(ctypes.c_short)),
-                              self.EventTimestampArray.ctypes.data_as(ctypes.POINTER(ctypes.c_int)))
-        data['type'] = self.EventTypeArray[:num.value]
-        data['channel'] = self.EventChannelArray[:num.value]
-        data['unit'] = self.EventUnitArray[:num.value] 
-        # make man readable timestamp
-        data['timestamp'] = self.EventTimestampArray[:num.value]/self.MAPSampleRate
+        if self.library:
+            Plexon.PL_GetTimeStampArrays(ctypes.byref(num), 
+                                  self.EventTypeArray.ctypes.data_as(ctypes.POINTER(ctypes.c_short)),
+                                  self.EventChannelArray.ctypes.data_as(ctypes.POINTER(ctypes.c_short)),
+                                  self.EventUnitArray.ctypes.data_as(ctypes.POINTER(ctypes.c_short)),
+                                  self.EventTimestampArray.ctypes.data_as(ctypes.POINTER(ctypes.c_int)))
+            data['type'] = self.EventTypeArray[:num.value]
+            data['channel'] = self.EventChannelArray[:num.value]
+            data['unit'] = self.EventUnitArray[:num.value] 
+            # make man readable timestamp
+            data['timestamp'] = self.EventTimestampArray[:num.value]/self.MAPSampleRate
+        else:
+            data['type'] = np.empty(0)
+            data['channel'] = np.empty(0)
+            data['unit'] = np.empty(0)
+            data['timestamp'] = np.empty(0)
         return data
         
     def GetTimeStampStructures(self, num=MAX_MAP_EVENTS_PER_READ):
