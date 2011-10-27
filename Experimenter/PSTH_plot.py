@@ -5,20 +5,40 @@
 #
 # Distributed under the terms of the GNU Lesser General Public License
 # (LGPL). See LICENSE.TXT that came with this file.
-
 import os
 import wx
 import numpy as np
-
+import threading
 import matplotlib
 matplotlib.use('WXAgg')
-import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 from matplotlib import pylab
 
 from Experimenter.TimeHistogram import PSTH
+
+
+EVT_UPDATED_TYPE = wx.NewEventType()
+EVT_UPDATED = wx.PyEventBinder(EVT_UPDATED_TYPE, 1)
+
+class DataUpdatedEvent(wx.PyCommandEvent):
+    def __init__(self, etype, eid, data=None):
+        wx.PyCommandEvent.__init__(self, etype, eid)
+        self._data = data
+    def get_data(self):
+        return self._data
+
+class UpdateDataThread(threading.Thread):
+    def __init__(self, parent, psth):
+        threading.Thread.__init__(self)
+        self._parent = parent
+        self._psth = psth
+        self.run()
+    def run(self):
+        self._data = self._psth.get_data()
+        evt = DataUpdatedEvent(EVT_UPDATED_TYPE, -1, self._data)
+        wx.PostEvent(self._parent, evt)
 
 class UnitChoice(wx.Panel):
     """ A listbox of available channels and units.
@@ -35,15 +55,17 @@ class UnitChoice(wx.Panel):
         sizer.Add(self.unit_list, 0, flag=wx.ALL, border=5)
         self.SetSizer(sizer)
         sizer.Fit(self)
+        
+        #self.Bind(EVT_UPDATED, self.on_data_updated)
 
     def on_select(self,event):
-        wx.FindWindowByName('psth_panel').update_chart()
+        #wx.FindWindowByName('psth_panel').update_chart()
         index = self.unit_list.GetSelection()
         wx.FindWindowByName('main_frame').flash_status_message("Select unit: %s" % self.items[index])
 
-    def update_units(self,results):
+    def update_units(self,data):
         selected_unit = self.get_selected_unit()
-        self.units = [(channel,unit) for channel in sorted(results.iterkeys(),key=int) for unit in sorted(results[channel].iterkeys())]
+        self.units = [(channel,unit) for channel in sorted(data.iterkeys(),key=int) for unit in sorted(data[channel].iterkeys())]
         self.items = ['DSP%s%c' %(channel,unit) for channel,unit in self.units]
         self.unit_list.SetItems(self.items)
         if selected_unit:                                       # selected unit previously
@@ -66,6 +88,7 @@ class PSTHPanel(wx.Panel):
         self.psth = PSTH()
         #self.data = self.psth.get_data()
         
+        
         self.dpi = 100
         self.fig = Figure((8.0, 6.0), dpi=self.dpi, facecolor='w')
         self.canvas = FigCanvas(self, -1, self.fig)
@@ -79,7 +102,7 @@ class PSTHPanel(wx.Panel):
 
         self.update_data_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_update_data_timer, self.update_data_timer)
-        self.update_data_timer.Start(500)
+        self.update_data_timer.Start(1500)
 
     def make_chart(self,data=np.zeros(1),bins=np.arange(10)+1):
         def adjust_spines(ax,spines,spine_outward=['left','right'],outward=3,ticks=['left','bottom'],tick_direction='out',tick_label=['x','y'],xaxis_loc=None,yaxis_loc=None):
@@ -153,17 +176,17 @@ class PSTHPanel(wx.Panel):
                 _n, bins, patches = axes.hist(data, bins, facecolor='black', alpha=1.0)
                 self.hist_bins.append(bins)
                 self.hist_patches.append(patches)
-    def update_chart(self):
+    def update_chart(self, data):
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit:
             channel, unit = selected_unit
-            for index in self.data[channel][unit].iterkeys():
-                spike_times = self.data[channel][unit][index]['spikes']
-                bins = self.data[channel][unit][index]['bins']
-                psth_data = self.data[channel][unit][index]['psth_data']
-                _trials = self.data[channel][unit][index]['trials']
-                mean = self.data[channel][unit][index]['mean']
-                std = self.data[channel][unit][index]['std']
+            for index in data[channel][unit].iterkeys():
+                spike_times = data[channel][unit][index]['spikes']
+                bins = data[channel][unit][index]['bins']
+                psth_data = data[channel][unit][index]['psth_data']
+                _trials = data[channel][unit][index]['trials']
+                mean = data[channel][unit][index]['mean']
+                std = data[channel][unit][index]['std']
                 self.means[index] = mean
                 self.stds[index] = std
                 if len(bins) is not len(self.hist_bins[0]):
@@ -180,7 +203,7 @@ class PSTHPanel(wx.Panel):
             self.curve_data.set_xdata(self.x)
             self.curve_data.set_ydata(self.means)
             self.update_errbars(self.errbars,self.x,self.means,self.stds)
-            self.fig.canvas.draw()
+        self.fig.canvas.draw()
     
     def update_errbars(self, errbar, x, means, yerrs):
         errbar[0].set_data(x,means)
@@ -196,10 +219,8 @@ class PSTHPanel(wx.Panel):
         self.curve_axes.autoscale_view(scalex=True, scaley=True)
     
     def on_update_data_timer(self, event):
-        # update bars data and units
-        #self.results = self.response.get_demo_results()
-        self.data = self.psth.get_data()
-        wx.FindWindowByName('unit_choice').update_units(self.data)
+        #self.data = self.psth.get_data()
+        UpdateDataThread(self, self.psth)
 
     def on_save_chart(self, event):
         file_choices = "PNG (*.png)|*.png"
@@ -228,9 +249,10 @@ class MainFrame(wx.Frame):
         self.create_status_bar()
         self.create_main_panel()
 
-        self.redraw_timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.on_redraw_timer, self.redraw_timer)
-        self.redraw_timer.Start(500)
+        #self.redraw_timer = wx.Timer(self)
+        #self.Bind(wx.EVT_TIMER, self.on_redraw_timer, self.redraw_timer)
+        #self.redraw_timer.Start(500)
+        self.Bind(EVT_UPDATED, self.on_data_updated)
 
     def create_menu(self):
         self.menubar = wx.MenuBar()
@@ -266,10 +288,12 @@ class MainFrame(wx.Frame):
     def on_save_chart(self, event):
         self.psth_chart.on_save_chart(event)
 
-    def on_redraw_timer(self, event):
-        """ refresh the bars
-        """
-        self.psth_chart.update_chart()
+    def on_data_updated(self, event):
+        #print event.get_data()
+        data = event.get_data()
+        self.psth_chart.update_chart(data)
+        self.unit_choice.update_units(data)
+        #event.Skip()
 
     def on_exit(self, event):
         self.Destroy()
@@ -291,9 +315,4 @@ if __name__ == '__main__':
     app = wx.PySimpleApp()
     app.frame = MainFrame()
     app.frame.Show()
-    import cProfile,pstats
-    cProfile.run('app.MainLoop()','psth_plot_profile.txt')
-    p = pstats.Stats('mangrating_profile')
-    p.sort_stats('cumulative')
-    p.print_stats()
-    #app.MainLoop()
+    app.MainLoop()
