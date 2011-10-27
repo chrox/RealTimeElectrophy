@@ -11,8 +11,8 @@ import scipy.ndimage as nd
 from Plexon.PlexClient import PlexClient
 from Plexon.PlexUtil import PlexUtil
 
-ONSET_BIT = 12
-OFFSET_BIT = 13
+ONSET_BIT = 11
+OFFSET_BIT = 12
 ORI_MASK = 0xF<<0
 SPF_MASK = 0xF<<4
 PHA_MASK = 0xF<<8
@@ -122,6 +122,6 @@ class PSTH:
                 self.histogram_data[channel][unit][param_index]['trials'] = trials
                 psth_data = np.array(np.histogram(spikes, bins=bins)[0],dtype='float') / (binsize*trials)
                 self.histogram_data[channel][unit][param_index]['psth_data'] = psth_data
-                smooth_psth = nd.gaussian_filter1d(psth_data, sigma=5)
+                smooth_psth = nd.gaussian_filter1d(psth_data, sigma=5) / (binsize*trials)
                 self.histogram_data[channel][unit][param_index]['mean'] = np.mean(smooth_psth)
                 self.histogram_data[channel][unit][param_index]['std'] = np.std(smooth_psth)
