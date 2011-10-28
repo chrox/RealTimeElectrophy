@@ -1,3 +1,11 @@
+# 
+#
+# Copyright (C) 2010-2011 Huang Xin
+# 
+#
+# Distributed under the terms of the GNU Lesser General Public License
+# (LGPL). See LICENSE.TXT that came with this file.
+
 # Neuron PSTH data.
 #
 # Copyright (C) 2010-2011 Huang Xin
@@ -11,13 +19,13 @@ import scipy.ndimage as nd
 from Plexon.PlexClient import PlexClient
 from Plexon.PlexUtil import PlexUtil
 
-ONSET_BIT = 11
-OFFSET_BIT = 12
+ONSET_BIT = 12
+OFFSET_BIT = 13
 ORI_MASK = 0xF<<0
 SPF_MASK = 0xF<<4
 PHA_MASK = 0xF<<8
 
-class PSTH:
+class PSTHAverage:
     def __init__(self):
         self.pc = PlexClient()
         self.pc.InitClient()
@@ -88,12 +96,12 @@ class PSTH:
                     self.timestamps = np.empty(0)
             else:
                 if np.any(self.param_indices[1:off_begin[0][0]] != self.param_indices[:off_begin[0][0]-1]):
-                    logger.error('Bad stimulation trigger: stimulus parameter are not the same between two off segments.')
+                    logger.warning('Bad stimulation trigger: stimulus parameter are not the same between two off segments.')
                 on_begin = self.timestamps[0]
                 on_end = self.timestamps[off_begin[0][0]-1]
                 index = self.param_indices[0]
                 if index not in range(16):
-                    logger.error('Bad stimulation trigger: stimulus parameter index exceeded defined range.')
+                    logger.warning('Bad stimulation trigger: stimulus parameter index exceeded defined range.')
                 if on_end > on_begin and index in range(16):
                     self._process_psth_data(on_begin, on_end, index) # psth processing of on segment
                 self.param_indices = self.param_indices[off_begin[0][0]:] # remove processed on segment

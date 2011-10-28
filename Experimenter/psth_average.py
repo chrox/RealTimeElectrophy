@@ -16,8 +16,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 from matplotlib import pylab
 
-from Experimenter.TimeHistogram import PSTH
-
+from Experimenter.TimeHistogram import TimeHistogram
 
 EVT_UPDATED_TYPE = wx.NewEventType()
 EVT_UPDATED = wx.PyEventBinder(EVT_UPDATED_TYPE, 1)
@@ -48,15 +47,12 @@ class UnitChoice(wx.Panel):
 
         self.unit_list = wx.ListBox(parent=self, size=(100,600))
         self.unit_list.Bind(wx.EVT_LISTBOX, self.on_select, self.unit_list)
-        #self.unit_list.SetSelection(0)
 
         box = wx.StaticBox(self, -1, label)
         sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         sizer.Add(self.unit_list, 0, flag=wx.ALL, border=5)
         self.SetSizer(sizer)
         sizer.Fit(self)
-        
-        #self.Bind(EVT_UPDATED, self.on_data_updated)
 
     def on_select(self,event):
         #wx.FindWindowByName('psth_panel').update_chart()
@@ -85,10 +81,8 @@ class PSTHPanel(wx.Panel):
     def __init__(self, parent, label, name='psth_panel'):
         super(PSTHPanel, self).__init__(parent, -1, name=name)
 
-        self.psth = PSTH()
-        #self.data = self.psth.get_data()
-        
-        
+        self.psth = TimeHistogram.PSTHAverage()
+
         self.dpi = 100
         self.fig = Figure((8.0, 6.0), dpi=self.dpi, facecolor='w')
         self.canvas = FigCanvas(self, -1, self.fig)
@@ -102,46 +96,33 @@ class PSTHPanel(wx.Panel):
 
         self.update_data_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_update_data_timer, self.update_data_timer)
-        self.update_data_timer.Start(1500)
+        self.update_data_timer.Start(2000)
 
     def make_chart(self,data=np.zeros(1),bins=np.arange(10)+1):
-        def adjust_spines(ax,spines,spine_outward=['left','right'],outward=3,ticks=['left','bottom'],tick_direction='out',tick_label=['x','y'],xaxis_loc=None,yaxis_loc=None):
+        def adjust_spines(ax,spines,spine_outward=['left','right'],outward=3,xticks='bottom',yticks='left',xtick_dir='out',ytick_dir='out',tick_label=['x','y'],xaxis_loc=None,yaxis_loc=None):
             for loc, spine in ax.spines.iteritems():
                 if loc not in spines:
                     spine.set_color('none') # don't draw spine
                 if loc in spine_outward:
                     spine.set_position(('outward',outward))
             # turn off ticks where there is no spine
-            if 'left' in ticks:
-                ax.yaxis.set_ticks_position('left')
-                ax.yaxis.set_tick_params(direction=tick_direction)
-                if xaxis_loc:
-                    ax.yaxis.set_major_locator(matplotlib.ticker.LinearLocator(xaxis_loc))
-            elif 'right' in ticks:
-                ax.yaxis.set_ticks_position('right')
-                ax.yaxis.set_tick_params(direction=tick_direction)
-                if xaxis_loc:
-                    ax.yaxis.set_major_locator(matplotlib.ticker.LinearLocator(xaxis_loc))
-            else:
-                ax.yaxis.set_ticks([])
-            if 'y' not in tick_label:
-                ax.yaxis.set_ticklabels([])
-            
-            
-            if 'top' in ticks:
-                ax.xaxis.set_ticks_position('top')
-                ax.xaxis.set_tick_params(direction=tick_direction)
-                if yaxis_loc:
-                    ax.xaxis.set_major_locator(matplotlib.ticker.LinearLocator(yaxis_loc))
-            elif 'bottom' in ticks:
-                ax.xaxis.set_ticks_position('bottom')
-                ax.xaxis.set_tick_params(direction=tick_direction)
-                if yaxis_loc:
-                    ax.xaxis.set_major_locator(matplotlib.ticker.LinearLocator(yaxis_loc))
-            else:
+            ax.xaxis.set_ticks_position(xticks)
+            ax.xaxis.set_tick_params(direction=xtick_dir)
+            if xaxis_loc:
+                ax.xaxis.set_major_locator(matplotlib.ticker.LinearLocator(xaxis_loc))
+            if xticks is 'none':
                 ax.xaxis.set_ticks([])
             if 'x' not in tick_label:
                 ax.xaxis.set_ticklabels([])
+
+            ax.yaxis.set_ticks_position(yticks)
+            ax.yaxis.set_tick_params(direction=ytick_dir)
+            if yaxis_loc:
+                ax.yaxis.set_major_locator(matplotlib.ticker.LinearLocator(yaxis_loc))
+            if yticks is 'none':
+                ax.yaxis.set_ticks([])
+            if 'y' not in tick_label:
+                ax.yaxis.set_ticklabels([])
 
         self.hist_bins = []
         self.hist_patches = []
@@ -151,8 +132,8 @@ class PSTHPanel(wx.Panel):
         self.fig.clf()
         gs = gridspec.GridSpec(8, 8)
         axes = self.fig.add_subplot(gs[:-3,:])
+        adjust_spines(axes,spines=['left','bottom','right'],xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5)
         axes.set_ylabel('Response(spikes/sec)',fontsize=12)
-        adjust_spines(axes,spines=['left','bottom','right'],ticks=['left','bottom','right'],tick_label=['x','y'])
         self.curve_data = axes.plot(self.x, self.means)[0]
         self.errbars = axes.errorbar(self.x, self.means, yerr=self.stds, fmt='k.')
         self.curve_axes = axes
@@ -165,18 +146,57 @@ class PSTHPanel(wx.Panel):
                 #axes.set_title('PSTH', size=8)
                 axes.set_ylim(0,200)
                 if col == 0:
-                    adjust_spines(axes,spines=['left','bottom'],ticks=['left','bottom'],tick_label=['y'],xaxis_loc=3,yaxis_loc=4)
+                    adjust_spines(axes,spines=['left','bottom'],xticks='bottom',yticks='left',tick_label=['y'],xaxis_loc=4,yaxis_loc=3)
                     axes.set_ylabel('spikes/sec',fontsize=8)
                 elif col == cols-1:
-                    adjust_spines(axes,spines=['right','bottom'],ticks=['right','bottom'],tick_label=['y'],xaxis_loc=3,yaxis_loc=4)
+                    adjust_spines(axes,spines=['right','bottom'],xticks='bottom',yticks='right',tick_label=['y'],xaxis_loc=4,yaxis_loc=3)
                 else:
-                    adjust_spines(axes,spines=['bottom'],ticks=['bottom'],tick_label=[],xaxis_loc=3,yaxis_loc=4)
+                    adjust_spines(axes,spines=['bottom'],xticks='bottom',yticks='none',tick_label=[],xaxis_loc=4,yaxis_loc=3)
                 pylab.setp(axes.get_xticklabels(), fontsize=8)
                 pylab.setp(axes.get_yticklabels(), fontsize=8)
                 _n, bins, patches = axes.hist(data, bins, facecolor='black', alpha=1.0)
                 self.hist_bins.append(bins)
                 self.hist_patches.append(patches)
-    def update_chart(self, data):
+    
+    def on_update_data_timer(self, event):
+        #self.data = self.psth.get_data()
+        UpdateDataThread(self, self.psth)
+
+    def on_save_chart(self, event):
+        file_choices = "PNG (*.png)|*.png"
+        dlg = wx.FileDialog(
+            self,
+            message="Save chart as...",
+            defaultDir=os.getcwd(),
+            defaultFile="psth_aver.png",
+            wildcard=file_choices,
+            style=wx.SAVE)
+        if dlg.ShowModal() == wx.ID_OK:
+            path = dlg.GetPath()
+            self.canvas.print_figure(path, dpi=self.dpi)
+            wx.FindWindowByName('main_frame').flash_status_message("Saved to %s" % path)
+            
+class UpdateChartThread(threading.Thread):
+    def __init__(self, panel, data):
+        threading.Thread.__init__(self)
+        self.panel = panel
+        self.means = np.zeros(16)
+        self.stds = np.zeros(16)
+        self.x = np.arange(16)
+        self.parameter = panel.psth.parameter
+        
+        self.hist_bins = panel.hist_bins
+        self.hist_patches = panel.hist_patches
+        self.errbars = panel.errbars
+        self.curve_data = panel.curve_data
+        self.curve_axes = panel.curve_axes
+        
+        self._data = data
+        self.run()
+    def run(self):
+        self.update_chart(self.panel, self._data)
+        
+    def update_chart(self, panel, data):
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit:
             channel, unit = selected_unit
@@ -189,23 +209,24 @@ class PSTHPanel(wx.Panel):
                 std = data[channel][unit][index]['std']
                 self.means[index] = mean
                 self.stds[index] = std
-                if len(bins) is not len(self.hist_bins[0]):
-                    self.make_chart(spike_times, bins)
+                if len(bins) != len(self.hist_bins[0]):
+                    panel.make_chart(spike_times, bins)
+                    self.hist_bins = panel.hist_bins
                 else:
                     for rect,h in zip(self.hist_patches[index],psth_data):
                         rect.set_height(h)
-            if self.psth.parameter is 'orientation':
+            if self.parameter is 'orientation':
                 self.x = np.linspace(0.0, 180.0, 16)
-            if self.psth.parameter is 'spatial_frequency':
+            if self.parameter is 'spatial_frequency':
                 self.x = np.linspace(0.05, 1.0, 16)
-            if self.psth.parameter is 'phase':
+            if self.parameter is 'phase':
                 self.x = np.linspace(0.0, 360.0, 16)
             self.curve_data.set_xdata(self.x)
             self.curve_data.set_ydata(self.means)
-            self.update_errbars(self.errbars,self.x,self.means,self.stds)
-        self.fig.canvas.draw()
+            self._update_errbars(self.errbars,self.x,self.means,self.stds)
+        panel.fig.canvas.draw()
     
-    def update_errbars(self, errbar, x, means, yerrs):
+    def _update_errbars(self, errbar, x, means, yerrs):
         errbar[0].set_data(x,means)
         # Find the ending points of the errorbars
         error_positions = (x,means-yerrs), (x,means+yerrs)
@@ -217,41 +238,20 @@ class PSTHPanel(wx.Panel):
         self.curve_axes.set_ylim(auto=True)
         self.curve_axes.relim()
         self.curve_axes.autoscale_view(scalex=True, scaley=True)
-    
-    def on_update_data_timer(self, event):
-        #self.data = self.psth.get_data()
-        UpdateDataThread(self, self.psth)
-
-    def on_save_chart(self, event):
-        file_choices = "PNG (*.png)|*.png"
-        dlg = wx.FileDialog(
-            self,
-            message="Save chart as...",
-            defaultDir=os.getcwd(),
-            defaultFile="psth.png",
-            wildcard=file_choices,
-            style=wx.SAVE)
-        if dlg.ShowModal() == wx.ID_OK:
-            path = dlg.GetPath()
-            self.canvas.print_figure(path, dpi=self.dpi)
-            wx.FindWindowByName('main_frame').flash_status_message("Saved to %s" % path)
 
 class MainFrame(wx.Frame):
     """ The main frame of the application
     """
     def __init__(self):
-        title = 'Peri-stimulus time histogram(PSTH)'
-        #style = wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER ^ wx.MAXIMIZE_BOX
-        style = wx.DEFAULT_FRAME_STYLE
+        title = 'Peri-Stimulus Time Histogram(PSTH) Average'
+        style = wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER ^ wx.MAXIMIZE_BOX
+        #style = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, None, -1, title=title, pos=(50,50), style=style, name='main_frame')
 
         self.create_menu()
         self.create_status_bar()
         self.create_main_panel()
 
-        #self.redraw_timer = wx.Timer(self)
-        #self.Bind(wx.EVT_TIMER, self.on_redraw_timer, self.redraw_timer)
-        #self.redraw_timer.Start(500)
         self.Bind(EVT_UPDATED, self.on_data_updated)
 
     def create_menu(self):
@@ -291,9 +291,8 @@ class MainFrame(wx.Frame):
     def on_data_updated(self, event):
         #print event.get_data()
         data = event.get_data()
-        self.psth_chart.update_chart(data)
+        UpdateChartThread(self.psth_chart, data)
         self.unit_choice.update_units(data)
-        #event.Skip()
 
     def on_exit(self, event):
         self.Destroy()
@@ -309,7 +308,6 @@ class MainFrame(wx.Frame):
 
     def on_flash_status_off(self, event):
         self.statusbar.SetStatusText('')
-
 
 if __name__ == '__main__':
     app = wx.PySimpleApp()
