@@ -19,8 +19,8 @@ import scipy.ndimage as nd
 from Plexon.PlexClient import PlexClient
 from Plexon.PlexUtil import PlexUtil
 
-ONSET_BIT = 12
-OFFSET_BIT = 13
+ONSET_BIT = 11
+OFFSET_BIT = 12
 ORI_MASK = 0xF<<0
 SPF_MASK = 0xF<<4
 PHA_MASK = 0xF<<8
@@ -101,7 +101,7 @@ class PSTHAverage:
                 on_end = self.timestamps[off_begin[0][0]-1]
                 index = self.param_indices[0]
                 if index not in range(16):
-                    logger.warning('Bad stimulation trigger: stimulus parameter index exceeded defined range.')
+                    logger.warning('Bad stimulation trigger: stimulus parameter index exceeded defined range [0,16].')
                 if on_end > on_begin and index in range(16):
                     self._process_psth_data(on_begin, on_end, index) # psth processing of on segment
                 self.param_indices = self.param_indices[off_begin[0][0]:] # remove processed on segment
