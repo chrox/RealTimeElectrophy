@@ -23,6 +23,19 @@ from LightStim.Core import Stimulus
 
 from SweepController import StimulusController,SweepSequeStimulusController,DTSweepSequeController
 
+class IndexedParam(list):
+    def __init__(self,parameter):
+        if parameter is 'orientation':
+            super(IndexedParam, self).__init__(np.linspace(0.0, 180.0, 17)[:-1])
+        elif parameter is 'spatial_freq':
+            super(IndexedParam, self).__init__(np.linspace(0.05, 1.0, 16))
+        elif parameter is 'phase_at_t0':
+            super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 17)[:-1])
+        elif parameter is None:
+            super(IndexedParam, self).__init__([None])
+        else:
+            raise RuntimeError('Cannot understand parameter:%s' %str(parameter))
+
 class GratingController(StimulusController):
     """ update mangrating parameters """
     def __init__(self,*args,**kwargs):
@@ -104,20 +117,24 @@ class ParamController(SweepSequeStimulusController):
 class ParamStampController(DTSweepSequeController):
     def __init__(self,*args,**kwargs):
         super(ParamStampController, self).__init__(*args,**kwargs)
-        self.ori_range = list(np.linspace(0.0, 180.0, 16))
-        self.spf_range = list(np.linspace(0.05, 1.0, 16))
-        self.pha_range = list(np.linspace(0.0, 360.0, 16))
+        self.indexed_ori = IndexedParam('orientation')
+        self.indexed_sfq = IndexedParam('spatial_freq')
+        self.indexed_pha = IndexedParam('phase_at_t0')
         self.logger = logging.getLogger('Lightstim.Grating')
     def during_go_eval(self):
         next_param = self.next_param()
         if next_param is not None and not any(num != num for num in next_param):
             orientation, spatial_freq, phase_at_t0 = next_param
-            try:
-                ori_index = self.ori_range.index(orientation) if orientation is not None else 0x0F
-                spf_index = self.spf_range.index(spatial_freq) if spatial_freq is not None else 0x0F
-                pha_index = self.pha_range.index(phase_at_t0) if phase_at_t0 is not None else 0x0F
-            except ValueError:
-                self.logger.error('Cannot post parameters:(%f,%f,%f)' %(orientation, spatial_freq, phase_at_t0)) 
+            ori_index, spf_index, pha_index = 0,0,0
+            if orientation in self.indexed_ori:
+                ori_index = self.indexed_ori.index(orientation)
+            #else: self.logger.error('Cannot post param index for orientation parameter: %s' %str(orientation))
+            if spatial_freq in self.indexed_sfq:
+                spf_index = self.indexed_sfq.index(spatial_freq)
+            #else: self.logger.error('Cannot post param index for spatial freqency parameter: %s' %str(spatial_freq))
+            if phase_at_t0 in self.indexed_pha:
+                pha_index = self.indexed_pha.index(phase_at_t0)
+            #else: self.logger.error('Cannot post param index for phase parameter: %s' %str(phase_at_t0))
             """ 
             16-bits stimulus representation code will be posted to DT port
             00 1  1 0101 0001 0011 

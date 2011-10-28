@@ -7,10 +7,9 @@
 # (LGPL). See LICENSE.TXT that came with this file.
 
 from __future__ import division
-import numpy as np
 from LightStim.SweepSeque import dictattr,ParamSeque
 from LightStim.FrameControl import FrameSweep
-from LightStim.Grating import Grating
+from LightStim.Grating import Grating,IndexedParam
 
 p = dictattr()
 p.ml = 0.5
@@ -19,13 +18,15 @@ p.bgbrightness = 0.0
 p.phase0 = 0
 p.contrast = 1
 
-orientation = np.linspace(0.0, 180.0, 16)
-spatial_freq = np.linspace(0.05, 1.0, 16)
-#spatial_freq = [None]
-#phase_at_t0 = np.linspace(0.0, 360.0, 16)
+orientation = IndexedParam('orientation')
+#orientation = [0]
+#spatial_freq = IndexedParam('spatial_freq')
+spatial_freq = [None]
+#phase_at_t0 = IndexedParam('phase_at_t0')
 phase_at_t0 = [None]
 
-param_sequence = ParamSeque(repeat=5, orientation=orientation, spatial_freq=spatial_freq, phase_at_t0=phase_at_t0, frame_duration=0.1, blank_duration=0.0)
+#param_sequence = ParamSeque(repeat=4, orientation=orientation, spatial_freq=spatial_freq, phase_at_t0=phase_at_t0, frame_duration=0.1, blank_duration=0.0)
+param_sequence = ParamSeque(repeat=4, orientation=orientation, spatial_freq=spatial_freq, phase_at_t0=phase_at_t0, frame_duration=2.0, blank_duration=1.0)
 
 random_grating = Grating(viewport='left', params=p, sweepseq=param_sequence)
 sweep = FrameSweep()
