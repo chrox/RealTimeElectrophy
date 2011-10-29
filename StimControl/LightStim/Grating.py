@@ -150,17 +150,19 @@ class ParamStampController(DTSweepSequeController):
         else:
             offset = 1
             post_val = offset<<13
-        self.post_stamp(post_val)
+        if self.stimulus.trigger:
+            self.post_stamp(post_val)
             
         
 class Grating(Stimulus):
-    def __init__(self, params, sweepseq, **kwargs):
+    def __init__(self, params, sweepseq, trigger=True, **kwargs):
         super(Grating, self).__init__(**kwargs)
         self.name = 'grating'
         self.parameters = dictattr()
         self.load_params()
         self.set_parameters(self.parameters, params)
         self.sweepseq = sweepseq
+        self.trigger = trigger
         
         self.make_stimuli()
         self.register_controllers()
