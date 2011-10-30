@@ -99,30 +99,39 @@ class PSTHPanel(wx.Panel):
         self.update_data_timer.Start(2000)
 
     def make_chart(self,data=np.zeros(1),bins=np.arange(10)+1):
-        def adjust_spines(ax,spines,spine_outward=['left','right'],outward=5,xticks='bottom',yticks='left',xtick_dir='out',ytick_dir='out',tick_label=['x','y'],xaxis_loc=None,yaxis_loc=None):
+        def adjust_spines(ax,spines,spine_outward=['left','right'],xoutward=0,youtward=5,xticks='bottom',yticks='left',\
+                          xtick_dir='out',ytick_dir='out',tick_label=['x','y'],xaxis_loc=None,yaxis_loc=None,
+                          xminor_auto_loc=None,yminor_auto_loc=None):
             for loc, spine in ax.spines.iteritems():
                 if loc not in spines:
                     spine.set_color('none') # don't draw spine
                 if loc in spine_outward:
-                    spine.set_position(('outward',outward))
-            # turn off ticks where there is no spine
-            ax.xaxis.set_ticks_position(xticks)
-            ax.xaxis.set_tick_params(direction=xtick_dir)
+                    if loc in ['top','bottom']:
+                        spine.set_position(('outward',xoutward))
+                    if loc in ['left','right']:
+                        spine.set_position(('outward',youtward))
+            # set ticks
             if xaxis_loc:
                 ax.xaxis.set_major_locator(matplotlib.ticker.LinearLocator(xaxis_loc))
+            if xminor_auto_loc:
+                ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator(xminor_auto_loc))
             if xticks is 'none':
                 ax.xaxis.set_ticks([])
             if 'x' not in tick_label:
                 ax.xaxis.set_ticklabels([])
+            ax.xaxis.set_ticks_position(xticks)
+            ax.xaxis.set_tick_params(which='both',direction=xtick_dir)
 
-            ax.yaxis.set_ticks_position(yticks)
-            ax.yaxis.set_tick_params(direction=ytick_dir)
             if yaxis_loc:
                 ax.yaxis.set_major_locator(matplotlib.ticker.LinearLocator(yaxis_loc))
+            if yminor_auto_loc:
+                ax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator(yminor_auto_loc))
             if yticks is 'none':
                 ax.yaxis.set_ticks([])
             if 'y' not in tick_label:
                 ax.yaxis.set_ticklabels([])
+            ax.yaxis.set_ticks_position(yticks)
+            ax.yaxis.set_tick_params(which='both',direction=ytick_dir)
 
         self.hist_bins = []
         self.hist_patches = []
@@ -135,15 +144,16 @@ class PSTHPanel(wx.Panel):
         gs = gridspec.GridSpec(grid, grid)
         # make tuning curve plot
         axes = self.fig.add_subplot(gs[:-height*2,height/2:-height/2])
-        adjust_spines(axes,spines=['left','bottom','right'],outward=30,xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5)
+        adjust_spines(axes,spines=['left','bottom','right'],spine_outward=['left','right','bottom'],xoutward=10,youtward=30,\
+                      xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5,xminor_auto_loc=2,yminor_auto_loc=2)
         axes.set_ylabel('Response(spikes/sec)',fontsize=12)
-        self.curve_data = axes.plot(self.x, self.means)[0]
+        self.curve_data = axes.plot(self.x, self.means, 'k-')[0]
         self.errbars = axes.errorbar(self.x, self.means, yerr=self.stds, fmt='k.')
         self.curve_axes = axes
-        axes.set_ylim(0,200)
+        axes.set_ylim(0,100)
         axes.relim()
         axes.autoscale_view(scalex=True, scaley=False)
-        axes.grid(b=None, which='major',axis='both',linestyle='-.')
+        axes.grid(b=True, which='major',axis='both',linestyle='-.')
         # make histgrams plot
         rows,cols = (grid-height,grid)
         for row in range(rows,cols)[::height]:
@@ -261,6 +271,7 @@ class UpdateChartThread(threading.Thread):
         # Update the error bars
         errbar[2][0].set_segments(np.array([[x, means-yerrs], [x, means+yerrs]]).transpose((2, 0, 1)))
         self.curve_axes.set_ylim(auto=True)
+        #self.curve_axes.set_ylim(0,100)
         self.curve_axes.relim()
         self.curve_axes.autoscale_view(scalex=True, scaley=True)
 
