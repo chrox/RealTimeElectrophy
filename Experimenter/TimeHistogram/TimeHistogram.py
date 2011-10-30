@@ -122,14 +122,19 @@ class PSTHAverage:
                     self.histogram_data[channel][unit][param_index] = {}
                     self.histogram_data[channel][unit][param_index]['trials'] = 0
                     self.histogram_data[channel][unit][param_index]['spikes'] = []
+                    self.histogram_data[channel][unit][param_index]['means'] = []
                 take = ((unit_train >= begin) & (unit_train<end))
-                spikes = np.append(self.histogram_data[channel][unit][param_index]['spikes'], unit_train[take] - begin)
-                self.histogram_data[channel][unit][param_index]['spikes'] = spikes
-                self.histogram_data[channel][unit][param_index]['bins'] = bins
+                trial_spikes = unit_train[take] - begin
+                trial_mean = np.array(np.histogram(trial_spikes, bins=bins)[0],dtype='float') / binsize
+                spikes = np.append(self.histogram_data[channel][unit][param_index]['spikes'], trial_spikes)
                 trials = self.histogram_data[channel][unit][param_index]['trials'] + 1
-                self.histogram_data[channel][unit][param_index]['trials'] = trials
                 psth_data = np.array(np.histogram(spikes, bins=bins)[0],dtype='float') / (binsize*trials)
-                self.histogram_data[channel][unit][param_index]['psth_data'] = psth_data
                 smooth_psth = nd.gaussian_filter1d(psth_data, sigma=5) / (binsize*trials)
-                self.histogram_data[channel][unit][param_index]['mean'] = np.mean(smooth_psth)
-                self.histogram_data[channel][unit][param_index]['std'] = np.std(smooth_psth)
+                mean = np.mean(smooth_psth)
+                self.histogram_data[channel][unit][param_index]['spikes'] = spikes
+                self.histogram_data[channel][unit][param_index]['trials'] = trials
+                self.histogram_data[channel][unit][param_index]['psth_data'] = psth_data
+                self.histogram_data[channel][unit][param_index]['bins'] = bins
+                self.histogram_data[channel][unit][param_index]['mean'] = mean
+                self.histogram_data[channel][unit][param_index]['means'].append(trial_mean)
+                self.histogram_data[channel][unit][param_index]['std'] = np.std(self.histogram_data[channel][unit][param_index]['means'])
