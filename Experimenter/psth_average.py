@@ -161,7 +161,7 @@ class PSTHPanel(wx.Panel):
                 axes = self.fig.add_subplot(gs[row:row+height,col:col+height])
                 axes.set_axis_bgcolor('white')
                 #axes.set_title('PSTH', size=8)
-                axes.set_ylim(0,200)
+                axes.set_ylim(0,100)
                 if col == 0:
                     adjust_spines(axes,spines=['left','bottom'],xticks='bottom',yticks='left',tick_label=['y'],xaxis_loc=4,yaxis_loc=3)
                     axes.set_ylabel('Spikes',fontsize=11)
