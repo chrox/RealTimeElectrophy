@@ -240,7 +240,7 @@ class UpdateChartThread(threading.Thread):
             if self.parameter is 'orientation':
                 self.x = np.linspace(0.0, 180.0, 17)
                 self.curve_axes.set_title('Orientation Tuning Curve')
-                if zeroth_psth_data:
+                if zeroth_psth_data is not None:
                     for rect,h in zip(self.hist_patches[-1],zeroth_psth_data):
                         rect.set_height(h)
                 self.means[-1] = self.means[0]
@@ -251,7 +251,7 @@ class UpdateChartThread(threading.Thread):
             if self.parameter is 'phase':
                 self.x = np.linspace(0.0, 360.0, 17)
                 self.curve_axes.set_title('Disparity Tuning Curve')
-                if zeroth_psth_data:
+                if zeroth_psth_data is not None:
                     for rect,h in zip(self.hist_patches[-1],zeroth_psth_data):
                         rect.set_height(h)
                 self.means[-1] = self.means[0]
