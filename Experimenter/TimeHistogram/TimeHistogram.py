@@ -1,11 +1,3 @@
-# 
-#
-# Copyright (C) 2010-2011 Huang Xin
-# 
-#
-# Distributed under the terms of the GNU Lesser General Public License
-# (LGPL). See LICENSE.TXT that came with this file.
-
 # Neuron PSTH data.
 #
 # Copyright (C) 2010-2011 Huang Xin
@@ -19,8 +11,8 @@ import scipy.ndimage as nd
 from Plexon.PlexClient import PlexClient
 from Plexon.PlexUtil import PlexUtil
 
-ONSET_BIT = 11
-OFFSET_BIT = 12
+ONSET_BIT = 12
+OFFSET_BIT = 13
 ORI_MASK = 0xF<<0
 SPF_MASK = 0xF<<4
 PHA_MASK = 0xF<<8
@@ -109,8 +101,8 @@ class PSTHAverage:
             off_begin = np.nonzero(self.param_indices < 0)
                 
     def _process_psth_data(self,begin,end,param_index):
-        duration = 1.0
-        binsize = 0.01 #binsize 10 ms
+        duration = 0.200
+        binsize = 0.005 #binsize 10 ms
         bins = np.arange(0.,duration,binsize)
         for channel,channel_trains in self.spike_trains.iteritems():
             if channel not in self.histogram_data:
@@ -123,13 +115,13 @@ class PSTHAverage:
                     self.histogram_data[channel][unit][param_index]['trials'] = 0
                     self.histogram_data[channel][unit][param_index]['spikes'] = []
                     self.histogram_data[channel][unit][param_index]['means'] = []
-                take = ((unit_train >= begin) & (unit_train<end))
+                take = ((unit_train >= begin) & (unit_train<begin+duration))
                 trial_spikes = unit_train[take] - begin
                 trial_mean = np.array(np.histogram(trial_spikes, bins=bins)[0],dtype='float') / binsize
                 spikes = np.append(self.histogram_data[channel][unit][param_index]['spikes'], trial_spikes)
                 trials = self.histogram_data[channel][unit][param_index]['trials'] + 1
                 psth_data = np.array(np.histogram(spikes, bins=bins)[0],dtype='float') / (binsize*trials)
-                smooth_psth = nd.gaussian_filter1d(psth_data, sigma=5) / (binsize*trials)
+                smooth_psth = nd.gaussian_filter1d(psth_data, sigma=5)
                 mean = np.mean(smooth_psth)
                 self.histogram_data[channel][unit][param_index]['spikes'] = spikes
                 self.histogram_data[channel][unit][param_index]['trials'] = trials
