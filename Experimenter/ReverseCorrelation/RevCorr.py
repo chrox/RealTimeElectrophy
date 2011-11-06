@@ -5,7 +5,6 @@
 #
 # Distributed under the terms of the GNU Lesser General Public License
 # (LGPL). See LICENSE.TXT that came with this file.
-import itertools
 import numpy as np
 from Plexon.PlexClient import PlexClient
 from Plexon.PlexUtil import PlexUtil
@@ -64,7 +63,7 @@ class STAData:
         
 class STAImg(object):
     @staticmethod
-    def colormap(value, color='jet'):
+    def _colormap(value, color='jet'):
         def clamp(x): return max(0.0, min(x, 1.0))
         if color == 'jet':
             #code from Matt Stine's Blog
@@ -96,8 +95,30 @@ class STAImg(object):
             return map(clamp,(red,green,blue))
         else:
             return (0.0,0.0,0.0)
+
     @staticmethod
-    def get_img(data,channel,unit,tau=0.085):
+    def _get_dimention(x_index,y_index):
+        def is_power_of_2(v):
+            return (v & (v - 1)) == 0
+        def next_power_of_2(v):
+            v -= 1
+            v |= v >> 1
+            v |= v >> 2
+            v |= v >> 4
+            v |= v >> 8
+            v |= v >> 16
+            return v + 1
+        def get_next_power(v):
+            if is_power_of_2(v):
+                return v
+            else:
+                return next_power_of_2(v)
+        x_dim = get_next_power(max(x_index)+1)
+        y_dim = get_next_power(max(y_index)+1)
+        return (x_dim, y_dim)
+
+    @staticmethod
+    def get_img(data,channel,unit,tau=0.085,cmap='jet'):
         """ Take the time offset between spikes and the triggered stimulus.
         """
         spike_trains = data['spikes']
@@ -119,6 +140,12 @@ class STAImg(object):
         contrast[contrast==0] = -1
         for index,times in enumerate(triggered_times):
             img[x_index[index]][y_index[index]] += times*contrast[index]
+        #trim img
+        x_dim,y_dim = STAImg._get_dimention(x_index,y_index)
+        print max(x_index),max(y_index)
+        print x_dim,y_dim
+        img = img[:x_dim,:y_dim]
+        rgb_img = rgb_img[:x_dim,:y_dim]
         #normalize image
         vmax = img.max()
         vmin = img.min()
@@ -128,6 +155,6 @@ class STAImg(object):
         #more efficient way?
         for col in range(img.shape[0]):
             for row in range(img.shape[1]):
-                rgb_img[col][row] = np.array(STAImg.colormap(img[col][row],'gbr'))
+                rgb_img[col][row] = np.array(STAImg._colormap(img[col][row],cmap))
         return rgb_img
         
