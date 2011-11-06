@@ -40,13 +40,13 @@ class WhiteNoiseSweepStampController(DTSweepTableController):
         if index == None: return
         """ 
             16-bits stimuli representation code will be posted to DT port
-                000 1 111111 111111
+                001 1 111111 111111
                  |  |    |      |-----y index  
                  |  |    |------------x index
                  |  |-----------------contrast
                  |--------------------reserved 
         """
-        postval = (self.st.contrast[index]<<12) + (self.st.posindex[index][0]<<6) + self.st.posindex[index][1]
+        postval = (1<<13) + (self.st.contrast[index]<<12) + (self.st.posindex[index][0]<<6) + self.st.posindex[index][1]
         self.post_stamp(postval)
         
 class TargetController(SweepTableStimulusController):
