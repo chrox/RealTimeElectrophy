@@ -20,6 +20,7 @@ from Experimenter.TimeHistogram import TimeHistogram
 
 EVT_UPDATED_TYPE = wx.NewEventType()
 EVT_UPDATED = wx.PyEventBinder(EVT_UPDATED_TYPE, 1)
+CURVE_ERRORBAR = False
 
 class DataUpdatedEvent(wx.PyCommandEvent):
     def __init__(self, etype, eid, data=None):
@@ -147,8 +148,8 @@ class PSTHPanel(wx.Panel):
         adjust_spines(axes,spines=['left','bottom','right'],spine_outward=['left','right','bottom'],xoutward=10,youtward=30,\
                       xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5,xminor_auto_loc=2,yminor_auto_loc=2)
         axes.set_ylabel('Response(spikes/sec)',fontsize=12)
-        self.curve_data = axes.plot(self.x, self.means, 'k-')[0]
-        self.errbars = axes.errorbar(self.x, self.means, yerr=self.stds, fmt='k.')
+        self.curve_data = axes.plot(self.x, self.means, 'ko-')[0]
+        self.errbars = axes.errorbar(self.x, self.means, yerr=self.stds, fmt='k.') if CURVE_ERRORBAR else None
         self.curve_axes = axes
         axes.set_ylim(0,100)
         axes.relim()
@@ -197,9 +198,6 @@ class UpdateChartThread(threading.Thread):
     def __init__(self, panel, data):
         threading.Thread.__init__(self)
         self.panel = panel
-        self.means = panel.means
-        self.stds = panel.stds
-        self.x = panel.x
         self.parameter = panel.psth.parameter
         
         self.hist_bins = panel.hist_bins
@@ -235,30 +233,39 @@ class UpdateChartThread(threading.Thread):
             for index in data[channel][unit].iterkeys():
                 mean = data[channel][unit][index]['mean']
                 std = data[channel][unit][index]['std']
-                self.means[index] = mean
-                self.stds[index] = std
+                panel.means[index] = mean
+                panel.stds[index] = std
             if self.parameter is 'orientation':
-                self.x = np.linspace(0.0, 180.0, 17)
+                panel.x = np.linspace(0.0, 180.0, 17)
                 self.curve_axes.set_title('Orientation Tuning Curve')
                 if zeroth_psth_data is not None:
                     for rect,h in zip(self.hist_patches[-1],zeroth_psth_data):
                         rect.set_height(h)
-                self.means[-1] = self.means[0]
-                self.stds[-1] = self.stds[0]
+                panel.means[-1] = panel.means[0]
+                panel.stds[-1] = panel.stds[0]
             if self.parameter is 'spatial_frequency':
-                self.x = np.linspace(0.05, 1.0, 16)
+                panel.x = np.linspace(0.05, 1.0, 16)
                 self.curve_axes.set_title('Spatial Frequency Tuning Curve')
+                panel.means = panel.means[:len(panel.x)]
+                panel.stds = panel.stds[:len(panel.x)]
             if self.parameter is 'phase':
-                self.x = np.linspace(0.0, 360.0, 17)
+                panel.x = np.linspace(0.0, 360.0, 17)
                 self.curve_axes.set_title('Disparity Tuning Curve')
                 if zeroth_psth_data is not None:
                     for rect,h in zip(self.hist_patches[-1],zeroth_psth_data):
                         rect.set_height(h)
-                self.means[-1] = self.means[0]
-                self.stds[-1] = self.stds[0]
-            self.curve_data.set_xdata(self.x)
-            self.curve_data.set_ydata(self.means)
-            self._update_errbars(self.errbars,self.x,self.means,self.stds)
+                panel.means[-1] = panel.means[0]
+                panel.stds[-1] = panel.stds[0]
+            self.curve_data.set_xdata(panel.x)
+            self.curve_data.set_ydata(panel.means)
+            if self.errbars is not None:
+                self._update_errbars(self.errbars,panel.x,panel.means,panel.stds)
+                
+            self.curve_axes.set_xlim(min(panel.x),max(panel.x))
+            self.curve_axes.set_ylim(auto=True)
+            #self.curve_axes.set_ylim(0,100)
+            self.curve_axes.relim()
+            self.curve_axes.autoscale_view(scalex=False, scaley=True)
         panel.fig.canvas.draw()
     
     def _update_errbars(self, errbar, x, means, yerrs):
@@ -270,10 +277,6 @@ class UpdateChartThread(threading.Thread):
             errbar[1][i].set_data(pos)
         # Update the error bars
         errbar[2][0].set_segments(np.array([[x, means-yerrs], [x, means+yerrs]]).transpose((2, 0, 1)))
-        self.curve_axes.set_ylim(auto=True)
-        #self.curve_axes.set_ylim(0,100)
-        self.curve_axes.relim()
-        self.curve_axes.autoscale_view(scalex=True, scaley=True)
 
 class MainFrame(wx.Frame):
     """ The main frame of the application
