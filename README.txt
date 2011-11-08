@@ -12,9 +12,11 @@ spikes via Experimenter, preliminary data analysis can be performed in real time
 INSTALLATION
 
 To install from source, type this from a command line 
-from the RealTimeElectrophy base directory (not implement right now):
+from the RealTimeElectrophy base directory:
 
 python setup.py install
+
+For windows users binary distribution is also provided.
 
 LICENSE
 
