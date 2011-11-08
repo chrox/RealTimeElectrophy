@@ -107,7 +107,7 @@ try:
     _lib = windll.LoadLibrary(os.path.join(dirname, libname))
 except:
     _lib = None
-    logger.error("PlexClient.dll not found.")
+    logger.error("Could not find PlexClient.dll in your system.")
 else:
     PL_InitClient = _lib.PL_InitClient
     PL_InitClient.argtypes = [ctypes.c_int, HWND]

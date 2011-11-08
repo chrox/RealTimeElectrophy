@@ -1,0 +1,3 @@
+include StimControl/LightStim/DT.pyd
+include StimControl/LightStim/DT.c
+include StimControl/LightStim/LightStim.cfg

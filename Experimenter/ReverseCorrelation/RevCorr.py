@@ -9,13 +9,12 @@ import numpy as np
 from Plexon.PlexClient import PlexClient
 from Plexon.PlexUtil import PlexUtil
 
-X_INDEX = 0B111111
-Y_INDEX = 0B111111 << 6
-CONTRAST = 0B1 << 12
-
 class STAData:
     """ Spike triggered average(STA) analysis
     """
+    X_INDEX = 0B111111
+    Y_INDEX = 0B111111 << 6
+    CONTRAST = 0B1 << 12
     def __init__(self):
         self.pc = PlexClient()
         self.pc.InitClient()
@@ -30,15 +29,15 @@ class STAData:
 
     def __close__(self):
         self.pc.CloseClient()
-       
+
     def _update_data(self):
         data = self.pc.GetTimeStampArrays()
         new_triggers = self.pu.GetExtEvents(data, event='unstrobed_word')
         trigger_values = new_triggers['value']
         trigger_timestamps = new_triggers['timestamp']
-        x_index = trigger_values & X_INDEX
-        y_index = (trigger_values & Y_INDEX)>>6
-        contrast = (trigger_values & CONTRAST)>>12
+        x_index = trigger_values & STAData.X_INDEX
+        y_index = (trigger_values & STAData.Y_INDEX)>>6
+        contrast = (trigger_values & STAData.CONTRAST)>>12
         self.x_indices = np.append(self.x_indices, x_index)
         self.y_indices = np.append(self.y_indices, y_index)
         self.contrast = np.append(self.contrast, contrast)
@@ -157,4 +156,32 @@ class STAImg(object):
             for row in range(img.shape[1]):
                 rgb_img[col][row] = np.array(STAImg._colormap(img[col][row],cmap))
         return rgb_img
+
+class RevCorrData(object):
+    def __init__(self):
+        self.pc = PlexClient()
+        self.pc.InitClient()
+        self.pu = PlexUtil()
         
+        self.spike_trains = {}
+
+    def __close__(self):
+        self.pc.CloseClient()
+
+    def _update_data(self):
+        data = self.pc.GetTimeStampArrays()
+        self.new_triggers = self.pu.GetExtEvents(data, event='unstrobed_word')
+        
+        new_spike_trains = self.pu.GetSpikeTrains(data)
+        for channel,channel_trains in new_spike_trains.iteritems():
+            if channel not in self.spike_trains:
+                self.spike_trains[channel] = channel_trains
+            else:
+                for unit,unit_train in channel_trains.iteritems():
+                    if unit not in self.spike_trains[channel]:
+                        self.spike_trains[channel][unit] = unit_train
+                    else:
+                        self.spike_trains[channel][unit] = np.append(self.spike_trains[channel][unit], unit_train)
+
+class ParamMapData(RevCorrData):
+    pass
