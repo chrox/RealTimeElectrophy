@@ -44,6 +44,16 @@ class ManViewport(LightStim.Core.Viewport):
             stimulus.draw()
         self._is_drawing = False
         
+    def update_viewport(self):
+        super(ManViewport, self).update_viewport()
+        # update control viewport size to stimulus viewport size
+        if self.get_name() == 'control':
+            stimulus_viewports = [viewport for viewport in Viewport.defined_viewports if viewport != 'control']
+            viewport_widths = [LightStim.config.get_viewport_width_pix(name) for name in stimulus_viewports]
+            viewport_heights = [LightStim.config.get_viewport_height_pix(name) for name in stimulus_viewports]
+            if len(viewport_widths)>0 and len(viewport_heights)>0 :
+                self.parameters.size = max(viewport_widths), max(viewport_heights)
+
     def is_active(self):
         return self.active
     def set_activity(self,activity):

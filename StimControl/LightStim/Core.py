@@ -84,8 +84,8 @@ class Viewport(VisionEgg.Core.Viewport):
         Register this viewport in viewport list when .
     """
     index_base = 0
-    defined_viewports = []
-    registered_viewports = [] # registered viewports in screen. Update when stimulus is added. And viewport is deleted.
+    defined_viewports = []    # defined viewports in stimulus. Updated when stimulus is defined.
+    registered_viewports = [] # registered viewports in screen. Updated when stimulus is added. And viewport is deleted.
     def __init__(self, name, bgcolor=(0.0,0.0,0.0), **kw):
         if name not in Viewport.defined_viewports:
             Viewport.defined_viewports.append(name)
@@ -111,8 +111,15 @@ class Viewport(VisionEgg.Core.Viewport):
         Viewport.default_screen.parameters.bgcolor = bgcolor
         super(Viewport,self).__init__(anchor='upperleft', size=self.size, camera_matrix=mirror_view, screen=Viewport.default_screen, **kw)
     
-    def update_position(self):
-        self.parameters.position = LightStim.config.get_viewport_position(Viewport.defined_viewports, self.name)
+    def update_viewport(self):
+        # update viewport position
+        known_viewports = LightStim.config.get_known_viewports()
+        min_viewport_order = min([LightStim.config.get_viewport_index(viewport_name) for viewport_name in Viewport.defined_viewports])
+        max_viewport_order = max([LightStim.config.get_viewport_index(viewport_name) for viewport_name in Viewport.defined_viewports]) 
+        screen_viewports = known_viewports[min_viewport_order:max_viewport_order+1]
+        offset = sum([LightStim.config.get_viewport_width_pix(viewport_name) for viewport_name in screen_viewports[:screen_viewports.index(self.name)]])
+        height = LightStim.config.get_screen_height_pix(Viewport.defined_viewports)
+        self.parameters.position = offset, height
        
     def get_name(self):
         return self.name
