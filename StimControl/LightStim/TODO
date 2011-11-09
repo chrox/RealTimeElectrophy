@@ -6,8 +6,7 @@ TODO:
 - Requested Feature:
 	- realtime dense noise generator with random seed synchronization between stimcontrol and experimenter
 	- add pyro index request handling support 
-	- control viewport size should be the same as stimulus viewports when different screen resolutions are used.
-	- control viewport indicator frame.
+	
 	- add Preference module to serialize the preference parameter objects
 	- screen gamma calibration
 	- create a global vsynctable for SweepTableController so that runtime modification could be easier.(client sweepseque will handle pyro request from server side)
@@ -25,6 +24,8 @@ MEMO:
 	Beautiful is better than ugly. Simple is better than complex. Complex is better than complicated. Sparse is better than dense.
 	
 DONE:
+	+ control viewport size should be the same as stimulus viewports when different screen resolutions are used.
+	. control viewport indicator frame. (not needed as above feature provide the same mechanism to restrict stimulus position)
 	+ add stamp post for SweepSeque stimulus
 	+ standard logging support
 	+ add SweepSeque class to build stimulus sequence and two SweepSeque demos
