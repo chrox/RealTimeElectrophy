@@ -1,7 +1,5 @@
-The Vision Egg is licensed under the GNU LGPL Version 2.1, which is
-included below. The file VisionEgg/win32_vretrace_orig.h is copyright
-by Thiadmer Riemersma and licensed under a Creative Commons
-Attribution-Share Alike 3.0 Unported license.
+The RealTimeElectrophy is licensed under the GNU LGPL Version 2.1, which is
+included below.
 
 		  GNU LESSER GENERAL PUBLIC LICENSE
 		       Version 2.1, February 1999
