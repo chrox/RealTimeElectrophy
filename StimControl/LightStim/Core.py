@@ -15,7 +15,7 @@ from __future__ import division
 import os
 import math
 import numpy as np
-import logging
+#import logging
 import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 import VisionEgg.GL as gl
@@ -34,9 +34,10 @@ class Screen(VisionEgg.Core.Screen):
         self.screen_height = LightStim.config.get_screen_height_pix(viewports_list)
         super(Screen,self).__init__(size=(self.screen_width, self.screen_height), bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8, **kw)
         
-#class Stimulus(VisionEgg.Core.Stimulus):
-class Stimulus(object):
+class Stimulus(VisionEgg.Core.Stimulus):
     """ One stimulus has one and only one viewport to make things not so hard."""
+    # __slot__ specifies which attributes are copied when copy.copy is called.
+    __slots__ = VisionEgg.Core.Stimulus.__slots__ + ('controllers',)
     def __init__(self, viewport=None, sweeptable=None, **kwargs):
         super(Stimulus, self).__init__(**kwargs)
         if viewport:

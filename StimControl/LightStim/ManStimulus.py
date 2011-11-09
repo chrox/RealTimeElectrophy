@@ -104,6 +104,7 @@ class ViewportEventHandlerController(StimulusController):
                     viewport.event_handlers.remove(event_handler) 
 
 class ManStimulus(LightStim.Core.Stimulus):
+    __slots__ = LightStim.Core.Stimulus.__slots__ + ('complete_stimuli','essential_stimuli')
     def __init__(self, params, viewport, disp_info=False, **kwargs):
         logger = logging.getLogger('Lightstim.ManStimulus')
         if disp_info and viewport is not 'control':
@@ -189,6 +190,7 @@ class ManStimulus(LightStim.Core.Stimulus):
         pass
     
     def update_viewportcontroller(self, viewport):
+        assert hasattr(self, 'controllers')
         for controller in self.controllers:
             if isinstance(controller,ViewportController):
                 controller.set_viewport(viewport)

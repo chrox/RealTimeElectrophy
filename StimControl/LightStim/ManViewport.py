@@ -62,6 +62,7 @@ class ManViewport(LightStim.Core.Viewport):
         self.copied_stimuli = []
         for stimulus in src_viewport.parameters.stimuli:
             cloned_stimulus = copy.copy(stimulus)  # Explicit is better than implicit.
+            #cloned_stimulus = stimulus
             self.copied_stimuli.append(cloned_stimulus)
         
     def __paste_stimuli(self, dest_viewport_name):
@@ -74,6 +75,7 @@ class ManViewport(LightStim.Core.Viewport):
         for stimulus in self.copied_stimuli:
             stimulus.update_viewportcontroller(dest_viewport)
             if dest_viewport.get_name() == 'control':
+                assert hasattr(stimulus,'complete_stimuli')
                 stimulus.stimuli = stimulus.complete_stimuli
                 stimulus.on = True # in control viewport it's not necessary to hide a stimulus
             dest_viewport.parameters.stimuli.append(stimulus)
