@@ -107,14 +107,4 @@ class Config:
     def get_viewport_x_rectification_deg(self,viewport_name):
         return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'X_RECTIFICATION')
     def get_viewport_y_rectification_deg(self,viewport_name):
-        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'Y_RECTIFICATION')
-    def get_viewport_position(self,viewports_list,vp_name):
-        known_viewports = self.get_known_viewports()
-        min_viewport_order = min([self.get_viewport_index(viewport_name) for viewport_name in viewports_list])
-        max_viewport_order = max([self.get_viewport_index(viewport_name) for viewport_name in viewports_list]) 
-        screen_viewports = known_viewports[min_viewport_order:max_viewport_order+1]
-        offset = sum([self.get_viewport_width_pix(viewport_name) for viewport_name in screen_viewports[:screen_viewports.index(vp_name)]])
-        height = self.get_screen_height_pix(viewports_list)
-        # use upperleft anchor
-        return (offset,height)
-        
+        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'Y_RECTIFICATION')     
