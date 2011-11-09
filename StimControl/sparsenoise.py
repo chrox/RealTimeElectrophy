@@ -15,10 +15,8 @@ from LightStim.SweepTable import SweepTable
 static = StaticParams()
 dynamic = DynamicParams()
 
-"""Experiment settings"""
-exp_times = 1
 # for every grid cell
-stim_times = 2
+stim_times = 8
 # pre-experiment duration to display blank screen (sec)
 static.preframesweepSec = 3.0
 # post-experiment duration to display blank screen (sec)
@@ -26,7 +24,7 @@ static.postframesweepSec = 5.0
 """Screen settings"""
 static.origDeg = (0, 0)
 """Grid settings"""
-static.center = (0, 0)
+static.center = (-0.2, -1.8)
 static.size = (10, 10)
 # grid dimension (x, y)
 static.griddim = (8, 8)
@@ -54,7 +52,7 @@ static.diameterDeg = 10
 # screen gamma: None, or single value, or 3-tuple
 static.gamma = None
 """CheckBoard settings"""
-static.checkbdon = True
+static.checkbdon = False
 static.cbcolormap = 'ggr'
 
 """Dynamic parameters can potentially vary from one sweep to the next. 
@@ -66,7 +64,7 @@ and has to be added to this Experiment's Variables object"""
 # noise stimuli times for every grid cell(n)
 dynamic.times = range(stim_times)
 # sweep duration (sec)
-static.sweepSec = 0.04
+static.sweepSec = 0.02
 # post-sweep duration to display blank screen (sec)
 static.postsweepSec = 0
 # noise position index in stimulus grid
@@ -82,7 +80,6 @@ variable.contrast = Variable(vals=dynamic.contrast, dim=2, shuffle=True)
 
 sweeptable = SweepTable(static=static, dynamic=dynamic, variables=variable, runs=runs)
 stimulus_left = WhiteNoise(viewport='left', sweeptable=sweeptable)
-
 sweep = FrameSweep()
 sweep.add_stimulus(stimulus_left)
 
