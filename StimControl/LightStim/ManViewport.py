@@ -25,6 +25,7 @@ class ManViewport(LightStim.Core.Viewport):
             self.visible = False
             self.current = False
         
+        self.viewport_alted_once = False
         self.copied_stimuli = None
         self.copied_parameters = {}
         self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback),
@@ -34,6 +35,9 @@ class ManViewport(LightStim.Core.Viewport):
     def draw(self):
         if not self.is_active() or not self.is_visible():
             return
+        if not self.viewport_alted_once and self.get_name() == 'control':
+            self.viewport_alted_once = True
+            self.__alt_viewport()
         self.make_current()
         self._is_drawing = True
         for stimulus in self.parameters.stimuli:
@@ -86,74 +90,85 @@ class ManViewport(LightStim.Core.Viewport):
         self.__paste_stimuli(dest_viewport_name)
         self.copied_stimuli = orignal_copied_stimuli
 
+    def __alt_viewport(self):
+        # alternate control viewport stimuli from a cycle of available(active) viewports.
+        active_viewports = [viewport for viewport in Viewport.registered_viewports if viewport.is_active()]
+        current_active_viewports = [viewport for viewport in active_viewports if viewport.is_current()]
+        if len(active_viewports) > 1: # there is only control viewport that is active. no need to change viewport.
+            if len(current_active_viewports) == 0: # if current viewport is not active make the control the current viewport.
+                for viewport in Viewport.registered_viewports:
+                    if viewport.get_name() == 'control':
+                        viewport.set_current(True)
+                    else:
+                        viewport.set_current(False)
+            viewport_it = itertools.cycle(active_viewports)
+            for viewport in viewport_it: 
+                if viewport.is_current(): # find next active viewport and make it current viewport.
+                    viewport.set_current(False)
+                    next_viewport = viewport_it.next()
+                    if next_viewport.get_name() == 'control':
+                        next_viewport = viewport_it.next()
+                    next_viewport.set_current(True)
+                    self.__clone_viewport('control',next_viewport.get_name())
+                    break
+    
+    def __copy_stimparams(self):
+        current_viewport = [viewport for viewport in Viewport.registered_viewports if viewport.is_current()][0]
+        for stimulus in current_viewport.parameters.stimuli:  # save stimuli parameters in control viewport
+            if hasattr(stimulus,'get_parameters'):
+                self.copied_parameters[type(stimulus).__name__] = stimulus.get_parameters()
+                
+    def __paste_stimparams(self):
+        current_viewport = [viewport for viewport in Viewport.registered_viewports if viewport.is_current()][0]
+        for stimulus in current_viewport.parameters.stimuli:
+            if hasattr(stimulus,'set_parameters') and type(stimulus).__name__ in self.copied_parameters:
+                stimulus.set_parameters(self.copied_parameters[type(stimulus).__name__])
+
+    def __activate_viewport(self, mods, name):
+        # set viewport activity and currenty this should have no business with control viewport 
+        # if self.is_current(): #  must clear other activity state.
+        #     return
+        if mods & pygame.locals.KMOD_CTRL:
+            if self.get_name() == name:
+                self.set_activity(True)
+                self.set_current(True)
+            elif self.get_name() == 'control':
+                self.__clone_viewport('control', name)
+            else:
+                self.set_activity(False)
+                self.set_current(False)
+        else:
+            if self.is_current():
+                pass
+            if self.get_name() == name:
+                self.set_activity(not self.is_active())
+                
     def keydown_callback(self,event):
         mods = pygame.key.get_mods()
         key = event.key
-        # set viewport activity and currenty this should have no business with control viewport 
-        def activate_viewport(name):
-#            if self.is_current(): #  must clear other activity state.
-#                return
-            if mods & pygame.locals.KMOD_CTRL:
-                if self.get_name() == name:
-                    self.set_activity(True)
-                    self.set_current(True)
-                elif self.get_name() == 'control':
-                    self.__clone_viewport('control', name)
-                else:
-                    self.set_activity(False)
-                    self.set_current(False)
-            else:
-                if self.is_current():
-                    pass
-                if self.get_name() == name:
-                    self.set_activity(not self.is_active())
-    
+
         if key == K_h:
             if not self.get_name() == 'control':
                 self.set_visibility(not self.is_visible())
         elif key == pygame.locals.K_F1:
             pass  # control viewport should never be deactivated
         elif key == pygame.locals.K_F2:
-            activate_viewport('primary')
+            self.__activate_viewport(mods, 'primary')
         elif key == pygame.locals.K_F3:
-            activate_viewport('left')
+            self.__activate_viewport(mods, 'left')
         elif key == pygame.locals.K_F4:
-            activate_viewport('right')
+            self.__activate_viewport(mods, 'right')
         elif mods & pygame.locals.KMOD_CTRL and key == pygame.locals.K_g: # group active viewports 
             for viewport in Viewport.registered_viewports:
                 if viewport.is_active():
                     viewport.set_current(True)
         if self.get_name() == 'control':
             if key == pygame.locals.K_TAB:
-                active_viewports = [viewport for viewport in Viewport.registered_viewports if viewport.is_active()]
-                current_active_viewports = [viewport for viewport in active_viewports if viewport.is_current()]
-                if len(active_viewports) > 1: # there is only control viewport that is active. no need to change viewport.
-                    if len(current_active_viewports) == 0: # if current viewport is not active make the control the current viewport.
-                        for viewport in Viewport.registered_viewports:
-                            if viewport.get_name() == 'control':
-                                viewport.set_current(True)
-                            else:
-                                viewport.set_current(False)
-                    viewport_it = itertools.cycle(active_viewports)
-                    for viewport in viewport_it: 
-                        if viewport.is_current(): # find next active viewport and make it current viewport.
-                            viewport.set_current(False)
-                            next_viewport = viewport_it.next()
-                            if next_viewport.get_name() == 'control':
-                                next_viewport = viewport_it.next()
-                            next_viewport.set_current(True)
-                            self.__clone_viewport('control',next_viewport.get_name())
-                            break
+                self.__alt_viewport()
             elif mods & pygame.locals.KMOD_CTRL and key == pygame.locals.K_c:
-                current_viewport = [viewport for viewport in Viewport.registered_viewports if viewport.is_current()][0]
-                for stimulus in current_viewport.parameters.stimuli:  # save stimuli parameters in control viewport
-                    if hasattr(stimulus,'get_parameters'):
-                        self.copied_parameters[type(stimulus).__name__] = stimulus.get_parameters()
+                self.__copy_stimparams()
             elif mods & pygame.locals.KMOD_CTRL and key == pygame.locals.K_v:
-                current_viewport = [viewport for viewport in Viewport.registered_viewports if viewport.is_current()][0]
-                for stimulus in current_viewport.parameters.stimuli:
-                    if hasattr(stimulus,'set_parameters') and type(stimulus).__name__ in self.copied_parameters:
-                        stimulus.set_parameters(self.copied_parameters[type(stimulus).__name__])
+                self.__paste_stimparams()
     
     def mousebuttondown_callback(self,event):
         button = event.button

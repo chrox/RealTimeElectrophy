@@ -258,9 +258,9 @@ class ManGrating(ManStimulus):
                                    'widthDeg':15.0,
                                    'heightDeg':15.0,
                                    'mask':'circle',
-                                   'maskDiameterDeg':15.0,
-                                   'sfreqCycDeg':0.07,
-                                   'tfreqCycSec':0.5,
+                                   'maskDiameterDeg':10.0,
+                                   'sfreqCycDeg':0.5,
+                                   'tfreqCycSec':2.0,
                                    'ori': 0.0}
         try:
             with open('Manbar_preference.pkl','rb') as pkl_input:

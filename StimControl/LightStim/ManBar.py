@@ -51,7 +51,7 @@ class BarInfoController(StimulusController):
         super(BarInfoController, self).__init__(*args,**kwargs)
         self.sptp = self.stimulus.sptp
     def during_go_eval(self):                     
-        self.sptp.text = u'pos : (%5.1f, %5.1f) º  |  size : (%.1f, %.1f) º  |  ori : %5.1f º | brightness : %.2f' \
+        self.sptp.text = u'pos : (%5.1f, %5.1f) º  |  size : (%5.1f, %4.1f) º  |  ori : %5.1f º | brightness : %.2f' \
                          % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
                              self.stimulus.widthDeg, self.stimulus.heightDeg, self.stimulus.ori, self.stimulus.brightness)
 
@@ -60,17 +60,18 @@ class SizeController(StimulusController):
     def __init__(self,*args,**kwargs):
         super(SizeController, self).__init__(*args,**kwargs)
     def during_go_eval(self):
+        multiplier = self.stimulus.sizemultiplier
         if self.stimulus.UP:
-            self.stimulus.heightDeg += self.stimulus.sizerateDegSec / self.viewport.refresh_rate
+            self.stimulus.heightDeg = self.stimulus.heightDeg * multiplier
             if self.stimulus.squarelock: self.stimulus.widthDeg = self.stimulus.heightDeg
         elif self.stimulus.DOWN:
-            self.stimulus.heightDeg = max(self.stimulus.heightDeg - self.stimulus.sizerateDegSec / self.viewport.refresh_rate, 0.1)
+            self.stimulus.heightDeg = max(self.stimulus.heightDeg / multiplier, 0.1)
             if self.stimulus.squarelock: self.stimulus.widthDeg = self.stimulus.heightDeg
         if self.stimulus.RIGHT:
-            self.stimulus.widthDeg += self.stimulus.sizerateDegSec / self.viewport.refresh_rate
+            self.stimulus.widthDeg = self.stimulus.widthDeg * multiplier
             if self.stimulus.squarelock: self.stimulus.heightDeg = self.stimulus.widthDeg
         elif self.stimulus.LEFT:
-            self.stimulus.widthDeg = max(self.stimulus.widthDeg - self.stimulus.sizerateDegSec / self.viewport.refresh_rate, 0.1)
+            self.stimulus.widthDeg = max(self.stimulus.widthDeg / multiplier, 0.1)
             if self.stimulus.squarelock: self.stimulus.heightDeg = self.stimulus.widthDeg
 
 class BrightnessController(StimulusController):
@@ -164,8 +165,8 @@ class ManBar(ManStimulus):
         logger.info('Load preference for ' + info)
         self.defalut_preference = {'xorigDeg':0.0,
                                    'yorigDeg':0.0,
-                                   'widthDeg':15.0,
-                                   'heightDeg':3.0,
+                                   'widthDeg':8.0,
+                                   'barheightDeg':2.0,
                                    'ori': 0.0}
         try:
             with open('Manbar_preference.pkl','rb') as pkl_input:
@@ -177,7 +178,7 @@ class ManBar(ManStimulus):
         self.xorigDeg = self.preference['xorigDeg']
         self.yorigDeg = self.preference['yorigDeg']
         self.widthDeg = self.preference['widthDeg']
-        self.heightDeg = self.preference['heightDeg']
+        self.heightDeg = self.preference['barheightDeg'] if 'barheightDeg' in self.preference else self.defalut_preference['barheightDeg']
         self.ori = self.preference['ori']
         # changes only after load/save a new preference
         self.x  = int(round(self.viewport.deg2pix(self.xorigDeg) + self.viewport.xorig))
@@ -204,7 +205,7 @@ class ManBar(ManStimulus):
                 self.preference['xorigDeg'] = self.xorigDeg
                 self.preference['yorigDeg'] = self.yorigDeg
                 self.preference['widthDeg'] = self.widthDeg
-                self.preference['heightDeg'] = self.heightDeg
+                self.preference['barheightDeg'] = self.heightDeg
                 self.preference['ori'] = self.ori
                 preferences_dict[name][index] = self.preference
                 pickle.dump(preferences_dict, pkl_output)
