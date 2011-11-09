@@ -16,15 +16,20 @@ from the RealTimeElectrophy base directory:
 
 python setup.py install
 
-For windows users binary distribution is also provided.
+For windows users binary distributions are also provided.
 
 LICENSE
 
 The RealTimeElectrophy is Copyright (c) 2010-2011 by the RealTimeElectrophy
-Authors. It is distributed under the terms of the GNU LGPL (Lesser
-General Public License.) See LICENSE.txt for more information.  This
-software is provided "as is" without any warranty of any kind, either
-expressed or implied.
+Authors. It is distributed under the terms of BSD license. See LICENSE.txt 
+for more information. This software is provided "as is" without any warranty 
+of any kind, either expressed or implied.
+
+CREDITS
+
+Much of the behaviour and many of the features of LightStim package are based on Dimstim,
+a python visual stimulation package written by Martin Spacek and released under BSD license.
+The Dimstim project page can be found at http://swindale.ecc.ubc.ca/dimstim
 
 MISC
 
