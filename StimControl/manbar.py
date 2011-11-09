@@ -14,8 +14,6 @@ from LightStim.ManBar import ManBar
 
 p = StaticParams()
 
-# Manual Bar experiment parameters, all must be scalars
-
 # bar brightness (0-1)
 p.brightness = 1
 # background brightness (0-1)
@@ -26,14 +24,12 @@ p.antialiase = True
 p.flash = False
 # duration of each flash cycle (on and off) (sec)
 p.flashSec = 1
-# rate of change of size during buttonpress (deg/sec)
-p.sizerateDegSec = 4
-# rate of change of orientation during mouse button press (deg/sec)
-p.orirateDegSec = 18
+# factor to chage bar width and height by left/right/up/down key
+p.sizemultiplier = 1.02
 # brightness step amount on +/- (0-1)
 p.brightnessstep = 0.005
 # orientation step size to snap to when scrolling mouse wheel (deg)
-p.snapDeg = 18
+p.snapDeg = 12
 
 stimulus_control = ManBar(disp_info=True, params=p, viewport='control')
 stimulus_left = ManBar(params=p, viewport='left')
