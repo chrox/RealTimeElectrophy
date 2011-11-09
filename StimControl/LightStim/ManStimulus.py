@@ -29,13 +29,13 @@ STATUSBARHEIGHT = 15 # height of upper and lower status bars (pix)
 class InfoController(ViewportController):
     def __init__(self,*args,**kwargs):
         super(InfoController, self).__init__(*args,**kwargs)
-        self.upbp = self.stimulus.upbp
-        self.lwbp = self.stimulus.lwbp
-        self.vitp = self.stimulus.vitp
+        self.upbp = self.stimulus.upbp # upperbar
+        self.lwbp = self.stimulus.lwbp # lowerbar
+        self.vitp = self.stimulus.vitp # viewportinfotext
         self.vips = self.stimulus.viewport_indicators
-        self.stp = self.stimulus.stp
-        self.sltp = self.stimulus.sltp
-        self.sptp = self.stimulus.sptp
+        self.stp = self.stimulus.stp   # screentext
+        self.sltp = self.stimulus.sltp # squarelocktext
+        self.sptp = self.stimulus.sptp # stimulusparamtext
     def during_go_eval(self):
         self.upbp.position = (0, self.viewport.height_pix)
         self.upbp.size = (self.viewport.width_pix, STATUSBARHEIGHT)
