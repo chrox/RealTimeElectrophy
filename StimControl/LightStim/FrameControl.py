@@ -33,7 +33,10 @@ class RemoveViewportController(SweepController):
         for viewport in p.viewports:
             viewport_cleaned = True
             for stimulus in viewport.parameters.stimuli:
-                viewport_cleaned &= stimulus.sweep_completed
+                if hasattr(stimulus, 'sweep_completed'):
+                    viewport_cleaned &= stimulus.sweep_completed
+                else:
+                    pass
             if viewport_cleaned:
                 Viewport.registered_viewports.remove(viewport)
                 self.framesweep.parameters.viewports.remove(viewport)
