@@ -1,10 +1,10 @@
 # Generate arbitrary onset and offset timing gratings.
 #
 # Copyright (C) 2010-2011 Huang Xin
-# 
 #
-# Distributed under the terms of the GNU Lesser General Public License
-# (LGPL). See LICENSE.TXT that came with this file.
+#
+# Distributed under the terms of the BSD License.
+# See LICENSE.TXT that came with this file.
 
 from __future__ import division
 import numpy as np

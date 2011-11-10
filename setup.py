@@ -2,8 +2,9 @@
 """Setup script for the RealTimeElectrophy distribution.
 """
 # Copyright (C) 2010-2011 Huang Xin
-# Distributed under the terms of the GNU Lesser General Public License
-# (LGPL).
+# Distributed under the terms of the BSD License.
+# See LICENSE.TXT that came with this file.
+
 import os,sys
 from distutils.core import setup,Extension
 
@@ -61,7 +62,7 @@ setup(
     author = "Huang Xin",
     author_email = "hwangxin@hsc.pku.edu.cn",
     url = "http://vislab.hsc.pku.edu.cn/code/RealTimeElectrophy",
-    license = "LGPL", # Lesser GNU Public License
+    license = "BSD",
     description = "programs for real time visual neurophysiological research",
     packages = packages,
     package_dir = package_dir,
@@ -78,7 +79,7 @@ setup(
         'Environment :: Win32 (MS Windows)',
         'Environment :: X11 Applications',
         'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)',
+        'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX :: Linux',
