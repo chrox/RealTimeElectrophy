@@ -37,6 +37,8 @@ p.contrast = 1
 p.bgbrightness = 0.5
 # antialiase the bar?
 p.antialiase = True
+# factor to chage bar width and height by left/right/up/down key
+p.sizemultiplier = 1.02
 # factor to change temporal freq by on up/down
 p.tfreqmultiplier = 1.01
 # factor to change spatial freq by on left/right

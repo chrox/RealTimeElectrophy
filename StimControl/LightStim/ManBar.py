@@ -162,7 +162,8 @@ class ManBar(ManStimulus):
         name = self.viewport.name
         info = self.name + str(index) + ' in ' + name + ' viewport.'
         logger = logging.getLogger('LightStim.ManBar')
-        logger.info('Load preference for ' + info)
+        if self.viewport.get_name() != 'control':   # make control viewport like a passive viewport
+            logger.info('Load preference for ' + info)
         self.defalut_preference = {'xorigDeg':0.0,
                                    'yorigDeg':0.0,
                                    'widthDeg':8.0,
@@ -171,14 +172,16 @@ class ManBar(ManStimulus):
         try:
             with open('Manbar_preference.pkl','rb') as pkl_input:
                 preferences_dict = pickle.load(pkl_input)
-                self.preference = preferences_dict[name][index]
+                self.defalut_preference.update(preferences_dict[name][index])
+                self.preference = self.defalut_preference
         except:
-            logger.warning('Cannot load preference for ' + info + ' Use the default preference.')
+            if self.viewport.get_name() != 'control':
+                logger.warning('Cannot load preference for ' + info + ' Use the default preference.')
             self.preference = self.defalut_preference
         self.xorigDeg = self.preference['xorigDeg']
         self.yorigDeg = self.preference['yorigDeg']
         self.widthDeg = self.preference['widthDeg']
-        self.heightDeg = self.preference['barheightDeg'] if 'barheightDeg' in self.preference else self.defalut_preference['barheightDeg']
+        self.heightDeg = self.preference['barheightDeg']
         self.ori = self.preference['ori']
         # changes only after load/save a new preference
         self.x  = int(round(self.viewport.deg2pix(self.xorigDeg) + self.viewport.xorig))

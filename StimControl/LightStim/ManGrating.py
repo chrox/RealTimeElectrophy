@@ -141,8 +141,10 @@ class GratingSizeController(SizeController):
         if self.stimulus.mask and self.stimulus.mask_on:
             if self.stimulus.UP or self.stimulus.RIGHT:
                 self.stimulus.maskDiameterDeg += self.stimulus.maskSizeStepDeg
+                self.stimulus.widthDeg = self.stimulus.maskDiameterDeg
             elif self.stimulus.DOWN or self.stimulus.LEFT:
                 self.stimulus.maskDiameterDeg = max(self.stimulus.maskDiameterDeg - self.stimulus.maskSizeStepDeg, 0.1)
+                self.stimulus.widthDeg = self.stimulus.maskDiameterDeg
             if self.stimulus.widthDeg < self.stimulus.heightDeg: # set smaller value of grating width and height to maskDiameter 
                 self.stimulus.widthDeg = self.stimulus.maskDiameterDeg
             else:
@@ -252,7 +254,8 @@ class ManGrating(ManStimulus):
         name = self.viewport.name
         info = self.name + str(index) + ' in ' + name + ' viewport.'
         logger = logging.getLogger('LightStim.ManGrating')
-        logger.info('Load preference for ' + info)
+        if self.viewport.get_name() != 'control':   # make control viewport like a passive viewport
+            logger.info('Load preference for ' + info)
         self.defalut_preference = {'xorigDeg':0.0,
                                    'yorigDeg':0.0,
                                    'widthDeg':15.0,
@@ -265,25 +268,25 @@ class ManGrating(ManStimulus):
         try:
             with open('Manbar_preference.pkl','rb') as pkl_input:
                 preferences_dict = pickle.load(pkl_input)
-                self.preference = preferences_dict[name][index]
+                self.defalut_preference.update(preferences_dict[name][index])
+                self.preference = self.defalut_preference
         except:
-            logger.warning('Cannot load preference for ' + info + ' Use the default preference.')
+            if self.viewport.get_name() != 'control':
+                logger.warning('Cannot load preference for ' + info + ' Use the default preference.')
             self.preference = self.defalut_preference
         self.xorigDeg = self.preference['xorigDeg']
         self.yorigDeg = self.preference['yorigDeg']
         self.widthDeg = self.preference['widthDeg']
         self.heightDeg = self.preference['widthDeg']
-        if 'mask' in self.preference:
-            self.mask = self.preference['mask']
-            if self.mask:
-                self.mask_on = True
-        if 'maskDiameterDeg' in self.preference:
-            self.maskDiameterDeg = self.preference['maskDiameterDeg']
-        if 'sfreqCycDeg' in self.preference:
-            self.sfreqCycDeg = self.preference['sfreqCycDeg']
-        if 'tfreqCycSec' in self.preference:
-            self.tfreqCycSec = self.preference['tfreqCycSec']
-        self.ori = self.preference['ori']
+        
+        self.mask = self.preference['mask']
+        if self.mask:
+            self.mask_on = True
+            
+        self.maskDiameterDeg = self.preference['widthDeg'] # in case that
+        self.sfreqCycDeg = self.preference['sfreqCycDeg']
+        self.tfreqCycSec = self.preference['tfreqCycSec']
+        self.ori         = self.preference['ori']
         # changes only after load/save a new preference
         self.x  = int(round(self.viewport.deg2pix(self.xorigDeg) + self.viewport.xorig))
         self.y  = int(round(self.viewport.deg2pix(self.yorigDeg) + self.viewport.yorig))
