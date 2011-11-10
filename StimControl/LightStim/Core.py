@@ -33,7 +33,14 @@ class Screen(VisionEgg.Core.Screen):
         self.screen_width = LightStim.config.get_screen_width_pix(viewports_list)
         self.screen_height = LightStim.config.get_screen_height_pix(viewports_list)
         super(Screen,self).__init__(size=(self.screen_width, self.screen_height), bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8, **kw)
-        
+
+class DefaultScreen(Screen):
+    """ Specified before stimulus definition.
+    """
+    screen = None
+    def __init__(self,viewports_list):
+        DefaultScreen.screen = Screen(viewports_list)
+
 class Stimulus(VisionEgg.Core.Stimulus):
     """ One stimulus has one and only one viewport to make things not so hard."""
     # __slot__ specifies which attributes are copied when copy.copy is called.
@@ -83,13 +90,11 @@ class Viewport(VisionEgg.Core.Viewport):
     """ Named viewport in hardware configuration file LightStim.cfg
         Register this viewport in viewport list when .
     """
-    index_base = 0
     defined_viewports = []    # defined viewports in stimulus. Updated when stimulus is defined.
     registered_viewports = [] # registered viewports in screen. Updated when stimulus is added. And viewport is deleted.
     def __init__(self, name, bgcolor=(0.0,0.0,0.0), **kw):
         if name not in Viewport.defined_viewports:
             Viewport.defined_viewports.append(name)
-        Viewport.default_screen = Screen(Viewport.defined_viewports)
         self.name = name
         self.width_pix = LightStim.config.get_viewport_width_pix(name)
         self.height_pix = LightStim.config.get_viewport_height_pix(name)
@@ -108,8 +113,10 @@ class Viewport(VisionEgg.Core.Viewport):
         self.yorig = self.height_pix / 2 + self.y_rectification_deg * math.pi / 180 * self.distance_cm * self.pix_per_cm
         # Pythonic ternary operator
         mirror_view = HorizontalMirrorView(width=self.width_pix) if self.mirrored else None
-        Viewport.default_screen.parameters.bgcolor = bgcolor
-        super(Viewport,self).__init__(anchor='upperleft', size=self.size, camera_matrix=mirror_view, screen=Viewport.default_screen, **kw)
+        
+        screen = DefaultScreen.screen if DefaultScreen.screen is not None else Screen(Viewport.defined_viewports)
+        screen.parameters.bgcolor = bgcolor
+        super(Viewport,self).__init__(anchor='upperleft', size=self.size, camera_matrix=mirror_view, screen=screen, **kw)
     
     def update_viewport(self):
         # update viewport position

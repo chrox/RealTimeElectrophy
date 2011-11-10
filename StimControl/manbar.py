@@ -6,11 +6,12 @@
 # Distributed under the terms of the GNU Lesser General Public License
 # (LGPL). See LICENSE.TXT that came with this file.
 from __future__ import division
-
+from LightStim.Core import DefaultScreen
 from LightStim.SweepSeque import dictattr
 from LightStim.FrameControl import FrameSweep
 from LightStim.ManBar import ManBar
 
+DefaultScreen(['control','left','right'])
 
 p = dictattr()
 

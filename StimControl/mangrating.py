@@ -15,10 +15,13 @@ USAGE:
         ...
 """
 from __future__ import division
+from LightStim.Core import DefaultScreen
 from LightStim.SweepSeque import dictattr
 from LightStim.FrameControl import FrameSweep
 from LightStim.ManGrating import ManGrating
 # Manual Grating experiment parameters, all must be scalars
+
+DefaultScreen(['control','left','right'])
 
 p = dictattr()
 # mask, one of:  None, 'gaussian', or 'circle'
