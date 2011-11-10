@@ -7,12 +7,12 @@
 # (LGPL). See LICENSE.TXT that came with this file.
 from __future__ import division
 
-from LightStim.SweepTable import StaticParams
+from LightStim.SweepSeque import dictattr
 from LightStim.FrameControl import FrameSweep
 from LightStim.ManBar import ManBar
 
 
-p = StaticParams()
+p = dictattr()
 
 # bar brightness (0-1)
 p.brightness = 1

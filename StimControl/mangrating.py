@@ -15,12 +15,12 @@ USAGE:
         ...
 """
 from __future__ import division
-from LightStim.SweepTable import StaticParams
+from LightStim.SweepSeque import dictattr
 from LightStim.FrameControl import FrameSweep
 from LightStim.ManGrating import ManGrating
 # Manual Grating experiment parameters, all must be scalars
 
-p = StaticParams()
+p = dictattr()
 # mask, one of:  None, 'gaussian', or 'circle'
 p.mask = 'circle'
 p.maskSizeStepDeg = 0.5
