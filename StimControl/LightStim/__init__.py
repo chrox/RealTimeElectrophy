@@ -19,13 +19,14 @@ import logging  # available in Python 2.3
 import logging.handlers
 import Configuration
 
-############# Get config defaults #################
-config = Configuration.Config()
-
 ############# Logging #############
-logger = logging.getLogger('Lightstim')
+logger = logging.getLogger('LightStim')
 logger.setLevel( logging.INFO )
 log_formatter = logging.Formatter('%(asctime)s (%(process)d) %(levelname)s: %(message)s')
 log_handler_stderr = logging.StreamHandler()
 log_handler_stderr.setFormatter(log_formatter)
 logger.addHandler(log_handler_stderr)
+
+############# Get config defaults #################
+config = Configuration.Config()
+config.check_configuration()

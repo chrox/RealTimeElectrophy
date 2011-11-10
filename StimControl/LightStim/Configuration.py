@@ -7,6 +7,7 @@
 # (LGPL). See LICENSE.TXT that came with this file.
 
 import os
+import logging
 import ConfigParser
 
 class Config:
@@ -107,4 +108,39 @@ class Config:
     def get_viewport_x_rectification_deg(self,viewport_name):
         return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'X_RECTIFICATION')
     def get_viewport_y_rectification_deg(self,viewport_name):
-        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'Y_RECTIFICATION')     
+        return getattr(self, Config.viewport_prefix+viewport_name.upper()+'_'+'Y_RECTIFICATION')
+    
+    def assume_viewport_refresh_rate(self):
+        stim_viewport_refresh_rates = [self.get_viewport_refresh_rate(viewport) \
+                                       for viewport in self.get_known_viewports() if viewport != 'control']
+        refresh_rate = stim_viewport_refresh_rates[0] if len(stim_viewport_refresh_rates)>0 \
+                                                      else self.get_viewport_refresh_rate('control')
+        return refresh_rate
+    
+    def check_configuration(self):
+        self.check_viewport_size()
+        self.check_viewport_refresh_rate()
+        
+    def check_viewport_size(self):
+        logger = logging.getLogger('LightStim.Configuration')
+        stim_viewports = [viewport for viewport in self.get_known_viewports() if viewport != 'control']
+        stim_viewport_sizes = [(self.get_viewport_width_pix(viewport), self.get_viewport_height_pix(viewport)) \
+                               for viewport in stim_viewports]
+        unique_sizes = set(stim_viewport_sizes)
+        if len(unique_sizes)>1:
+            logger.warning('Sizes of stimulus viewports are not the same in configuration file.')
+        control_viewport_size = self.get_viewport_width_pix('control'), self.get_viewport_height_pix('control')
+        for size in unique_sizes:
+            if size[0]>control_viewport_size[0] or size[1]>control_viewport_size[1]:
+                viewport_index = stim_viewport_sizes.index(size)
+                logger.warning('Size of stimulus viewport \"%s\" is larger than that of control '
+                               'viewport in configuration file.' %stim_viewports[viewport_index])
+                
+    def check_viewport_refresh_rate(self):
+        logger = logging.getLogger('LightStim.Configuration')
+        stim_viewport_refresh_rates = [self.get_viewport_refresh_rate(viewport) \
+                                      for viewport in self.get_known_viewports() if viewport != 'control']
+        unique_rates = set(stim_viewport_refresh_rates)
+        if len(unique_rates)>1:
+            logger.warning('Refresh rates of stimulus viewports are not the same in configuration file. Severe problems could happen '
+                           'in subsequent stimulus presentation relating to temporal properties.')
