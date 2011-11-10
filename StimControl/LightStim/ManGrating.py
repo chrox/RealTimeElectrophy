@@ -251,7 +251,7 @@ class ManGrating(ManStimulus):
     def load_preference(self, index):
         name = self.viewport.name
         info = self.name + str(index) + ' in ' + name + ' viewport.'
-        logger = logging.getLogger('Lightstim.ManGrating')
+        logger = logging.getLogger('LightStim.ManGrating')
         logger.info('Load preference for ' + info)
         self.defalut_preference = {'xorigDeg':0.0,
                                    'yorigDeg':0.0,
@@ -294,7 +294,7 @@ class ManGrating(ManStimulus):
     def save_preference(self, index):
         name = self.viewport.name
         info = self.name + str(index) + ' in ' + name + ' viewport.'
-        logger = logging.getLogger('Lightstim.ManGrating')
+        logger = logging.getLogger('LightStim.ManGrating')
         logger.info('Save preference for ' + info)
         preferences_dict = {}
         try:

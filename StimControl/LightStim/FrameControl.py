@@ -136,7 +136,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.parameters.go_duration = (0,'frames')
 
     def go(self,prestim=None,poststim=None):
-        logger = logging.getLogger('Lightstim.FrameControl')
+        logger = logging.getLogger('LightStim.FrameControl')
         # pre stimulation go
         if prestim is not None:
             self.parameters.go_duration = (prestim, 'seconds')

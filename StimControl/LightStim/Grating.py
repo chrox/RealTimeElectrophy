@@ -74,7 +74,7 @@ class TimingController(SweepSequeStimulusController):
 class TimingStampController(DTSweepSequeController):
     def __init__(self,*args,**kwargs):
         super(TimingStampController, self).__init__(*args,**kwargs)
-        self.logger = logging.getLogger('Lightstim.Grating')
+        self.logger = logging.getLogger('LightStim.Grating')
     def during_go_eval(self):
         stimulus_on = self.next_param()
         if stimulus_on:
@@ -120,7 +120,7 @@ class ParamStampController(DTSweepSequeController):
         self.indexed_ori = IndexedParam('orientation')
         self.indexed_sfq = IndexedParam('spatial_freq')
         self.indexed_pha = IndexedParam('phase_at_t0')
-        self.logger = logging.getLogger('Lightstim.Grating')
+        self.logger = logging.getLogger('LightStim.Grating')
     def during_go_eval(self):
         next_param = self.next_param()
         if next_param is not None and not any(num != num for num in next_param):
@@ -205,7 +205,7 @@ class Grating(Stimulus):
             setattr(dest_params, paramname, paramval)
     
     def register_controllers(self):
-        logger = logging.getLogger('Lightstim.Grating')
+        logger = logging.getLogger('LightStim.Grating')
         self.controllers.append(GratingController(self))
         if isinstance(self.sweepseq, TimingSeque):
             logger.info('Register TimingController.')
@@ -225,7 +225,7 @@ class Grating(Stimulus):
     def load_params(self, index=0):
         name = self.viewport.name
         info = self.name + str(index) + ' in ' + name + ' viewport.'
-        logger = logging.getLogger('Lightstim.Grating')
+        logger = logging.getLogger('LightStim.Grating')
         logger.info('Load preference for ' + info)
         with open('Manbar_preference.pkl','rb') as pkl_input:
             preference = pickle.load(pkl_input)[name][index]

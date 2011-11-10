@@ -161,7 +161,7 @@ class ManBar(ManStimulus):
     def load_preference(self, index):
         name = self.viewport.name
         info = self.name + str(index) + ' in ' + name + ' viewport.'
-        logger = logging.getLogger('Lightstim.ManBar')
+        logger = logging.getLogger('LightStim.ManBar')
         logger.info('Load preference for ' + info)
         self.defalut_preference = {'xorigDeg':0.0,
                                    'yorigDeg':0.0,
@@ -190,7 +190,7 @@ class ManBar(ManStimulus):
     def save_preference(self, index):
         name = self.viewport.name
         info = self.name + str(index) + ' in ' + name + ' viewport.'
-        logger = logging.getLogger('Lightstim.ManBar')
+        logger = logging.getLogger('LightStim.ManBar')
         logger.info('Save preference for ' + info)
         preferences_dict = {}
         try:

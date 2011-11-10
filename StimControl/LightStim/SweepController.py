@@ -30,7 +30,7 @@ class StimulusController(VisionEgg.FlowControl.Controller):
         
 class ViewportController(StimulusController):
     """ Dummy class used to show that the controller is viewport sensitive.
-        SEE Lightstim.ManStimulus
+        SEE LightStim.ManStimulus
     """
     def __init__(self,stimulus,viewport=None):
         super(ViewportController,self).__init__(stimulus)
