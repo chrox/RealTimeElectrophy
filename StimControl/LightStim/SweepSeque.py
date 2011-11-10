@@ -9,6 +9,7 @@ from __future__ import division
 import numpy as np
 import itertools
 import random
+import LightStim
 
 class dictattr(dict):
     """ Dictionary with attribute access"""
@@ -30,8 +31,9 @@ class dictattr(dict):
             self.__dict__[key] = val # make the key show up as an attrib upon dir()
 
 class SweepSeque(object):
-    def __init__(self, sweep_duration=1/60.0):
-        self.sweep_duration = sweep_duration
+    def __init__(self):
+        assumed_refresh_rate = LightStim.config.assume_viewport_refresh_rate()
+        self.sweep_duration = 1/assumed_refresh_rate
 
 class TimingSeque(SweepSeque):
     """ stimulus sequence with arbitrary onset and offset timing."""
