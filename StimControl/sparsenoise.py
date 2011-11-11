@@ -17,7 +17,7 @@ static = StaticParams()
 dynamic = DynamicParams()
 
 # for every grid cell
-stim_times = 8
+stim_times = 8;
 # pre-experiment duration to display blank screen (sec)
 static.preframesweepSec = 3.0
 # post-experiment duration to display blank screen (sec)
@@ -25,10 +25,10 @@ static.postframesweepSec = 5.0
 """Screen settings"""
 static.origDeg = (0, 0)
 """Grid settings"""
-static.center = (-0.2, -1.8)
+static.center = (0.0, 0.0)
 static.size = (10, 10)
 # grid dimension (x, y)
-static.griddim = (8, 8)
+static.griddim = (32, 32)
 # pre-calculated grid cell size (increment)
 static.gridcell = (static.size[0]/static.griddim[0], static.size[1]/static.griddim[1])
 # stimuli orientation offset (deg)
@@ -65,7 +65,7 @@ and has to be added to this Experiment's Variables object"""
 # noise stimuli times for every grid cell(n)
 dynamic.times = range(stim_times)
 # sweep duration (sec)
-static.sweepSec = 0.02
+static.sweepSec = 0.04
 # post-sweep duration to display blank screen (sec)
 static.postsweepSec = 0
 # noise position index in stimulus grid

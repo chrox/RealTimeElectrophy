@@ -52,6 +52,7 @@ class SweepTableStimulusController(StimulusController):
         # -todo: create a global vsynctable so that run time modification could be easier.
         # runtime control will be achived by pyro parameter pass.
         vsynctable = [vsync for sweep in stimulus.sweeptable.i for vsync in itertools.repeat(sweep,nvsync)]
+        self.vsync_list = vsynctable
         # iterator for every vsync sweep
         self.tableindex = iter(vsynctable)
     def next_index(self):
@@ -62,6 +63,10 @@ class SweepTableStimulusController(StimulusController):
         except StopIteration:
             self.stimulus.sweep_completed = True
             return None
+    def get_sweeps_num(self):
+        return len(self.vsync_list)
+    def get_estimated_duration(self):
+        return len(self.vsync_list) / self.viewport.refresh_rate
 
 class SweepSequeStimulusController(StimulusController):
     def __init__(self,stimulus):

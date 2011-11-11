@@ -11,13 +11,15 @@ import numpy as np
 np.seterr(all='raise') # raise all numpy errors (like 1/0), don't just warn
 
 import pickle
-
+import logging
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
 
 import LightStim.Core
+from LightUtil import TimeFormat
 from SweepController import SweepTableStimulusController,SaveParamsController,DTSweepTableController
 from CheckBoard import CheckBoard
+
 
 class RFModel(object):
     """LNP receptive field model for simulation"""
@@ -186,8 +188,14 @@ class WhiteNoise(LightStim.Core.Stimulus):
         self.stimuli = (self.background, self.checkboard, self.targetstimulus, self.fixationspot)
     
     def register_controllers(self):
+        logger = logging.getLogger('LightStim.WhiteNoise')
         self.controllers.append(WhiteNoiseSweepStampController(self))
         self.controllers.append(SavePosParamsController(self))
         self.controllers.append(TargetController(self))
         self.controllers.append(CheckBoardController(self))
+        if isinstance(self.controllers[-1],SweepTableStimulusController):
+            controller = self.controllers[-1]
+            estimated_duration = controller.get_estimated_duration()
+            sweep_num = controller.get_sweeps_num()
+            logger.info('Estimated stimulus duration: %s for %d sweeps.' %(str(TimeFormat(estimated_duration)), sweep_num))
         
