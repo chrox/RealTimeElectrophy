@@ -37,15 +37,16 @@ class InfoController(ViewportController):
         self.sltp = self.stimulus.sltp # squarelocktext
         self.sptp = self.stimulus.sptp # stimulusparamtext
     def during_go_eval(self):
-        self.upbp.position = (0, self.viewport.height_pix)
+        width_pix, height_pix = self.viewport.parameters.size
+        self.upbp.position = (0, height_pix)
         self.upbp.size = (self.viewport.width_pix, STATUSBARHEIGHT)
         self.lwbp.position = (0, 0)
         self.lwbp.size = (self.viewport.width_pix, STATUSBARHEIGHT)
-        self.vitp.lowerleft = (1, self.viewport.height_pix - 12)
-        self.vips[0].lowerleft = (200, self.viewport.height_pix - 12)
-        self.vips[1].lowerleft = (245, self.viewport.height_pix - 12)
-        self.stp.lowerleft = (self.viewport.width_pix-325, self.viewport.height_pix-12)
-        self.sltp.lowerleft = (1, self.viewport.height_pix - STATUSBARHEIGHT -12)
+        self.vitp.lowerleft = (1, height_pix - 12)
+        self.vips[0].lowerleft = (200, height_pix - 12)
+        self.vips[1].lowerleft = (245, height_pix - 12)
+        self.stp.lowerleft = (self.viewport.width_pix-325, height_pix-12)
+        self.sltp.lowerleft = (1, height_pix - STATUSBARHEIGHT -12)
         self.sptp.lowerleft = (2, 2)
 
 class ViewportIndicatorsController(StimulusController):
