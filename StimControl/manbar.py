@@ -7,10 +7,10 @@
 # See LICENSE.TXT that came with this file.
 
 from __future__ import division
-from LightStim.Core import DefaultScreen
-from LightStim.SweepSeque import dictattr
-from LightStim.FrameControl import FrameSweep
-from LightStim.ManBar import ManBar
+from StimControl.LightStim.Core import DefaultScreen
+from StimControl.LightStim.SweepSeque import dictattr
+from StimControl.LightStim.FrameControl import FrameSweep
+from StimControl.LightStim.ManBar import ManBar
 
 DefaultScreen(['control','left','right'])
 

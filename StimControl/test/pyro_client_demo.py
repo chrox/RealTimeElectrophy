@@ -8,9 +8,9 @@ from VisionEgg.PyroClient import PyroClient
 
 from VisionEgg.Gratings import SinGrating2D
 from VisionEgg.MoreStimuli import Target2D
-from LightStim.Core import Dummy_Screen
+from StimControl.LightStim.Core import DefaultScreen
 
-dummy_screen = Dummy_Screen()
+dummy_screen = DefaultScreen(['control'])
 
 grating = SinGrating2D()
 target = Target2D()

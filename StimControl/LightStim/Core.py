@@ -20,8 +20,8 @@ import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 import VisionEgg.GL as gl
 import VisionEgg.Core
-import LightStim
-    
+from .. import LightStim
+
 class Screen(VisionEgg.Core.Screen):
     """ Large screen occupies multiply displays
     """

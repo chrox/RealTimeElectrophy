@@ -9,8 +9,6 @@
 import logging
 import pygame
 import VisionEgg
-VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
-
 from Core import Viewport
 from LightUtil import TimeFormat
 from ManViewport import ManViewport

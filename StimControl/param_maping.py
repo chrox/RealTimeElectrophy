@@ -7,9 +7,9 @@
 # See LICENSE.TXT that came with this file.
 
 from __future__ import division
-from LightStim.SweepSeque import dictattr,ParamSeque
-from LightStim.FrameControl import FrameSweep
-from LightStim.Grating import Grating,IndexedParam
+from StimControl.LightStim.SweepSeque import dictattr,ParamSeque
+from StimControl.LightStim.FrameControl import FrameSweep
+from StimControl.LightStim.Grating import Grating,IndexedParam
 
 p = dictattr()
 p.ml = 0.5

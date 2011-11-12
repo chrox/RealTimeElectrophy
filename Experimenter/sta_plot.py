@@ -14,7 +14,6 @@ import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
-from matplotlib import cm
 
 from Experimenter.ReverseCorrelation import RevCorr
 

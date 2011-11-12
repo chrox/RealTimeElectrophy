@@ -9,7 +9,7 @@ from operator import add
 import numpy as np
 import logging
 logger = logging.getLogger('SpikeRecord.Plexon')
-import Plexon
+from SpikeRecord import Plexon
 
 class PlexUtil(object):
     """

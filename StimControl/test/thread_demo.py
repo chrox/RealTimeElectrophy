@@ -8,12 +8,11 @@
 
 import threading
 import time
-from StimControl.mangrating import *
+from StimControl.mangrating import FrameSweep,stimulus_control,stimulus_left,stimulus_right
 
 sweep = FrameSweep()
 def stimcontrol(sweep):
     sweep.add_stimulus(stimulus_control)
-    sweep.add_stimulus(stimulus_primary)
     sweep.add_stimulus(stimulus_left)
     sweep.add_stimulus(stimulus_right)
     sweep.add_controllers()

@@ -11,7 +11,7 @@ import ctypes
 import numpy as np
 import logging
 logger = logging.getLogger('SpikeRecord.Plexon')
-import Plexon
+from SpikeRecord import Plexon
 
 MAX_MAP_EVENTS_PER_READ = 8000
 

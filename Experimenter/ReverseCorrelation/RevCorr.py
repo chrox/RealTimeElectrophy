@@ -7,8 +7,8 @@
 # See LICENSE.TXT that came with this file.
 
 import numpy as np
-from Plexon.PlexClient import PlexClient
-from Plexon.PlexUtil import PlexUtil
+from SpikeRecord.Plexon.PlexClient import PlexClient
+from SpikeRecord.Plexon.PlexUtil import PlexUtil
 
 class STAData:
     """ Spike triggered average(STA) analysis

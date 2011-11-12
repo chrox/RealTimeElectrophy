@@ -15,7 +15,7 @@ import logging
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
 
-import LightStim.Core
+from Core import Stimulus
 from LightUtil import TimeFormat
 from SweepController import SweepTableStimulusController,SaveParamsController,DTSweepTableController
 from CheckBoard import CheckBoard
@@ -134,7 +134,7 @@ class SavePosParamsController(SaveParamsController):
         txt_output.close()
         self.file_saved = True
 
-class WhiteNoise(LightStim.Core.Stimulus):
+class WhiteNoise(Stimulus):
     """WhiteNoise stimulus"""
     def __init__(self, **kwargs):
         super(WhiteNoise, self).__init__(**kwargs)

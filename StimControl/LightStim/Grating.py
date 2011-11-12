@@ -12,14 +12,14 @@ import numpy as np
 np.seterr(all='raise')
 import pickle
 import logging
-from LightStim.SweepTable import dictattr
-from LightStim.SweepSeque import TimingSeque, ParamSeque
+
 from VisionEgg.Gratings import SinGrating2D
 from VisionEgg.Textures import Mask2D
 from VisionEgg.MoreStimuli import Target2D
-from LightUtil import TimeFormat
 
-from LightStim.Core import Stimulus
+from LightUtil import TimeFormat
+from SweepSeque import dictattr, TimingSeque, ParamSeque
+from Core import Stimulus
 
 from SweepController import StimulusController,SweepSequeStimulusController,DTSweepSequeController
 

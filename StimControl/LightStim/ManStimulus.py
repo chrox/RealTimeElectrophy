@@ -7,7 +7,6 @@
 # See LICENSE.TXT that came with this file.
 
 from __future__ import division
-import copy
 import numpy as np
 np.seterr(all='raise')
 import logging
@@ -15,13 +14,11 @@ import pygame
 from pygame.locals import K_UP,K_DOWN,K_RIGHT,K_LEFT,K_EQUALS,K_MINUS,K_RSHIFT,K_LSHIFT,K_SPACE,K_RETURN,K_KP_ENTER,KMOD_CTRL
 from pygame.locals import K_e,K_0,K_KP0,K_1,K_KP1,K_2,K_KP2
 from VisionEgg.MoreStimuli import Target2D
-from LightStim.InfoText import BitmapText
+from InfoText import BitmapText
 from SweepController import StimulusController
 from SweepController import ViewportController
 
-
-import LightStim.Core
-from LightStim.Core import Viewport
+from Core import Viewport, Stimulus
 from ManViewport import ManViewport
 
 STATUSBARHEIGHT = 15 # height of upper and lower status bars (pix)
@@ -37,7 +34,7 @@ class InfoController(ViewportController):
         self.sltp = self.stimulus.sltp # squarelocktext
         self.sptp = self.stimulus.sptp # stimulusparamtext
     def during_go_eval(self):
-        width_pix, height_pix = self.viewport.parameters.size
+        _width_pix, height_pix = self.viewport.parameters.size
         self.upbp.position = (0, height_pix)
         self.upbp.size = (self.viewport.width_pix, STATUSBARHEIGHT)
         self.lwbp.position = (0, 0)
@@ -104,8 +101,8 @@ class ViewportEventHandlerController(StimulusController):
                 elif event_handler in viewport.event_handlers and not viewport.is_current():
                     viewport.event_handlers.remove(event_handler) 
 
-class ManStimulus(LightStim.Core.Stimulus):
-    __slots__ = LightStim.Core.Stimulus.__slots__ + ('complete_stimuli','essential_stimuli')
+class ManStimulus(Stimulus):
+    __slots__ = Stimulus.__slots__ + ('complete_stimuli','essential_stimuli')
     def __init__(self, params, viewport, disp_info=False, **kwargs):
         logger = logging.getLogger('LightStim.ManStimulus')
         if disp_info and viewport is not 'control':

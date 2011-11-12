@@ -16,10 +16,10 @@ USAGE:
         ...
 """
 from __future__ import division
-from LightStim.Core import DefaultScreen
-from LightStim.SweepSeque import dictattr
-from LightStim.FrameControl import FrameSweep
-from LightStim.ManGrating import ManGrating
+from StimControl.LightStim.Core import DefaultScreen
+from StimControl.LightStim.SweepSeque import dictattr
+from StimControl.LightStim.FrameControl import FrameSweep
+from StimControl.LightStim.ManGrating import ManGrating
 # Manual Grating experiment parameters, all must be scalars
 
 DefaultScreen(['control','left','right'])

@@ -8,10 +8,10 @@
 
 from __future__ import division
 
-from LightStim.SweepTable import StaticParams,DynamicParams,Runs,Variable,Variables
-from LightStim.WhiteNoise import WhiteNoise
-from LightStim.FrameControl import FrameSweep
-from LightStim.SweepTable import SweepTable
+from StimControl.LightStim.SweepTable import StaticParams,DynamicParams,Runs,Variable,Variables
+from StimControl.LightStim.WhiteNoise import WhiteNoise
+from StimControl.LightStim.FrameControl import FrameSweep
+from StimControl.LightStim.SweepTable import SweepTable
 
 static = StaticParams()
 dynamic = DynamicParams()

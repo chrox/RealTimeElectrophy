@@ -19,6 +19,8 @@ http://swindale.ecc.ubc.ca
 from __future__ import division
 import logging  # available in Python 2.3
 import logging.handlers
+import VisionEgg
+VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 import Configuration
 
 ############# Logging #############

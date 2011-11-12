@@ -9,8 +9,8 @@
 import logging
 import numpy as np
 import scipy.ndimage as nd
-from Plexon.PlexClient import PlexClient
-from Plexon.PlexUtil import PlexUtil
+from SpikeRecord.Plexon.PlexClient import PlexClient
+from SpikeRecord.Plexon.PlexUtil import PlexUtil
 
 ONSET_BIT = 12
 OFFSET_BIT = 13

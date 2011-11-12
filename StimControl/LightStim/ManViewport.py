@@ -8,13 +8,13 @@
 
 import copy
 import itertools
-import logging
+#import logging
 import pygame
 from pygame.locals import K_h
-import LightStim.Core
-from LightStim.Core import Viewport
+from .. import LightStim
+from Core import Viewport
 
-class ManViewport(LightStim.Core.Viewport):
+class ManViewport(Viewport):
     # add event control callback
     def __init__(self,**kwargs):
         super(ManViewport, self).__init__(**kwargs)

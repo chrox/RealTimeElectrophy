@@ -14,8 +14,8 @@ import numpy as np
 from bisect import bisect_right
 from collections import deque
 from guppy import hpy; h = hpy()
-from Plexon.PlexClient import PlexClient
-from Plexon.PlexUtil import PlexUtil
+from SpikeRecord.Plexon.PlexClient import PlexClient
+from SpikeRecord.Plexon.PlexUtil import PlexUtil
 
 # TODO # move these definition to stimulus space
 ONSET_BIT = 0

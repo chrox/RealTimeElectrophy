@@ -8,9 +8,9 @@
 
 from __future__ import division
 import numpy as np
-from LightStim.SweepSeque import dictattr,TimingSeque
-from LightStim.FrameControl import FrameSweep
-from LightStim.Grating import Grating
+from StimControl.LightStim.SweepSeque import dictattr,TimingSeque
+from StimControl.LightStim.FrameControl import FrameSweep
+from StimControl.LightStim.Grating import Grating
 
 p = dictattr()
 p.ml = 0.5

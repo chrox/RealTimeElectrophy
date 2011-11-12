@@ -7,9 +7,9 @@
 # See LICENSE.TXT that came with this file.
 
 from __future__ import division
-from LightStim.SweepTable import StaticParams
-from LightStim.FrameControl import FrameSweep
-from LightStim.ManGrating import ManGrating
+from StimControl.LightStim.SweepTable import StaticParams
+from StimControl.LightStim.FrameControl import FrameSweep
+from StimControl.LightStim.ManGrating import ManGrating
 # Manual Grating experiment parameters, all must be scalars
 
 p = StaticParams()
@@ -45,13 +45,11 @@ p.contrastmultiplier = 1.005
 p.snapDeg = 18
 
 stimulus_control = ManGrating(disp_info=True, params=p, viewport='control')
-stimulus_primary = ManGrating(disp_info=False, params=p, viewport='primary')
 stimulus_left = ManGrating(disp_info=False, params=p, viewport='left')
 stimulus_right = ManGrating(disp_info=False, params=p, viewport='right')
 
 sweep = FrameSweep()
 sweep.add_stimulus(stimulus_control)
-sweep.add_stimulus(stimulus_primary)
 sweep.add_stimulus(stimulus_left)
 sweep.add_stimulus(stimulus_right)
 import cProfile,pstats

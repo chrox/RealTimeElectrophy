@@ -10,7 +10,7 @@ from __future__ import division
 import numpy as np
 import itertools
 import random
-import LightStim
+from .. import LightStim
 
 class dictattr(dict):
     """ Dictionary with attribute access"""

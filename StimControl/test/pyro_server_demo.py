@@ -7,9 +7,9 @@
 # See LICENSE.TXT that came with this file.
 
 from __future__ import division
-from LightStim.FrameControl import FrameSweep
-from LightStim.Core import Dummy_Stimulus
-from LightStim.SweepController import StimulusPoolController
+from StimControl.LightStim.FrameControl import FrameSweep
+from StimControl.LightStim.Core import Dummy_Stimulus
+from StimControl.LightStim.SweepController import StimulusPoolController
 from VisionEgg.PyroHelpers import PyroServer
 import Pyro
 Pyro.config.PYRO_MOBILE_CODE = True

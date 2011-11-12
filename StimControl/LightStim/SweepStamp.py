@@ -6,7 +6,7 @@
 # Distributed under the terms of the BSD License.
 # See LICENSE.TXT that came with this file.
 
-import LightStim
+from .. import LightStim
 
 DTBOARDINSTALLED = LightStim.config.LIGHTSTIM_DTBOARD_INSTALLED
 
