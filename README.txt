@@ -11,12 +11,27 @@ spikes via Experimenter, preliminary data analysis can be performed in real time
 
 INSTALLATION
 
-To install from source, type this from a command line 
+First, download and install these dependencies:
+	- python (version >= 2.6 , but NOT version 3)
+	- PIL (Python Imaging Library, version >= 1.1.6)
+	- PyOpenGL (version >= 3.0.1)
+	- pygame (version >= 1.8)
+	- numpy (version >= 0.9.6)
+	- scipy (version >= 0.4.8)
+	- matplotlib (version >= 1.01)
+	- wxPython (version >= 2.8)
+	- VisionEgg (version == 1.2.1)
+
+To install RealTimeElectrophy from source, download the latest source code packages,
+and extract the files into your home directory. Type this from a command line 
 from the RealTimeElectrophy base directory:
 
-python setup.py install
+>>>python setup.py install
 
-For windows users binary distributions are also provided.
+For windows users binary installers are also provided.
+
+In either case you need a copy of source code to run the demo execuable programs located 
+at each subdirectory with all lowercase letters in their names.
 
 LICENSE
 
@@ -33,4 +48,5 @@ The Dimstim project page can be found at http://swindale.ecc.ubc.ca/dimstim
 
 MISC
 
+Any comments and contributions to this project are welcomed.
 See http://vislab.hsc.pku.edu.cn/code/RealTimeElectrophy for more.
