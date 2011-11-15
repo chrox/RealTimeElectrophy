@@ -50,3 +50,27 @@ MISC
 
 Any comments and contributions to this project are welcomed.
 See http://vislab.hsc.pku.edu.cn/code/RealTimeElectrophy for more.
+
+_________________________
+Manual stimulus controls:
+
+In manbar and mangrating stimulation:
+    - mouse cursor controls the bar/grating position, mouse scroll wheel changes bar/grating orientation
+    - left and right mouse bottons control stimulus on/off in left and right viewport respectively
+    - left/right arrow keys control bar/grating width, up/down arrow keys control bar/grating height
+    - ENTER/SPACE keys save current stimulus parameters to disk
+    - TAB key alternates controled viewport
+    - 'C' sets circular mask for grating
+    - 'H' controls stimulus on/off on all viewports
+    - 'G' sets gaussian mask for grating
+    - 'I' inverts the bar and background brightness levels
+    - 'P' sets the bar orientation perpendicular to bar moving direction
+    - '-'/'+' adjust brightness of bar and contrast of grating
+    - '['/']' adjust grating temporal frequency
+    - '<'/'>' adjust grating spatial frequency (','/'.' do the same thing)
+    - '0' sets 0 deg orientation for bar/grating
+    - CTRL+'1' saves stimulus parameters to disk which can be later restore by pressing '1'
+    - CTRL+'2' saves stimulus parameters to disk which can be later restore by pressing '2'
+    - CTRL+'C' copys stimulus parameters 
+    - CTRL+'V' pastes copied stimulus parameters to stimulus being controlled
+    - CTRL+'G' groups stimuli on all viewports so that all stimuli are under control
