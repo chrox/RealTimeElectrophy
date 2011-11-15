@@ -291,9 +291,8 @@ class ManGrating(ManStimulus):
         self.x  = int(round(self.viewport.deg2pix(self.xorigDeg) + self.viewport.xorig))
         self.y  = int(round(self.viewport.deg2pix(self.yorigDeg) + self.viewport.yorig))
         self.fp.position = self.x, self.y
-        if self.viewport.name == 'control':
-            pygame.mouse.set_pos([self.x, self.viewport.height_pix - self.y])
-            
+        self.viewport.save_mouse_pos((self.x, self.viewport.height_pix - self.y))
+         
     def save_preference(self, index):
         name = self.viewport.name
         info = self.name + str(index) + ' in ' + name + ' viewport.'

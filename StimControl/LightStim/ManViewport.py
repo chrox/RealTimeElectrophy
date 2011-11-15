@@ -27,6 +27,7 @@ class ManViewport(Viewport):
             self.current = False
         
         self.viewport_alted_once = False
+        self.mouse_pos = None
         self.copied_stimuli = None
         self.copied_parameters = {}
         self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback),
@@ -39,6 +40,7 @@ class ManViewport(Viewport):
         if not self.viewport_alted_once and self.get_name() == 'control':
             self.viewport_alted_once = True
             self.__alt_viewport()
+            
         self.make_current()
         self._is_drawing = True
         for stimulus in self.parameters.stimuli:
@@ -67,6 +69,11 @@ class ManViewport(Viewport):
         return self.current
     def set_current(self,current):
         self.current = current
+    def save_mouse_pos(self, pos):
+        self.mouse_pos = pos
+    def restore_mouse_pos(self):
+        if self.mouse_pos is not None:
+            pygame.mouse.set_pos(self.mouse_pos)
         
     def __copy_stimuli(self, src_viewport_name):
         # copy stimuli from source viewport and register the stimuli in this viewport.
@@ -120,6 +127,7 @@ class ManViewport(Viewport):
                     if next_viewport.get_name() == 'control':
                         next_viewport = viewport_it.next()
                     next_viewport.set_current(True)
+                    next_viewport.restore_mouse_pos()
                     self.__clone_viewport('control',next_viewport.get_name())
                     break
     

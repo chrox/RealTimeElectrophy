@@ -128,10 +128,7 @@ class ManStimulus(Stimulus):
                      self.lvpindicatortext, self.rvpindicatortext,
                      self.lowerbar, self.stimulusparamtext)
         self.make_stimuli()
-        if disp_info:
-            self.stimuli = self.complete_stimuli
-        else:
-            self.stimuli = self.essential_stimuli
+        self.stimuli = self.complete_stimuli if disp_info else self.essential_stimuli
         self.register_event_handlers()
         
     def make_screen_info(self):
@@ -252,7 +249,7 @@ class ManStimulus(Stimulus):
             
     def mousemotion_callback(self,event):
         (x,y) = pygame.mouse.get_pos()
-        #print "pos in callback: %d,%d" % (self.x, self.viewport.height_pix - self.y)
+        # print "pos in callback: %d,%d" % (x, y)
         # keep the cursor in the control viewport
         # x = min(x, self.viewport.width_pix)
         if x > self.viewport.width_pix:
@@ -263,6 +260,7 @@ class ManStimulus(Stimulus):
         self.yorigDeg = self.viewport.pix2deg(y - self.viewport.yorig)
         self.x = x
         self.y = y
+        self.viewport.save_mouse_pos((self.x, self.viewport.height_pix - y))
     
     def mousebuttondown_callback(self,event):
         button = event.button
