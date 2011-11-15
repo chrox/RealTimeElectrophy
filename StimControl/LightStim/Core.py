@@ -44,7 +44,7 @@ class DefaultScreen(Screen):
 class Stimulus(VisionEgg.Core.Stimulus):
     """ One stimulus has one and only one viewport to make things not so hard."""
     # __slot__ specifies which attributes are copied when copy.copy is called.
-    __slots__ = VisionEgg.Core.Stimulus.__slots__ + ('controllers','sweep_completed')
+    __slots__ = ('controllers','sweep_completed')
     def __init__(self, viewport=None, sweeptable=None, **kwargs):
         super(Stimulus, self).__init__(**kwargs)
         if viewport:

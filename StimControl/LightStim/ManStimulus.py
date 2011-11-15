@@ -102,7 +102,7 @@ class ViewportEventHandlerController(StimulusController):
                     viewport.event_handlers.remove(event_handler) 
 
 class ManStimulus(Stimulus):
-    __slots__ = Stimulus.__slots__ + ('complete_stimuli','essential_stimuli')
+    __slots__ = ('complete_stimuli','essential_stimuli')
     def __init__(self, params, viewport, disp_info=False, **kwargs):
         logger = logging.getLogger('LightStim.ManStimulus')
         if disp_info and viewport is not 'control':
