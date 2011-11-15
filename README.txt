@@ -59,7 +59,7 @@ In manbar and mangrating stimulation:
     - left and right mouse bottons control stimulus on/off in left and right viewport respectively
     - left/right arrow keys control bar/grating width, up/down arrow keys control bar/grating height
     - ENTER/SPACE keys save current stimulus parameters to disk
-    - TAB key alternates controlled viewport
+    - TAB key alternates currently controlled viewport
     - 'C' sets circular mask for grating
     - 'H' controls stimulus on/off on all viewports
     - 'G' sets gaussian mask for grating
