@@ -9,6 +9,14 @@ SpikeRecord.  Precise frame timing is done by StimControl which sends a sweepsta
 the acquisition system for each screen sweep. Once the visual stimuli is synchronized with the 
 spikes via Experimenter, preliminary data analysis can be performed in real time.
 
+HARDWARE REQUIREMENTS
+
+A recent stand-alone graphics card is required to draw stimuli fast enough for real time control.
+In our lab, we use an nVIDIA Quadro NVS 440 card in MultiView mode to horizontally span the screen 
+over three or four monitors. Any recent nVIDIA GeForce card should be able to run smoothly in 
+DualView mode on two monitors. And we use a Data Translation Digital I/O board to trigger the 
+acquisition device. Currently only Data Translation DT340 is tested.
+
 INSTALLATION
 
 First, download and install these dependencies:
@@ -32,6 +40,12 @@ For windows users binary installers are also provided.
 
 In either case you need a copy of source code to run the demo execuable programs located 
 at each subdirectory with all lowercase letters in their names.
+
+CONFIGURATION
+
+You can edit the configuration file LightStim.cfg with your favorite text editor and make 
+necessary changes to configurable entities including whether the triggering device is 
+installed, dimensional measurements and refresh rates and gamma corrections of each monitor, etc.
 
 LICENSE
 
@@ -69,8 +83,8 @@ In manbar and mangrating stimulation:
     - '['/']' adjust grating temporal frequency
     - '<'/'>' adjust grating spatial frequency (','/'.' do the same thing)
     - '0' sets 0 deg orientation for bar/grating
-    - CTRL+'1' saves stimulus parameters to disk which can be later restore by pressing '1'
-    - CTRL+'2' saves stimulus parameters to disk which can be later restore by pressing '2'
+    - CTRL+'1' saves stimulus parameters to disk which can be later restored by pressing '1'
+    - CTRL+'2' saves stimulus parameters to disk which can be later restored by pressing '2'
     - CTRL+'C' copys stimulus parameters 
     - CTRL+'V' pastes copied stimulus parameters to stimulus being controlled
     - CTRL+'G' groups stimuli on all viewports so that all stimuli are under control
