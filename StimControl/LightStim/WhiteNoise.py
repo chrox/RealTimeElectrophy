@@ -76,19 +76,17 @@ class TargetController(SweepTableStimulusController):
             |0,2|1,2|2,2|
             |___|___|___|
         """
-        xposdeg = self.static.center[0]-self.static.size[0]/2 + \
-                    self.st.posindex[index][1]*self.static.gridcell[0]+self.static.widthDeg/2
-        yposdeg = self.static.center[1]+self.static.size[1]/2 - \
-                    self.st.posindex[index][0]*self.static.gridcell[1]-self.static.heightDeg/2
-        xorig = self.viewport.deg2pix(self.static.origDeg[0]) + self.viewport.xorig 
-        yorig = self.viewport.deg2pix(self.static.origDeg[1]) + self.viewport.yorig
-        
+        xposdeg = self.stimulus.xorigDeg - self.stimulus.gridsize/2 + \
+                    self.st.posindex[index][1]*self.stimulus.gridcell[0]+self.stimulus.barsize[0]/2
+        yposdeg = self.stimulus.yorigDeg + self.stimulus.gridsize/2 - \
+                    self.st.posindex[index][0]*self.stimulus.gridcell[1]-self.stimulus.barsize[1]/2
         """Update target contrast, given sweep table index index"""
         if self.st.contrast[index] == 0:
             self.tsp.color = (0.0, 0.0, 0.0, 1.0)
         else:
             self.tsp.color = (1.0, 1.0, 1.0, 1.0)
-        self.tsp.position = (xorig+self.viewport.deg2pix(xposdeg),yorig+self.viewport.deg2pix(yposdeg))
+        self.tsp.position = (self.viewport.xorig + self.viewport.deg2pix(xposdeg),
+                             self.viewport.yorig + self.viewport.deg2pix(yposdeg))
 
 class CheckBoardController(SweepTableStimulusController):
     def __init__(self,*args,**kwargs):
@@ -138,11 +136,13 @@ class WhiteNoise(Stimulus):
     """WhiteNoise stimulus"""
     def __init__(self, **kwargs):
         super(WhiteNoise, self).__init__(**kwargs)
+        self.name = 'whitenoise'
         self.savedpost = []
 
+        self.load_preference(0)
         self.make_stimuli()
         self.register_controllers()
-    
+        
     def make_stimuli(self):
         size = self.viewport.get_size()
         self.background = Target2D(position=(size[0]/2, size[1]/2),
@@ -155,15 +155,21 @@ class WhiteNoise(Stimulus):
         bgb = self.sweeptable.static.bgbrightness # get it for sweep table index 0
         self.bgp.color = bgb, bgb, bgb, 1.0 # set bg colour, do this now so it's correct for the pre-exp delay
         
-        position = (self.viewport.xorig+self.viewport.deg2pix(self.sweeptable.static.center[0]), \
-                    self.viewport.yorig+self.viewport.deg2pix(self.sweeptable.static.center[1]))
+        position = (self.viewport.xorig+self.viewport.deg2pix(self.xorigDeg), \
+                    self.viewport.yorig+self.viewport.deg2pix(self.yorigDeg))
+        
+        self.gridcell = (self.gridsize/self.sweeptable.static.griddim[0],
+                         self.gridsize/self.sweeptable.static.griddim[1])
+        
+        self.barsize = (self.gridcell[0]*self.sweeptable.static.widthmag,
+                        self.gridcell[1]*self.sweeptable.static.heightmag)
         
         self.targetstimulus = Target2D(position = position,
                                        color = (0.0, 0.0, 0.0, 1.0),
-                                       orientation = self.sweeptable.static.orientation,
+                                       orientation = self.ori,
                                        anchor = 'center',
-                                       size = (self.viewport.deg2pix(self.sweeptable.static.widthDeg), 
-                                               self.viewport.deg2pix(self.sweeptable.static.heightDeg)),
+                                       size = (self.viewport.deg2pix(self.barsize[0]), 
+                                               self.viewport.deg2pix(self.barsize[1])),
                                        on = False)
         self.fixationspot = FixationSpot(position=(self.viewport.xorig, self.viewport.yorig),
                                                  anchor='center',
@@ -174,8 +180,8 @@ class WhiteNoise(Stimulus):
         self.checkboard = CheckBoard(position = position,
                                      orientation = 0.0,
                                      anchor='center',
-                                     size = (self.viewport.deg2pix(self.sweeptable.static.size[0]), \
-                                             self.viewport.deg2pix(self.sweeptable.static.size[1])),
+                                     size = (self.viewport.deg2pix(self.gridsize), \
+                                             self.viewport.deg2pix(self.gridsize)),
                                      grid = self.sweeptable.static.griddim,
                                      drawline = False,
                                      cellcolor = self.sweeptable.static.cbcolormap,
@@ -199,3 +205,28 @@ class WhiteNoise(Stimulus):
             sweep_num = controller.get_sweeps_num()
             logger.info('Estimated stimulus duration: %s for %d sweeps.' %(str(TimeFormat(estimated_duration)), sweep_num))
         
+    def load_preference(self, index):
+        name = self.viewport.name
+        info = self.name + str(index) + ' in ' + name + ' viewport.'
+        logger = logging.getLogger('LightStim.WhiteNoise')
+        if self.viewport.get_name() != 'control':   # make control viewport like a passive viewport
+            logger.info('Load preference for ' + info)
+        self.defalut_preference = {'xorigDeg':0.0,
+                                   'yorigDeg':0.0,
+                                   'widthDeg':3.0,
+                                   'barheightDeg':1.0,
+                                   'ori': 0.0}
+        try:
+            with open('Manbar_preference.pkl','rb') as pkl_input:
+                preferences_dict = pickle.load(pkl_input)
+                self.defalut_preference.update(preferences_dict[name][index])
+                self.preference = self.defalut_preference
+        except:
+            if self.viewport.get_name() != 'control':
+                logger.warning('Cannot load preference for ' + info + ' Use the default preference.')
+            self.preference = self.defalut_preference
+
+        self.xorigDeg = self.preference['xorigDeg']
+        self.yorigDeg = self.preference['yorigDeg']
+        self.gridsize = self.preference['widthDeg']
+        self.ori = self.preference['ori']

@@ -17,39 +17,20 @@ static = StaticParams()
 dynamic = DynamicParams()
 
 # for every grid cell
-stim_times = 8;
+stim_times = 4
 # pre-experiment duration to display blank screen (sec)
 static.preframesweepSec = 3.0
 # post-experiment duration to display blank screen (sec)
-static.postframesweepSec = 5.0
-"""Screen settings"""
-static.origDeg = (0, 0)
+static.postframesweepSec = 3.0
 """Grid settings"""
-static.center = (0.0, 0.0)
-static.size = (10, 10)
 # grid dimension (x, y)
 static.griddim = (32, 32)
-# pre-calculated grid cell size (increment)
-static.gridcell = (static.size[0]/static.griddim[0], static.size[1]/static.griddim[1])
-# stimuli orientation offset (deg)
-static.orientation = 0.0
-# noise width (deg)
-static.widthDeg = static.size[0]/static.griddim[0]
-# noise height (deg)
-static.heightDeg = static.size[1]/static.griddim[1]
+# noise magnification fator relative to grid cell size
+static.widthmag = 4
+static.heightmag = 1
 """Background settings"""
 # background brightness (0-1)
 static.bgbrightness = 0.5
-"""Fixation settings"""
-static.fixationspotOn = False
-static.fsxposDeg = 0.0
-static.fsyposDeg = 0.0
-static.fixationspotDeg = 0.5
-"""Mask settings"""
-# mask, one of:  None, 'gaussian', or 'circle'
-static.mask = None
-# mask diameter (deg), ignored if mask is None
-static.diameterDeg = 10
 # screen gamma: None, or single value, or 3-tuple
 static.gamma = None
 """CheckBoard settings"""
