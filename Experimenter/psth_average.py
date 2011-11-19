@@ -286,7 +286,7 @@ class MainFrame(wx.Frame):
         title = 'Peri-Stimulus Time Histogram(PSTH) Average'
         style = wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER ^ wx.MAXIMIZE_BOX
         #style = wx.DEFAULT_FRAME_STYLE
-        wx.Frame.__init__(self, None, -1, title=title, pos=(50,50), style=style, name='main_frame')
+        wx.Frame.__init__(self, None, -1, title=title, style=style, name='main_frame')
 
         self.create_menu()
         self.create_status_bar()
