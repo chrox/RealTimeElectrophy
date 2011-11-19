@@ -77,7 +77,7 @@ class UnitChoice(wx.Panel):
 class STAPanel(wx.Panel):
     """ Receptive field plot.
     """
-    def __init__(self, parent, label, name='psth_panel'):
+    def __init__(self, parent, label, name='sta_panel'):
         super(STAPanel, self).__init__(parent, -1, name=name)
 
         self.sta_data = RevCorr.STAData()
@@ -92,7 +92,7 @@ class STAPanel(wx.Panel):
 
         self.slider = wx.Slider(self, -1, self.time, 0, 200, None, (250, 50), style=wx.SL_HORIZONTAL | wx.SL_LABELS)
         self.interpolations = ['none', 'nearest', 'bilinear', 'bicubic', 'spline16', 'spline36', 'hanning', 'hamming', 'hermite', \
-                   'kaiser', 'quadric', 'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos']
+                               'kaiser', 'quadric', 'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos']
         self.interpolation = 'nearest'
         self.combobox = wx.ComboBox(self, -1, pos=(-1,-1), size=(150, -1), choices=self.interpolations, 
                                     style=wx.CB_READONLY)
@@ -175,7 +175,7 @@ class STAPanel(wx.Panel):
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit:
             channel, unit = selected_unit
-            img = RevCorr.STAImg.get_img(data, channel, unit, self.time/1000.0)
+            img = RevCorr.STAImg.get_rgb_img(data, channel, unit, tau=self.time/1000.0)
             if self.img_dim != img.shape or self.interpolation_changed:
                 self.im = self.axes.imshow(img,interpolation=self.interpolation)
                 self.img_dim = img.shape
@@ -218,7 +218,7 @@ class MainFrame(wx.Frame):
         title = 'Spike Triggered Average(STA)'
         #style = wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER ^ wx.MAXIMIZE_BOX
         style = wx.DEFAULT_FRAME_STYLE
-        wx.Frame.__init__(self, None, -1, title=title, pos=(50,50), style=style, name='main_frame')
+        wx.Frame.__init__(self, None, -1, title=title, style=style, name='main_frame')
 
         self.create_menu()
         self.create_status_bar()
