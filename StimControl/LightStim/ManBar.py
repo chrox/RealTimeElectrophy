@@ -14,7 +14,6 @@ np.seterr(all='raise')
 import pickle
 import logging
 
-import pygame
 from pygame.locals import K_i, K_p
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
