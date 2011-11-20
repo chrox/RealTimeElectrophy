@@ -39,13 +39,13 @@ class PlexClient(object):
         Initializes PlexClient.dll for a client. Opens MMF's and registers the client with the server. Remeber to close the client by yourself. Or try the 'with' statement to initialize the PlexClient class.
         """
         if not self.library: 
-            logger.error('Fail to load Plexon client library.')
+            logger.error('Failed to load Plexon client library.')
             return
         if not Plexon.PL_InitClientEx3(0, None, None):
-            raise RuntimeError("Fail to initiate Plexon client.")
+            raise RuntimeError("Failed to initiate Plexon client.")
         TimeStampTick = self.GetTimeStampTick()
         if not TimeStampTick in (25, 40, 50):
-            raise RuntimeError("Fail to get timestamp tick.")
+            raise RuntimeError("Failed to get timestamp tick.")
         self.MAPSampleRate = 1000 / TimeStampTick * 1000
     def CloseClient(self):
         """
