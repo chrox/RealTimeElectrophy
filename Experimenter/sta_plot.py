@@ -102,9 +102,9 @@ class STAPanel(wx.Panel):
         time_slider = 85
         self.time = time_slider/1000
         
-        self.dpi = 100
-        self.fig = Figure((8.0, 6.0), dpi=self.dpi, facecolor='w')
-        #self.fig.subplots_adjust(wspace = 0.1,hspace = 0.1)
+        self.dpi = 300
+        self.fig = Figure((2.0, 2.0), dpi=self.dpi, facecolor='w')
+        self.fig.subplots_adjust(bottom=0.05, left=0.05, right=0.95, top=0.95)
         self.canvas = FigCanvas(self, -1, self.fig)
 
         #
@@ -205,7 +205,7 @@ class STAPanel(wx.Panel):
                 self.interpolation_changed = False
             else:
                 self.im.set_data(img)
-            self.axes.set_title(self.title)
+            #self.axes.set_title(self.title)
             self.im.autoscale()
             self.canvas.draw()
     
@@ -230,12 +230,12 @@ class STAPanel(wx.Panel):
            
     def sparse_noise_data(self):
         self.sta_data = RevCorr.STAData()
-        self.title = "Receptive field spatial map"
+        wx.FindWindowByName('main_frame').SetTitle("Receptive field spatial map")
         self.restart_data()
     
     def param_mapping_data(self):
         self.sta_data = RevCorr.ParamMapData()
-        self.title = "Parameters subspace map"
+        wx.FindWindowByName('main_frame').SetTitle("Parameters subspace map")
         self.restart_data()
         
     def on_show_popup(self, event):
@@ -254,7 +254,7 @@ class STAPanel(wx.Panel):
             self.interpolation_changed = True
         self.interpolation = interpolation
         if hasattr(self, 'data'):
-                self.update_chart(self.data)
+            self.update_chart(self.data)
         
     def on_save_chart(self, event):
         file_choices = "PNG (*.png)|*.png"
