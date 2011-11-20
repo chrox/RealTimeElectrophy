@@ -16,13 +16,16 @@ class RevCorrData(object):
         self.pc.InitClient()
         self.pu = PlexUtil()
         
+        self.renew_data()
+        
+    def __close__(self):
+        self.pc.CloseClient()
+
+    def renew_data(self):
         self.spike_trains = {}
         self.x_indices = np.empty(0,dtype=np.int16)
         self.y_indices = np.empty(0,dtype=np.int16)
         self.timestamps = np.empty(0)
-        
-    def __close__(self):
-        self.pc.CloseClient()
 
     def _update_data(self):
         data = self.pc.GetTimeStampArrays()
@@ -43,7 +46,7 @@ class RevCorrData(object):
         data = {'spikes':self.spike_trains, 
                 'x_indices':self.x_indices,'y_indices':self.y_indices,'timestamps':self.timestamps}
         return data
-
+        
 class RevCorrImg(object):
     @staticmethod
     def _colormap(value, color='jet'):
@@ -131,6 +134,8 @@ class STAData(RevCorrData):
         self.CONTRAST = 0B1
         self.CONTRAST_BIT_SHIFT = 12
 
+    def renew_data(self):
+        super(STAData, self).renew_data()
         self.contrast = np.empty(0,dtype=np.int16)
 
     def _update_data(self):
@@ -149,10 +154,13 @@ class STAData(RevCorrData):
         data = super(STAData,self).get_data()
         data['contrast'] = self.contrast
         return data
+    
+    def get_rgb_img(self, data, channel, unit, dimension=(32,32), tau=0.085, cmap='jet'):
+        return STAImg.get_rgb_img(data, channel, unit, dimension, tau, cmap)
         
 class STAImg(RevCorrImg):
     @staticmethod
-    def get_rgb_img(data,channel,unit,dimension=(32,32),tau=0.085,cmap='jet'):
+    def get_rgb_img(data,channel,unit,dimension,tau,cmap='jet'):
         """ Take the time offset between spikes and the triggered stimulus.
         """
         spike_trains = data['spikes']
@@ -174,7 +182,10 @@ class STAImg(RevCorrImg):
             contrast = contrast[take]
             contrast[contrast==0] = -1
             for index,times in enumerate(triggered_times):
-                img[x_index[index]][y_index[index]] += times*contrast[index]
+                pixel_index_x = x_index[index]
+                pixel_index_y = y_index[index]
+                if pixel_index_x < dimension[0] and pixel_index_y < dimension[1]:
+                    img[pixel_index_x][pixel_index_y] += times*contrast[index]
         return STAImg._process_img(img, cmap)
 
 class ParamMapData(RevCorrData):
@@ -184,6 +195,8 @@ class ParamMapData(RevCorrData):
         self.X_BIT_SHIFT = 0
         self.Y_INDEX = 0B1111
         self.Y_BIT_SHIFT = 4
+    def renew_data(self):
+        super(ParamMapData,self).renew_data()
     def _update_data(self):
         super(ParamMapData,self)._update_data()
         trigger_values = self.new_triggers['value']
@@ -196,10 +209,12 @@ class ParamMapData(RevCorrData):
     def get_data(self):
         data = super(ParamMapData,self).get_data()
         return data
+    def get_rgb_img(self, data, channel, unit, dimension=(16,16), tau=0.085, cmap='jet'):
+        return ParamMapIMG.get_rgb_img(data, channel, unit, dimension, tau, cmap)
 
 class ParamMapIMG(RevCorrImg):
     @staticmethod
-    def get_rgb_img(data,channel,unit,dimension=(16,16),tau=0.085,cmap='gbr'):
+    def get_rgb_img(data,channel,unit,dimension,tau,cmap='gbr'):
         spike_trains = data['spikes']
         x_indices = data['x_indices']
         y_indices = data['y_indices']
@@ -215,5 +230,8 @@ class ParamMapIMG(RevCorrImg):
             x_index = x_indices[take]
             y_index = y_indices[take]
             for index,times in enumerate(triggered_times):
-                img[x_index[index]][y_index[index]] += times
+                pixel_index_x = x_index[index]
+                pixel_index_y = y_index[index]
+                if pixel_index_x < dimension[0] and pixel_index_y < dimension[1]:
+                    img[pixel_index_x][pixel_index_y] += times
         return ParamMapIMG._process_img(img, cmap)
