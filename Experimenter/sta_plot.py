@@ -96,17 +96,16 @@ class STAPanel(wx.Panel):
         self.collecting_data = True
         self.data_started = False
         # default data type
-        self.sparse_noise_data()
-                
+        self.sta_data = RevCorr.STAData()
+
         # reverse time in ms
         time_slider = 85
         self.time = time_slider/1000
         
-        self.dpi = 300
-        self.fig = Figure((2.0, 2.0), dpi=self.dpi, facecolor='w')
-        self.fig.subplots_adjust(bottom=0.05, left=0.05, right=0.95, top=0.95)
+        self.dpi = 90
+        self.fig = Figure((6.0, 6.0), dpi=self.dpi, facecolor='w')
         self.canvas = FigCanvas(self, -1, self.fig)
-
+        self.fig.subplots_adjust(bottom=0.05, left=0.05, right=0.95, top=0.95)
         #
         self.slider = wx.Slider(self, -1, time_slider, 0, 200, None, (250, 50), style=wx.SL_HORIZONTAL | wx.SL_LABELS)
         # popup menu of cavas
@@ -184,13 +183,13 @@ class STAPanel(wx.Panel):
             ax.yaxis.set_ticks_position(yticks)
             ax.yaxis.set_tick_params(which='both',direction=ytick_dir)
             
+        self.fig.clear()
         self.axes = self.fig.add_subplot(111)
-        adjust_spines(self.axes,spines=[],spine_outward=['left','top'],xoutward=5,youtward=5,\
-                      xticks='none',yticks='none',tick_label=[])
+        adjust_spines(self.axes,spines=[],spine_outward=[],xticks='none',yticks='none',tick_label=[])
         img = np.zeros((64,64,3))
         self.img_dim = img.shape
         self.im = self.axes.imshow(img,interpolation=self.interpolation)
-    
+        
     def set_data(self, data):
         self.data = data
     
@@ -200,9 +199,17 @@ class STAPanel(wx.Panel):
             channel, unit = selected_unit
             img = self.sta_data.get_rgb_img(data, channel, unit, tau=self.time)
             if self.img_dim != img.shape or self.interpolation_changed:
+                self.make_chart()
                 self.im = self.axes.imshow(img,interpolation=self.interpolation)
                 self.img_dim = img.shape
                 self.interpolation_changed = False
+                _cbar = self.fig.colorbar(self.im, shrink=1.0, fraction=0.045, pad=0.05, ticks=[0.0, 0.5, 1.0])
+                #===============================================================
+                # if isinstance(self.sta_data, RevCorr.STAData):
+                #    cbar.ax.set_yticklabels(["off", " ", "on"])
+                # if isinstance(self.sta_data, RevCorr.ParamMapData):
+                #    cbar.ax.set_yticklabels([" ", " ", "response"])
+                #===============================================================
             else:
                 self.im.set_data(img)
             #self.axes.set_title(self.title)
@@ -223,6 +230,7 @@ class STAPanel(wx.Panel):
         
     def restart_data(self):
         self.collecting_data = False
+        self.make_chart()
         if self.data_started:
             RestartDataThread(self, self.sta_data, self.update_data_thread)
         self.collecting_data = True
