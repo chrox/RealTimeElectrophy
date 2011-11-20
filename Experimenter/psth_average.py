@@ -7,6 +7,7 @@
 # See LICENSE.TXT that came with this file.
 
 import os
+import time
 import wx
 import numpy as np
 import threading
@@ -41,6 +42,19 @@ class UpdateDataThread(threading.Thread):
         evt = DataUpdatedEvent(EVT_UPDATED_TYPE, -1, self._data)
         wx.PostEvent(self._parent, evt)
 
+class RestartDataThread(threading.Thread):
+    def __init__(self, parent, psth, update_data_thread):
+        threading.Thread.__init__(self)
+        self._parent = parent
+        self._psth = psth
+        self._update_data_thread = update_data_thread
+        self.run()
+    def run(self):
+        # wait until the update data threat quits
+        while self._update_data_thread.isAlive():
+            time.sleep(0.1)
+        self._psth.renew_data()
+
 class UnitChoice(wx.Panel):
     """ A listbox of available channels and units.
     """
@@ -66,7 +80,7 @@ class UnitChoice(wx.Panel):
         self.units = [(channel,unit) for channel in sorted(data.iterkeys(),key=int) for unit in sorted(data[channel].iterkeys())]
         self.items = ['DSP%s%c' %(channel,unit) for channel,unit in self.units]
         self.unit_list.SetItems(self.items)
-        if selected_unit:                                       # selected unit previously
+        if selected_unit in self.units:                         # selected unit previously
             selected_index = self.units.index(selected_unit)
             self.unit_list.SetSelection(selected_index)
         elif self.items:                                        # didn't select
@@ -82,14 +96,16 @@ class PSTHPanel(wx.Panel):
     """
     def __init__(self, parent, label, name='psth_panel'):
         super(PSTHPanel, self).__init__(parent, -1, name=name)
-
+        
+        self.collecting_data = True
+        self.data_started = False
         self.psth = TimeHistogram.PSTHAverage()
 
         self.dpi = 100
         self.fig = Figure((8.0, 6.0), dpi=self.dpi, facecolor='w')
         self.canvas = FigCanvas(self, -1, self.fig)
         self.make_chart()
-
+        
         box = wx.StaticBox(self, -1, label)
         sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         sizer.Add(self.canvas, 0, flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=5)
@@ -140,7 +156,7 @@ class PSTHPanel(wx.Panel):
         self.x = np.arange(17)
         self.means = np.zeros(17)
         self.stds = np.zeros(17)
-        self.fig.clf()
+        self.fig.clear()
         grid = 18
         height = grid / 9
         gs = gridspec.GridSpec(grid, grid)
@@ -178,9 +194,26 @@ class PSTHPanel(wx.Panel):
                 self.hist_patches.append(patches)
     
     def on_update_data_timer(self, event):
-        #self.data = self.psth.get_data()
-        UpdateDataThread(self, self.psth)
-
+        if self.collecting_data:
+            self.update_data_thread = UpdateDataThread(self, self.psth)
+        
+    def start_data(self):
+        self.collecting_data = True
+    
+    def stop_data(self):
+        self.collecting_data = False
+        
+    def restart_data(self):
+        self.collecting_data = False
+        self.make_chart()
+        RestartDataThread(self, self.psth, self.update_data_thread)
+        self.collecting_data = True
+    
+    def on_show_popup(self, event):
+        pos = event.GetPosition()
+        pos = event.GetEventObject().ScreenToClient(pos)
+        self.PopupMenu(self.popup_menu, pos)
+    
     def on_save_chart(self, event):
         file_choices = "PNG (*.png)|*.png"
         dlg = wx.FileDialog(
@@ -214,9 +247,11 @@ class UpdateChartThread(threading.Thread):
         
     def update_chart(self, panel, data):
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
-        if selected_unit:
+        if selected_unit is not None:
             channel, unit = selected_unit
             zeroth_psth_data = None
+            if channel not in data or unit not in data[channel]:
+                return
             for index in filter(lambda index: not index & 1, data[channel][unit].iterkeys()):
                 patch_index = index/2
                 spike_times = data[channel][unit][index]['spikes']
@@ -304,7 +339,17 @@ class MainFrame(wx.Frame):
         m_exit = menu_file.Append(-1, "E&xit\tCtrl-X", "Exit")
         self.Bind(wx.EVT_MENU, self.on_exit, m_exit)
 
+        menu_data = wx.Menu()
+        m_start = menu_data.Append(-1, "&Start\tCtrl-S", "Start data collecting")
+        self.Bind(wx.EVT_MENU, self.on_start_data, m_start)
+        m_stop = menu_data.Append(-1, "S&top\tCtrl-T", "Stop data collecting")
+        self.Bind(wx.EVT_MENU, self.on_stop_data, m_stop)
+        menu_data.AppendSeparator()
+        m_restart = menu_data.Append(-1, "&Restart\tCtrl-R", "Restart data collecting")
+        self.Bind(wx.EVT_MENU, self.on_restart_data, m_restart)
+        
         self.menubar.Append(menu_file, "&File")
+        self.menubar.Append(menu_data, "&Data")
         self.SetMenuBar(self.menubar)
 
     def create_status_bar(self):
@@ -328,6 +373,9 @@ class MainFrame(wx.Frame):
 
     def on_save_chart(self, event):
         self.psth_chart.on_save_chart(event)
+    
+    def on_exit(self, event):
+        self.Destroy()
 
     def on_data_updated(self, event):
         #print event.get_data()
@@ -335,8 +383,17 @@ class MainFrame(wx.Frame):
         UpdateChartThread(self.psth_chart, data)
         self.unit_choice.update_units(data)
 
-    def on_exit(self, event):
-        self.Destroy()
+    def on_start_data(self, event):
+        self.psth_chart.start_data()
+        self.flash_status_message("Data collecting started")
+    
+    def on_stop_data(self, event):
+        self.psth_chart.stop_data()
+        self.flash_status_message("Data collecting stopped")
+    
+    def on_restart_data(self, event):
+        self.psth_chart.restart_data()
+        self.flash_status_message("Data collecting restarted")
 
     def flash_status_message(self, msg, flash_len_ms=1500):
         self.statusbar.SetStatusText(msg)

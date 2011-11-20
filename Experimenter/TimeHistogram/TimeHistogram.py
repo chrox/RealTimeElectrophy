@@ -24,16 +24,18 @@ class PSTHAverage:
         self.pc.InitClient()
         self.pu = PlexUtil()
         
-        self.param_indices = np.empty(0,dtype=np.int16)
-        self.timestamps = np.empty(0)
-        self.parameter = None
-        # and a dict for spike trains
-        self.spike_trains = {}
-        self.histogram_data = {}
+        self.renew_data()
 
     def __close__(self):
         self.pc.CloseClient()
         
+    def renew_data(self):
+        self.param_indices = np.empty(0,dtype=np.int16)
+        self.timestamps = np.empty(0)
+        self.parameter = None
+        self.spike_trains = {}
+        self.histogram_data = {}
+    
     def get_data(self):
         self._update_data()
         self._get_psth_data()
@@ -102,8 +104,8 @@ class PSTHAverage:
             off_begin = np.nonzero(self.param_indices < 0)
                 
     def _process_psth_data(self,begin,end,param_index):
-        duration = 0.200
-        binsize = 0.005 #binsize 10 ms
+        duration = 1.0
+        binsize = 0.01 #binsize 10 ms
         bins = np.arange(0.,duration,binsize)
         for channel,channel_trains in self.spike_trains.iteritems():
             if channel not in self.histogram_data:
@@ -116,7 +118,7 @@ class PSTHAverage:
                     self.histogram_data[channel][unit][param_index]['trials'] = 0
                     self.histogram_data[channel][unit][param_index]['spikes'] = []
                     self.histogram_data[channel][unit][param_index]['means'] = []
-                take = ((unit_train >= begin) & (unit_train<begin+duration))
+                take = ((unit_train >= begin) & (unit_train < begin + duration) & (unit_train< end))
                 trial_spikes = unit_train[take] - begin
                 trial_mean = np.array(np.histogram(trial_spikes, bins=bins)[0],dtype='float') / binsize
                 spikes = np.append(self.histogram_data[channel][unit][param_index]['spikes'], trial_spikes)
