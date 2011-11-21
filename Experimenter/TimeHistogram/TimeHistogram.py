@@ -120,7 +120,7 @@ class PSTHAverage:
                     self.histogram_data[channel][unit][param_index]['means'] = []
                 take = ((unit_train >= begin) & (unit_train < begin + duration) & (unit_train< end))
                 trial_spikes = unit_train[take] - begin
-                trial_mean = np.array(np.histogram(trial_spikes, bins=bins)[0],dtype='float') / binsize
+                trial_mean = np.mean(np.array(np.histogram(trial_spikes, bins=bins)[0],dtype='float') / binsize)
                 spikes = np.append(self.histogram_data[channel][unit][param_index]['spikes'], trial_spikes)
                 trials = self.histogram_data[channel][unit][param_index]['trials'] + 1
                 psth_data = np.array(np.histogram(spikes, bins=bins)[0],dtype='float') / (binsize*trials)
