@@ -93,8 +93,11 @@ class STAPanel(wx.Panel):
     def __init__(self, parent, label, name='sta_panel'):
         super(STAPanel, self).__init__(parent, -1, name=name)
         
+        self.interpolation_changed = False
+        self.show_colorbar_changed = False
         self.collecting_data = True
         self.data_started = False
+        self.show_colorbar = True
         # default data type
         self.sta_data = RevCorr.STAData()
 
@@ -198,12 +201,14 @@ class STAPanel(wx.Panel):
         if selected_unit:
             channel, unit = selected_unit
             img = self.sta_data.get_rgb_img(data, channel, unit, tau=self.time)
-            if self.img_dim != img.shape or self.interpolation_changed:
+            if self.img_dim != img.shape or self.interpolation_changed or self.show_colorbar_changed:
                 self.make_chart()
                 self.im = self.axes.imshow(img,interpolation=self.interpolation)
                 self.img_dim = img.shape
                 self.interpolation_changed = False
-                _cbar = self.fig.colorbar(self.im, shrink=1.0, fraction=0.045, pad=0.05, ticks=[0.0, 0.5, 1.0])
+                self.show_colorbar_changed = False
+                if self.showing_colorbar:
+                    self.fig.colorbar(self.im, shrink=1.0, fraction=0.045, pad=0.05, ticks=[0.0, 0.5, 1.0])
                 #===============================================================
                 # if isinstance(self.sta_data, RevCorr.STAData):
                 #    cbar.ax.set_yticklabels(["off", " ", "on"])
@@ -245,6 +250,10 @@ class STAPanel(wx.Panel):
         self.sta_data = RevCorr.ParamMapData()
         wx.FindWindowByName('main_frame').SetTitle("Parameters subspace map")
         self.restart_data()
+        
+    def show_colorbar(self, checked):
+        self.show_colorbar_changed = True
+        self.showing_colorbar = checked
         
     def on_show_popup(self, event):
         pos = event.GetPosition()
@@ -318,9 +327,15 @@ class MainFrame(wx.Frame):
         m_param_mapping = menu_source.AppendRadioItem(-1, "Param &Mapping\tCtrl-M", "Parameter mapping data")
         self.Bind(wx.EVT_MENU, self.on_param_mapping_data, m_param_mapping)
         
+        menu_view = wx.Menu()
+        self.m_colorbar = menu_view.AppendCheckItem(-1, "&Colorbar\tCtrl-C", "Display colorbar")
+        menu_view.Check(self.m_colorbar.GetId(), True)
+        self.Bind(wx.EVT_MENU, self.on_check_colorbar, self.m_colorbar)
+        
         self.menubar.Append(menu_file, "&File")
         self.menubar.Append(menu_data, "&Data")
         self.menubar.Append(menu_source, "&Source")
+        self.menubar.Append(menu_view, "&View")
         self.SetMenuBar(self.menubar)
         
     def create_status_bar(self):
@@ -344,9 +359,18 @@ class MainFrame(wx.Frame):
         self.panel.SetSizer(vbox)
         vbox.Fit(self)
         self.panel.Layout()
+        
+    def on_data_updated(self, event):
+        data = event.get_data()
+        self.sta_chart.set_data(data)
+        self.sta_chart.update_chart(data)
+        self.unit_choice.update_units(data['spikes'])
 
     def on_save_chart(self, event):
         self.sta_chart.on_save_chart(event)
+        
+    def on_exit(self, event):
+        self.Destroy()
 
     def on_start_data(self, event):
         self.sta_chart.start_data()
@@ -367,15 +391,9 @@ class MainFrame(wx.Frame):
     def on_param_mapping_data(self, event):
         self.sta_chart.param_mapping_data()
         self.flash_status_message("Data source changed to parameter mapping")
-    
-    def on_data_updated(self, event):
-        data = event.get_data()
-        self.sta_chart.set_data(data)
-        self.sta_chart.update_chart(data)
-        self.unit_choice.update_units(data['spikes'])
-
-    def on_exit(self, event):
-        self.Destroy()
+        
+    def on_check_colorbar(self, event):
+        self.sta_chart.show_colorbar(self.m_colorbar.IsChecked())
 
     def flash_status_message(self, msg, flash_len_ms=1500):
         self.statusbar.SetStatusText(msg)
