@@ -99,6 +99,9 @@ class PSTHPanel(wx.Panel):
         
         self.collecting_data = True
         self.data_started = False
+        self.show_errbar_changed = False
+        self.showing_errbar = False
+        
         self.psth = TimeHistogram.PSTHAverage()
 
         self.dpi = 100
@@ -166,7 +169,7 @@ class PSTHPanel(wx.Panel):
                       xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5,xminor_auto_loc=2,yminor_auto_loc=2)
         axes.set_ylabel('Response(spikes/sec)',fontsize=12)
         self.curve_data = axes.plot(self.x, self.means, 'ko-')[0]
-        self.errbars = axes.errorbar(self.x, self.means, yerr=self.stds, fmt='k.') if CURVE_ERRORBAR else None
+        self.errbars = axes.errorbar(self.x, self.means, yerr=self.stds, fmt='k.') if self.showing_errbar else None
         self.curve_axes = axes
         axes.set_ylim(0,100)
         axes.relim()
@@ -208,6 +211,10 @@ class PSTHPanel(wx.Panel):
         self.make_chart()
         RestartDataThread(self, self.psth, self.update_data_thread)
         self.collecting_data = True
+    
+    def show_errbar(self, checked):
+        self.show_errbar_changed = True
+        self.showing_errbar = checked
     
     def on_show_popup(self, event):
         pos = event.GetPosition()
@@ -260,9 +267,10 @@ class UpdateChartThread(threading.Thread):
                 if index == 0:
                     zeroth_psth_data = psth_data
                 _trials = data[channel][unit][index]['trials']
-                if len(bins) != len(self.hist_bins[0]):
+                if len(bins) != len(self.hist_bins[0]) or panel.show_errbar_changed:
                     panel.make_chart(spike_times, bins)
                     self.hist_bins = panel.hist_bins
+                    panel.show_errbar_changed = False
                 else:
                     for rect,h in zip(self.hist_patches[patch_index],psth_data):
                         rect.set_height(h)
@@ -348,8 +356,14 @@ class MainFrame(wx.Frame):
         m_restart = menu_data.Append(-1, "&Restart\tCtrl-R", "Restart data collecting")
         self.Bind(wx.EVT_MENU, self.on_restart_data, m_restart)
         
+        menu_view = wx.Menu()
+        self.m_errbar = menu_view.AppendCheckItem(-1, "&Errorbar\tCtrl-E", "Display errorbar")
+        menu_view.Check(self.m_errbar.GetId(), False)
+        self.Bind(wx.EVT_MENU, self.on_check_errbar, self.m_errbar)
+        
         self.menubar.Append(menu_file, "&File")
         self.menubar.Append(menu_data, "&Data")
+        self.menubar.Append(menu_view, "&View")
         self.SetMenuBar(self.menubar)
 
     def create_status_bar(self):
@@ -394,6 +408,14 @@ class MainFrame(wx.Frame):
     def on_restart_data(self, event):
         self.psth_chart.restart_data()
         self.flash_status_message("Data collecting restarted")
+        
+    def on_check_errbar(self, event):
+        if self.m_errbar.IsChecked():
+            self.psth_chart.show_errbar(True)
+            self.flash_status_message("Showing error bar")
+        else:
+            self.psth_chart.show_errbar(False)
+            self.flash_status_message("Stoped showing error bar")
 
     def flash_status_message(self, msg, flash_len_ms=1500):
         self.statusbar.SetStatusText(msg)
