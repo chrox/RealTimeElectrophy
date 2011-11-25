@@ -19,7 +19,7 @@ from SweepController import StimulusController
 from SweepController import ViewportController
 
 from Core import Viewport, Stimulus
-from ManViewport import ManViewport
+from ManViewport import ManViewport,ControlViewport
 
 STATUSBARHEIGHT = 15 # height of upper and lower status bars (pix)
 
@@ -114,7 +114,10 @@ class ManStimulus(Stimulus):
         else:
             bgcolor = (0.0,0.0,0.0)
         super(ManStimulus, self).__init__(**kwargs)
-        self.viewport = ManViewport(name=viewport, bgcolor=bgcolor) # use viewport 
+        if viewport == 'control':
+            self.viewport = ControlViewport(name=viewport, bgcolor=bgcolor) # use viewport
+        else:
+            self.viewport = ManViewport(name=viewport, bgcolor=bgcolor) # use viewport
 
         self.on = True
         

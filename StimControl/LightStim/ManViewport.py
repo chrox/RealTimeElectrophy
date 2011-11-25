@@ -19,14 +19,9 @@ class ManViewport(Viewport):
     def __init__(self,**kwargs):
         super(ManViewport, self).__init__(**kwargs)
         self.active = True
-        if self.get_name() == 'control':
-            self.visible = True
-            self.current = True
-        else:
-            self.visible = False
-            self.current = False
+        self.visible = False
+        self.current = False
         
-        self.viewport_alted_once = False
         self.mouse_pos = None
         self.copied_stimuli = None
         self.copied_parameters = {}
@@ -37,10 +32,6 @@ class ManViewport(Viewport):
     def draw(self):
         if not self.is_active() or not self.is_visible():
             return
-        if not self.viewport_alted_once and self.get_name() == 'control':
-            self.viewport_alted_once = True
-            self.__alt_viewport()
-            
         self.make_current()
         self._is_drawing = True
         for stimulus in self.parameters.stimuli:
@@ -49,13 +40,6 @@ class ManViewport(Viewport):
         
     def update_viewport(self):
         super(ManViewport, self).update_viewport()
-        # update control viewport size to stimulus viewport size
-        if self.get_name() == 'control':
-            stimulus_viewports = [viewport for viewport in Viewport.defined_viewports if viewport != 'control']
-            viewport_widths = [LightStim.config.get_viewport_width_pix(name) for name in stimulus_viewports]
-            viewport_heights = [LightStim.config.get_viewport_height_pix(name) for name in stimulus_viewports]
-            if len(viewport_widths)>0 and len(viewport_heights)>0 :
-                self.parameters.size = max(viewport_widths), max(viewport_heights)
 
     def is_active(self):
         return self.active
@@ -74,7 +58,70 @@ class ManViewport(Viewport):
     def restore_mouse_pos(self):
         if self.mouse_pos is not None:
             pygame.mouse.set_pos(self.mouse_pos)
+            
+    def __activate_viewport(self, mods, name):
+        # set viewport activity and currenty this should have no business with control viewport 
+        # if self.is_current(): #  must clear other activity state.
+        #     return
+        if mods & pygame.locals.KMOD_CTRL:
+            if self.get_name() == name:
+                self.set_activity(True)
+                self.set_current(True)
+            elif self.get_name() == 'control':
+                self.__clone_viewport('control', name)
+            else:
+                self.set_activity(False)
+                self.set_current(False)
+        else:
+            if self.is_current():
+                pass
+            if self.get_name() == name:
+                self.set_activity(not self.is_active())
+
+    def keydown_callback(self,event):
+        mods = pygame.key.get_mods()
+        key = event.key
+        if key == K_h:
+            self.set_visibility(not self.is_visible())
+        elif key == pygame.locals.K_F2:
+            self.__activate_viewport(mods, 'primary')
+        elif key == pygame.locals.K_F3:
+            self.__activate_viewport(mods, 'left')
+        elif key == pygame.locals.K_F4:
+            self.__activate_viewport(mods, 'right')
+    
+    def mousebuttondown_callback(self,event):
+        button = event.button
+        if button == 1 and self.get_name() == 'left':  # left button
+            self.set_visibility(not self.is_visible())
+        elif button == 3 and self.get_name() == 'right':  # right button
+            self.set_visibility(not self.is_visible())
+                
+class ControlViewport(ManViewport):
+    """ The code is splited from ManViewport class to remove most if-clauses concerning control viewport.
+    """
+    def __init__(self,**kwargs):
+        super(ControlViewport, self).__init__(**kwargs)
+        self.visible = True
+        self.current = True
         
+        self.viewport_alted_once = False
+    
+    def draw(self):
+        if not self.viewport_alted_once:
+            self.viewport_alted_once = True
+            self.__alt_viewport()
+        super(ControlViewport, self).draw()
+    
+    def update_viewport(self):
+        super(ControlViewport, self).update_viewport()
+        # update control viewport size to stimulus viewport size
+        stimulus_viewports = [viewport for viewport in Viewport.defined_viewports if viewport != 'control']
+        viewport_widths = [LightStim.config.get_viewport_width_pix(name) for name in stimulus_viewports]
+        viewport_heights = [LightStim.config.get_viewport_height_pix(name) for name in stimulus_viewports]
+        if len(viewport_widths)>0 and len(viewport_heights)>0 :
+            self.parameters.size = max(viewport_widths), max(viewport_heights)
+            
     def __copy_stimuli(self, src_viewport_name):
         # copy stimuli from source viewport and register the stimuli in this viewport.
         src_viewports = [viewport for viewport in Viewport.registered_viewports if viewport.get_name() == src_viewport_name]
@@ -142,61 +189,25 @@ class ManViewport(Viewport):
         for stimulus in current_viewport.parameters.stimuli:
             if hasattr(stimulus,'set_parameters') and type(stimulus).__name__ in self.copied_parameters:
                 stimulus.set_parameters(self.copied_parameters[type(stimulus).__name__])
-
-    def __activate_viewport(self, mods, name):
-        # set viewport activity and currenty this should have no business with control viewport 
-        # if self.is_current(): #  must clear other activity state.
-        #     return
-        if mods & pygame.locals.KMOD_CTRL:
-            if self.get_name() == name:
-                self.set_activity(True)
-                self.set_current(True)
-            elif self.get_name() == 'control':
-                self.__clone_viewport('control', name)
-            else:
-                self.set_activity(False)
-                self.set_current(False)
-        else:
-            if self.is_current():
-                pass
-            if self.get_name() == name:
-                self.set_activity(not self.is_active())
-                
+    
     def keydown_callback(self,event):
         mods = pygame.key.get_mods()
         key = event.key
 
-        if key == K_h:
-            if not self.get_name() == 'control':
-                self.set_visibility(not self.is_visible())
-        elif key == pygame.locals.K_F1:
+        if key == pygame.locals.K_F1:
             pass  # control viewport should never be deactivated
-        elif key == pygame.locals.K_F2:
-            self.__activate_viewport(mods, 'primary')
-        elif key == pygame.locals.K_F3:
-            self.__activate_viewport(mods, 'left')
-        elif key == pygame.locals.K_F4:
-            self.__activate_viewport(mods, 'right')
         elif mods & pygame.locals.KMOD_CTRL and key == pygame.locals.K_g: # group active viewports 
             for viewport in Viewport.registered_viewports:
                 if viewport.is_active():
                     viewport.set_current(True)
-        if self.get_name() == 'control':
-            if key == pygame.locals.K_TAB:
-                self.__alt_viewport()
-            elif mods & pygame.locals.KMOD_CTRL and key == pygame.locals.K_c:
-                self.__copy_stimparams()
-            elif mods & pygame.locals.KMOD_CTRL and key == pygame.locals.K_v:
-                self.__paste_stimparams()
-    
+        elif key == pygame.locals.K_TAB:
+            self.__alt_viewport()
+        elif mods & pygame.locals.KMOD_CTRL and key == pygame.locals.K_c:
+            self.__copy_stimparams()
+        elif mods & pygame.locals.KMOD_CTRL and key == pygame.locals.K_v:
+            self.__paste_stimparams()
+        
     def mousebuttondown_callback(self,event):
         button = event.button
-        if button == 1:  # left button
-            if self.get_name() == 'left':
-                self.set_visibility(not self.is_visible())
-        elif button == 2:  # scroll wheel button
-            if self.get_name() == 'control':
-                self.__alt_viewport()
-        if button == 3:  # right button
-            if self.get_name() == 'right':
-                self.set_visibility(not self.is_visible())
+        if button == 2:  # scroll wheel button
+            self.__alt_viewport()
