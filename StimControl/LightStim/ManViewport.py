@@ -195,8 +195,8 @@ class ManViewport(Viewport):
             if self.get_name() == 'left':
                 self.set_visibility(not self.is_visible())
         elif button == 2:  # scroll wheel button
-            if not self.get_name() == 'control':
-                self.set_visibility(not self.is_visible())
+            if self.get_name() == 'control':
+                self.__alt_viewport()
         if button == 3:  # right button
             if self.get_name() == 'right':
                 self.set_visibility(not self.is_visible())
