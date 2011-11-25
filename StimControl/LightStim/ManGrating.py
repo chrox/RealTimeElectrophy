@@ -14,14 +14,14 @@ import pickle
 import logging
 
 import pygame
-from pygame.locals import K_COMMA,K_PERIOD,K_LEFTBRACKET,K_RIGHTBRACKET,K_m,K_c,K_g,KMOD_CTRL
+from pygame.locals import K_COMMA,K_PERIOD,K_LEFTBRACKET,K_RIGHTBRACKET,K_m,K_c,K_f,K_g,KMOD_CTRL
 from VisionEgg.Core import FixationSpot
 from VisionEgg.Gratings import SinGrating2D
 from VisionEgg.Textures import Mask2D
 
 from SweepController import StimulusController
 from ManStimulus import ManStimulus
-from ManBar import SizeController,OrientationController
+from ManBar import SizeController,OrientationController,FlashController
 
 class ManGratingController(StimulusController):
     """ update mangrating parameters """
@@ -205,6 +205,7 @@ class ManGrating(ManStimulus):
         self.controllers.append(TemporalFrequencyController(self))
         self.controllers.append(OrientationController(self))
         self.controllers.append(ContrastController(self))
+        self.controllers.append(FlashController(self))
         self.controllers.append(ManGratingController(self))
         
     def register_info_controller(self):
@@ -234,6 +235,8 @@ class ManGrating(ManStimulus):
         elif key == K_c and not mods & KMOD_CTRL:
             self.mask = 'circle'
             self.mask_on = True
+        elif key == K_f:
+            self.flash = not self.flash
         elif key == K_g and not mods & KMOD_CTRL:
             self.mask = 'gaussian'
             self.mask_on = True

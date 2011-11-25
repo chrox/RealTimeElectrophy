@@ -75,8 +75,9 @@ In manbar and mangrating stimulation:
     - ENTER/SPACE keys save current stimulus parameters to disk
     - TAB key alternates currently controlled viewport
     - 'C' sets circular mask for grating
-    - 'H' controls stimulus on/off on all viewports
+    - 'F' controls stimulus flashing
     - 'G' sets gaussian mask for grating
+    - 'H' controls stimulus on/off on all viewports
     - 'I' inverts the bar and background brightness levels
     - 'P' sets the bar orientation perpendicular to bar moving direction
     - '-'/'+' adjust brightness of bar and contrast of grating

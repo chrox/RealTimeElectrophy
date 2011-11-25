@@ -24,8 +24,10 @@ p.bgbrightness = 0
 p.antialiase = True
 # flash the bar?
 p.flash = False
-# duration of each flash cycle (on and off) (sec)
-p.flashSec = 1
+# duration of each on period (sec)
+p.flashduration = 0.5
+# duration of each off period (sec)
+p.flashinterval = 0.3
 # factor to chage bar width and height by left/right/up/down key
 p.sizemultiplier = 1.02
 # brightness step amount on +/- (0-1)

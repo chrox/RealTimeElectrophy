@@ -14,7 +14,7 @@ np.seterr(all='raise')
 import pickle
 import logging
 
-from pygame.locals import K_i, K_p
+from pygame.locals import K_f, K_i, K_p
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
 
@@ -112,6 +112,19 @@ class PerpendicOrientation(OrientationController):
                                                       self.current_pos[0]-self.last_pos[0])*180.0/math.pi
             self.last_pos = self.current_pos
         super(PerpendicOrientation, self).during_go_eval()
+        
+class FlashController(StimulusController):
+    def __init__(self,*args,**kwargs):
+        super(FlashController, self).__init__(*args,**kwargs)
+        self.flash_duration_nvsync = self.viewport.sec2intvsync(self.stimulus.flashduration)
+        self.flash_interval_nvsync = self.viewport.sec2intvsync(self.stimulus.flashinterval)
+        self.flash_cycle_nvsync = self.flash_duration_nvsync + self.flash_interval_nvsync
+        self.vsync_count = 1
+        
+    def during_go_eval(self):
+        if self.stimulus.flash:
+            self.stimulus.on = True if self.vsync_count <= self.flash_duration_nvsync else False
+            self.vsync_count = (self.vsync_count + 1) % self.flash_cycle_nvsync if self.flash_cycle_nvsync != 0 else 1
 
 class ManBar(ManStimulus):
     def __init__(self, **kwargs):
@@ -157,6 +170,7 @@ class ManBar(ManStimulus):
         self.controllers.append(SizeController(self))
         self.controllers.append(PerpendicOrientation(self))
         self.controllers.append(BrightnessController(self))
+        self.controllers.append(FlashController(self))
         self.controllers.append(ManBarController(self))
 
     def register_info_controller(self):
@@ -169,11 +183,12 @@ class ManBar(ManStimulus):
     def keydown_callback(self,event):
         super(ManBar,self).keydown_callback(event)
         key = event.key
+        if key == K_f:
+            self.flash = not self.flash
         if key == K_i: # invert background and bar brightness
             self.brightness, self.bgbrightness = self.bgbrightness, self.brightness
         if key == K_p: # orientation is perpendicular to bar moving direction
             self.perpend_to_dir = not self.perpend_to_dir
-            
     
     def load_preference(self, index):
         name = self.viewport.name
