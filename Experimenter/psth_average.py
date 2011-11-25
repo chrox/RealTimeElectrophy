@@ -226,10 +226,10 @@ class PSTHPanel(wx.Panel):
         dlg = wx.FileDialog(
             self,
             message="Save chart as...",
-            defaultDir=os.getcwd(),
-            defaultFile="psth_aver.png",
+            #defaultDir=os.getcwd(),
+            #defaultFile="psth_aver.png",
             wildcard=file_choices,
-            style=wx.SAVE)
+            style=wx.SAVE|wx.CHANGE_DIR)
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
             self.canvas.print_figure(path, dpi=self.dpi)
