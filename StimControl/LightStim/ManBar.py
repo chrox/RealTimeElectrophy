@@ -35,6 +35,7 @@ class ManBarController(StimulusController):
         height = self.viewport.deg2pix(self.stimulus.heightDeg)
         self.cp.position = self.viewport.deg2pix(self.stimulus.xorigDeg) + self.viewport.xorig ,\
                            self.viewport.deg2pix(self.stimulus.yorigDeg) + self.viewport.yorig
+        self.cp.on = self.stimulus.on
         self.tp.position = self.cp.position
         self.tp.size = width, height # convert to pix
         self.tp.orientation = self.stimulus.ori
@@ -42,6 +43,7 @@ class ManBarController(StimulusController):
         self.bgp.color = (self.stimulus.bgbrightness, self.stimulus.bgbrightness, self.stimulus.bgbrightness, 1.0)
         self.tipp.position = ( self.cp.position[0] + width / 2 * math.cos(math.pi / 180 * self.stimulus.ori),
                                self.cp.position[1] + width / 2 * math.sin(math.pi / 180 * self.stimulus.ori) )
+        self.tipp.on = self.stimulus.on
         self.tipp.orientation = self.stimulus.ori
 
 class BarInfoController(StimulusController):
