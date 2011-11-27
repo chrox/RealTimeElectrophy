@@ -16,8 +16,8 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 from matplotlib import pylab
 
-from Experimenter.GUI.DataAnalysis import UpdateDataThread,RestartDataThread
-from Experimenter.GUI.DataAnalysis import MainFrame,adjust_spines
+from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread
+from Experimenter.GUI.DataCollect import MainFrame,adjust_spines
 from Experimenter.TimeHistogram import TimeHistogram
 
 class PSTHPanel(wx.Panel):

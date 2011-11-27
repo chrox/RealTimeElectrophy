@@ -13,8 +13,8 @@ matplotlib.use('TkAgg')
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 
-from Experimenter.GUI.DataAnalysis import UpdateDataThread,RestartDataThread
-from Experimenter.GUI.DataAnalysis import MainFrame,adjust_spines
+from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread
+from Experimenter.GUI.DataCollect import MainFrame,adjust_spines
 from Experimenter.ReverseCorrelation import RevCorr
 
 class STAPanel(wx.Panel):
