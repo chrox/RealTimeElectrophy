@@ -2,8 +2,6 @@
 #
 # Copyright (C) 2010-2011 Huang Xin
 # 
-#
-# Distributed under the terms of the BSD License.
 # See LICENSE.TXT that came with this file.
 from __future__ import division
 import wx
@@ -15,6 +13,7 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 
 from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread
 from Experimenter.GUI.DataCollect import MainFrame,adjust_spines
+from Experimenter.Data.gaussfitter import gaussfit
 from Experimenter.ReverseCorrelation import RevCorr
 
 class STAPanel(wx.Panel):
@@ -25,9 +24,13 @@ class STAPanel(wx.Panel):
         
         self.interpolation_changed = False
         self.show_colorbar_changed = False
+        self.gaussian_fit_changed = False
+        self.gabor_fit_changed = False
         self.collecting_data = True
         self.data_started = False
         self.showing_colorbar = True
+        self.fitting_gaussian = False
+        self.fitting_gabor = False
         # default data type
         self.sta_data = RevCorr.STAData()
         self.stimulus = None
@@ -97,13 +100,24 @@ class STAPanel(wx.Panel):
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit:
             channel, unit = selected_unit
-            img = self.sta_data.get_rgb_img(data, channel, unit, tau=self.time)
-            if self.img_dim != img.shape or self.interpolation_changed or self.show_colorbar_changed:
+            img = self.sta_data.get_img(data, channel, unit, tau=self.time)
+            if self.img_dim != img.shape or self.interpolation_changed or \
+                    self.show_colorbar_changed or self.gaussian_fit_changed or self.gabor_fit_changed:
                 self.make_chart()
                 self.im = self.axes.imshow(img,interpolation=self.interpolation)
                 self.img_dim = img.shape
                 self.interpolation_changed = False
                 self.show_colorbar_changed = False
+                self.gaussian_fit_changed = False
+                self.gabor_fit_changed = False
+                if self.fitting_gaussian:
+                    img = self.sta_data.get_img(data, channel, unit, tau=self.time, format='float')
+                    _params,fitimage = gaussfit(img,returnfitimage=True)
+                    self.axes.imshow(fitimage,interpolation=self.interpolation)
+                if self.fitting_gabor:
+                    img = self.sta_data.get_img(data, channel, unit, tau=self.time, format='float')
+                    _params,fitimage = gaborfit(img,returnfitimage=True)
+                    self.axes.imshow(fitimage,interpolation=self.interpolation)
                 if self.showing_colorbar:
                     self.fig.colorbar(self.im, shrink=1.0, fraction=0.045, pad=0.05, ticks=[0.0, 0.5, 1.0])
                 #===============================================================
@@ -151,6 +165,14 @@ class STAPanel(wx.Panel):
     def param_mapping_data(self):
         self.sta_data = RevCorr.ParamMapData()
         self.restart_data()
+        
+    def gaussianfit(self, checked):
+        self.gaussian_fit_changed = True
+        self.fitting_gaussian = checked
+        
+    def gaborfit(self, checked):
+        self.gabor_fit_changed = True
+        self.fitting_gabor = checked
         
     def show_colorbar(self, checked):
         self.show_colorbar_changed = True
@@ -221,12 +243,21 @@ class STAFrame(MainFrame):
         m_param_mapping = menu_source.AppendRadioItem(-1, "Param &Mapping\tCtrl-M", "Parameter mapping data")
         self.Bind(wx.EVT_MENU, self.on_param_mapping_data, m_param_mapping)
         
+        menu_fitting = wx.Menu()
+        self.m_gaussfitter = menu_fitting.AppendCheckItem(-1, "Ga&ussian\tCtrl-U", "Gaussian fitting")
+        menu_fitting.Check(self.m_gaussfitter.GetId(), False)
+        self.Bind(wx.EVT_MENU, self.on_check_gaussfitter, self.m_gaussfitter)
+        self.m_gaborfitter = menu_fitting.AppendCheckItem(-1, "Ga&bor\tCtrl-B", "Gabor fitting")
+        menu_fitting.Check(self.m_gaborfitter.GetId(), False)
+        self.Bind(wx.EVT_MENU, self.on_check_gaborfitter, self.m_gaborfitter)
+        
         menu_view = wx.Menu()
         self.m_colorbar = menu_view.AppendCheckItem(-1, "&Colorbar\tCtrl-C", "Display colorbar")
         menu_view.Check(self.m_colorbar.GetId(), True)
         self.Bind(wx.EVT_MENU, self.on_check_colorbar, self.m_colorbar)
         
         self.menubar.Append(menu_source, "&Source")
+        self.menubar.Append(menu_fitting, "&Fitting")
         self.menubar.Append(menu_view, "&View")
         self.SetMenuBar(self.menubar)
     
@@ -246,6 +277,12 @@ class STAFrame(MainFrame):
     def on_param_mapping_data(self, event):
         self.chart_panel.param_mapping_data()
         self.flash_status_message("Data source changed to parameter mapping")
+        
+    def on_check_gaussfitter(self, event):
+        self.chart_panel.gaussianfit(self.m_gaussfitter.IsChecked())
+        
+    def on_check_gaborfitter(self, event):
+        self.chart_panel.gaborfit(self.m_gaborfitter.IsChecked())
         
     def on_check_colorbar(self, event):
         self.chart_panel.show_colorbar(self.m_colorbar.IsChecked())
