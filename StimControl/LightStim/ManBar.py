@@ -3,8 +3,6 @@
 #
 # Copyright (C) 2010-2011 Huang Xin
 #
-#
-# Distributed under the terms of the BSD License.
 # See LICENSE.TXT that came with this file.
 
 from __future__ import division

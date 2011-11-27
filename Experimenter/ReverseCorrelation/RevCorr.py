@@ -2,8 +2,6 @@
 #
 # Copyright (C) 2010-2011 Huang Xin
 # 
-#
-# Distributed under the terms of the BSD License.
 # See LICENSE.TXT that came with this file.
 
 import numpy as np
@@ -155,12 +153,15 @@ class STAData(RevCorrData):
         data['contrast'] = self.contrast
         return data
     
-    def get_rgb_img(self, data, channel, unit, dimension=(32,32), tau=0.085, cmap='jet'):
-        return STAImg.get_rgb_img(data, channel, unit, dimension, tau, cmap)
+    def get_img(self, data, channel, unit, dimension=(32,32), tau=0.085, format='rgb', cmap='jet'):
+        if format == 'rgb':
+            return STAImg.get_rgb_img(data, channel, unit, dimension, tau, cmap)
+        elif format == 'float':
+            return STAImg.get_float_img(data, channel, unit, dimension, tau, cmap)
         
 class STAImg(RevCorrImg):
     @staticmethod
-    def get_rgb_img(data,channel,unit,dimension,tau,cmap='jet'):
+    def get_float_img(data,channel,unit,dimension,tau,cmap='jet'):
         """ Take the time offset between spikes and the triggered stimulus.
         """
         spike_trains = data['spikes']
@@ -186,8 +187,13 @@ class STAImg(RevCorrImg):
                 pixel_index_y = y_index[index]
                 if pixel_index_x < dimension[0] and pixel_index_y < dimension[1]:
                     img[pixel_index_x][pixel_index_y] += times*contrast[index]
+        return img
+    
+    @staticmethod
+    def get_rgb_img(data,channel,unit,dimension,tau,cmap='jet'):
+        img = STAImg.get_float_img(data,channel,unit,dimension,tau,cmap)
         return STAImg._process_img(img, cmap)
-
+        
 class ParamMapData(RevCorrData):
     def __init__(self):
         super(ParamMapData,self).__init__()
@@ -209,12 +215,15 @@ class ParamMapData(RevCorrData):
     def get_data(self):
         data = super(ParamMapData,self).get_data()
         return data
-    def get_rgb_img(self, data, channel, unit, dimension=(16,16), tau=0.085, cmap='jet'):
-        return ParamMapIMG.get_rgb_img(data, channel, unit, dimension, tau, cmap)
+    def get_img(self, data, channel, unit, dimension=(16,16), tau=0.085, format='rgb', cmap='jet'):
+        if format == 'rgb':
+            return ParamMapIMG.get_rgb_img(data, channel, unit, dimension, tau, cmap)
+        elif format == 'float':
+            return ParamMapIMG.get_float_img(data, channel, unit, dimension, tau, cmap)
 
 class ParamMapIMG(RevCorrImg):
     @staticmethod
-    def get_rgb_img(data,channel,unit,dimension,tau,cmap='gbr'):
+    def get_float_img(data,channel,unit,dimension,tau,cmap='gbr'):
         spike_trains = data['spikes']
         x_indices = data['x_indices']
         y_indices = data['y_indices']
@@ -234,4 +243,9 @@ class ParamMapIMG(RevCorrImg):
                 pixel_index_y = y_index[index]
                 if pixel_index_x < dimension[0] and pixel_index_y < dimension[1]:
                     img[pixel_index_x][pixel_index_y] += times
+        return img
+
+    @staticmethod
+    def get_rgb_img(data,channel,unit,dimension,tau,cmap='gbr'):
+        img = ParamMapIMG.get_float_img(data,channel,unit,dimension,tau,cmap)
         return ParamMapIMG._process_img(img, cmap)

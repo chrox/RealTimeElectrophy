@@ -6,9 +6,7 @@
 #
 # Copyright (C) 2010-2011 Huang Xin
 #
-#
-# Distributed under the terms of the BSD License.
-# See LICENSE.TXT that came with this file.
+## See LICENSE.TXT that came with this file.
 
 import numpy as np
 from bisect import bisect_right
