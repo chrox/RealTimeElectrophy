@@ -18,7 +18,7 @@ p.bgbrightness = 0.0
 p.phase0 = 0
 p.contrast = 1
 
-orientation = IndexedParam('orientation')
+orientation = IndexedParam('orientation_180')
 spatial_freq = IndexedParam('spatial_freq')
 phase_at_t0 = [None]
 
