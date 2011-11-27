@@ -1,10 +1,11 @@
-# Dynamic graph for peri-stimulus time histogram.
+# PSTH average analysis for orientation tuning/ spatial frequency tuning and disparity tuning experiment.
 #
 # Copyright (C) 2010-2011 Huang Xin
 #
 #
 # Distributed under the terms of the BSD License.
 # See LICENSE.TXT that came with this file.
+from __future__ import division
 import wx
 import numpy as np
 import threading
@@ -45,9 +46,10 @@ class PSTHPanel(wx.Panel):
 
         self.update_data_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_update_data_timer, self.update_data_timer)
-        self.update_data_timer.Start(2000)
+        self.update_data_timer.Start(1000)
 
-    def make_chart(self,data=np.zeros(1),bins=np.arange(10)+1):
+    def make_chart(self,data=np.zeros(1),bins=np.arange(10)+1,polar=True):
+        self.polar_chart = polar
         self.hist_bins = []
         self.hist_patches = []
         self.x = np.arange(17)
@@ -55,13 +57,14 @@ class PSTHPanel(wx.Panel):
         self.stds = np.zeros(17)
         self.fig.clear()
         grid = 18
-        height = grid / 9
+        height = grid // 9
         gs = gridspec.GridSpec(grid, grid)
         # make tuning curve plot
-        axes = self.fig.add_subplot(gs[:-height*2,height/2:-height/2])
-        adjust_spines(axes,spines=['left','bottom','right'],spine_outward=['left','right','bottom'],xoutward=10,youtward=30,\
-                      xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5,xminor_auto_loc=2,yminor_auto_loc=2)
-        axes.set_ylabel('Response(spikes/sec)',fontsize=12)
+        axes = self.fig.add_subplot(gs[:-height*2,height//2:-height//2],polar=polar)
+        if not polar:
+            adjust_spines(axes,spines=['left','bottom','right'],spine_outward=['left','right','bottom'],xoutward=10,youtward=30,\
+                          xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5,xminor_auto_loc=2,yminor_auto_loc=2)
+            axes.set_ylabel('Response(spikes/sec)',fontsize=12)
         self.curve_data = axes.plot(self.x, self.means, 'ko-')[0]
         self.errbars = axes.errorbar(self.x, self.means, yerr=self.stds, fmt='k.') if self.showing_errbar else None
         self.curve_axes = axes
@@ -153,29 +156,34 @@ class UpdateChartThread(threading.Thread):
             zeroth_psth_data = None
             if channel not in data or unit not in data[channel]:
                 return
+            
+            polar_dict = {'orientation':True, 'spatial_frequency':False, 'phase':False}
+            polar_chart = polar_dict[self.parameter] if self.parameter in polar_dict else True
+            # histogram
             for index in filter(lambda index: not index & 1, data[channel][unit].iterkeys()):
-                patch_index = index/2
+                patch_index = index // 2
                 spike_times = data[channel][unit][index]['spikes']
                 bins = data[channel][unit][index]['bins']
                 psth_data = data[channel][unit][index]['psth_data']
                 if index == 0:
                     zeroth_psth_data = psth_data
                 _trials = data[channel][unit][index]['trials']
-                if len(bins) != len(self.hist_bins[0]) or panel.show_errbar_changed:
-                    panel.make_chart(spike_times, bins)
+                if len(bins) != len(self.hist_bins[0]) or panel.show_errbar_changed or polar_chart != panel.polar_chart:
+                    panel.make_chart(spike_times, bins, polar_chart)
                     self.hist_bins = panel.hist_bins
                     panel.show_errbar_changed = False
                 else:
                     for rect,h in zip(self.hist_patches[patch_index],psth_data):
                         rect.set_height(h)
+            
             for index in data[channel][unit].iterkeys():
                 mean = data[channel][unit][index]['mean']
                 std = data[channel][unit][index]['std']
                 panel.means[index] = mean
                 panel.stds[index] = std
             if self.parameter is 'orientation':
-                panel.x = np.linspace(0.0, 180.0, 17)
-                self.curve_axes.set_title('Orientation Tuning Curve')
+                panel.x = np.linspace(0.0, 360.0, 17)/180*np.pi
+                self.curve_axes.set_title('Orientation Tuning Curve',fontsize=12)
                 if zeroth_psth_data is not None:
                     for rect,h in zip(self.hist_patches[-1],zeroth_psth_data):
                         rect.set_height(h)
@@ -183,17 +191,18 @@ class UpdateChartThread(threading.Thread):
                 panel.stds[-1] = panel.stds[0]
             if self.parameter is 'spatial_frequency':
                 panel.x = np.linspace(0.05, 1.0, 16)
-                self.curve_axes.set_title('Spatial Frequency Tuning Curve')
+                self.curve_axes.set_title('Spatial Frequency Tuning Curve',fontsize=12)
                 panel.means = panel.means[:len(panel.x)]
                 panel.stds = panel.stds[:len(panel.x)]
             if self.parameter is 'phase':
                 panel.x = np.linspace(0.0, 360.0, 17)
-                self.curve_axes.set_title('Disparity Tuning Curve')
+                self.curve_axes.set_title('Disparity Tuning Curve',fontsize=12)
                 if zeroth_psth_data is not None:
                     for rect,h in zip(self.hist_patches[-1],zeroth_psth_data):
                         rect.set_height(h)
                 panel.means[-1] = panel.means[0]
                 panel.stds[-1] = panel.stds[0]
+            
             self.curve_data.set_xdata(panel.x)
             self.curve_data.set_ydata(panel.means)
             if self.errbars is not None:

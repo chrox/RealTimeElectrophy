@@ -26,7 +26,7 @@ from SweepController import StimulusController,SweepSequeStimulusController,DTSw
 class IndexedParam(list):
     def __init__(self,parameter):
         if parameter is 'orientation':
-            super(IndexedParam, self).__init__(np.linspace(0.0, 180.0, 17)[:-1])
+            super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 17)[:-1])
         elif parameter is 'spatial_freq':
             super(IndexedParam, self).__init__(np.linspace(0.05, 1.0, 16))
         elif parameter is 'phase_at_t0':
