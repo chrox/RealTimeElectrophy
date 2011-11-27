@@ -30,7 +30,7 @@ class STAPanel(wx.Panel):
         self.showing_colorbar = True
         # default data type
         self.sta_data = RevCorr.STAData()
-
+        self.stimulus = None
         # reverse time in ms
         time_slider = 85
         self.time = time_slider/1000
@@ -93,6 +93,7 @@ class STAPanel(wx.Panel):
         self.data = data
     
     def update_chart(self,data):
+        self.raw_data = data
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit:
             channel, unit = selected_unit
@@ -115,8 +116,10 @@ class STAPanel(wx.Panel):
                 self.im.set_data(img)
             #self.axes.set_title(self.title)
             if isinstance(self.sta_data,RevCorr.STAData):
+                self.stimulus = 'white_noise'
                 wx.FindWindowByName('main_frame').SetTitle("Receptive field spatial map")
             if isinstance(self.sta_data,RevCorr.ParamMapData):
+                self.stimulus = 'param_mapping'
                 wx.FindWindowByName('main_frame').SetTitle("Parameters subspace map")
             self.im.autoscale()
             self.canvas.draw()
@@ -170,6 +173,23 @@ class STAPanel(wx.Panel):
         self.interpolation = interpolation
         if hasattr(self, 'data'):
             self.update_chart(self.data)
+        
+    def on_save_data(self, event):
+        file_choices = "PKL (*.pkl)|*.pkl"
+        dlg = wx.FileDialog(
+            self,
+            message="Save data as...",
+            wildcard=file_choices,
+            style=wx.SAVE|wx.CHANGE_DIR)
+        if dlg.ShowModal() == wx.ID_OK:
+            import pickle
+            pkl_file = dlg.GetPath()
+            data_dict = {}
+            data_dict['stimulus'] = self.stimulus
+            data_dict['raw_data'] = self.raw_data
+            with open(pkl_file, 'wb') as pkl_output:
+                pickle.dump(data_dict, pkl_output)
+            wx.FindWindowByName('main_frame').flash_status_message("Saved to %s" % pkl_file)
         
     def on_save_chart(self, event):
         file_choices = "PNG (*.png)|*.png"

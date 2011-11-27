@@ -32,6 +32,7 @@ class PSTHPanel(wx.Panel):
         self.showing_errbar = False
         
         self.psth = TimeHistogram.PSTHAverage()
+        self.raw_data = None
 
         self.dpi = 100
         self.fig = Figure((8.0, 6.0), dpi=self.dpi, facecolor='w')
@@ -48,7 +49,7 @@ class PSTHPanel(wx.Panel):
         self.Bind(wx.EVT_TIMER, self.on_update_data_timer, self.update_data_timer)
         self.update_data_timer.Start(1000)
 
-    def make_chart(self,data=np.zeros(1),bins=np.arange(10)+1,polar=True):
+    def make_chart(self,data=np.zeros(1),bins=np.arange(10)+1,polar=False):
         self.polar_chart = polar
         self.hist_bins = []
         self.hist_patches = []
@@ -118,13 +119,30 @@ class PSTHPanel(wx.Panel):
         pos = event.GetEventObject().ScreenToClient(pos)
         self.PopupMenu(self.popup_menu, pos)
     
+    def on_save_data(self, event):
+        file_choices = "PKL (*.pkl)|*.pkl"
+        dlg = wx.FileDialog(
+            self,
+            message="Save data as...",
+            wildcard=file_choices,
+            style=wx.SAVE|wx.CHANGE_DIR)
+        if dlg.ShowModal() == wx.ID_OK:
+            import pickle
+            pkl_file = dlg.GetPath()
+            data_dict = {}
+            data_dict['stimulus'] = self.psth.parameter
+            data_dict['x'] = self.x
+            data_dict['y'] = self.means
+            data_dict['raw_data'] = self.raw_data
+            with open(pkl_file, 'wb') as pkl_output:
+                pickle.dump(data_dict, pkl_output)
+            wx.FindWindowByName('main_frame').flash_status_message("Saved to %s" % pkl_file)
+    
     def on_save_chart(self, event):
         file_choices = "PNG (*.png)|*.png"
         dlg = wx.FileDialog(
             self,
             message="Save chart as...",
-            #defaultDir=os.getcwd(),
-            #defaultFile="psth_aver.png",
             wildcard=file_choices,
             style=wx.SAVE|wx.CHANGE_DIR)
         if dlg.ShowModal() == wx.ID_OK:
@@ -150,6 +168,7 @@ class UpdateChartThread(threading.Thread):
         self.update_chart(self.panel, self._data)
         
     def update_chart(self, panel, data):
+        panel.raw_data = data
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit is not None:
             channel, unit = selected_unit
@@ -158,7 +177,10 @@ class UpdateChartThread(threading.Thread):
                 return
             
             polar_dict = {'orientation':True, 'spatial_frequency':False, 'phase':False}
-            polar_chart = polar_dict[self.parameter] if self.parameter in polar_dict else True
+            if self.parameter in polar_dict:
+                polar_chart = polar_dict[self.parameter]
+            else:
+                polar_chart = panel.polar_chart
             # histogram
             for index in filter(lambda index: not index & 1, data[channel][unit].iterkeys()):
                 patch_index = index // 2
@@ -245,7 +267,7 @@ class PSTHFrame(MainFrame):
         
     def create_chart_panel(self):
         self.chart_panel = PSTHPanel(self.panel, 'PSTH Chart')
-
+    
     def on_data_updated(self, event):
         #print event.get_data()
         data = event.get_data()

@@ -98,8 +98,10 @@ class MainFrame(wx.Frame):
         self.menubar = wx.MenuBar()
 
         menu_file = wx.Menu()
-        m_expt = menu_file.Append(-1, "&Save plot\tCtrl-S", "Save plot to file")
-        self.Bind(wx.EVT_MENU, self.on_save_chart, m_expt)
+        m_expt_data = menu_file.Append(-1, "&Save &data\tCtrl-D", "Save data to file")
+        self.Bind(wx.EVT_MENU, self.on_save_data, m_expt_data)
+        m_expt_plot = menu_file.Append(-1, "Save &plot\tCtrl-P", "Save plot to file")
+        self.Bind(wx.EVT_MENU, self.on_save_chart, m_expt_plot)
         menu_file.AppendSeparator()
         m_exit = menu_file.Append(-1, "E&xit\tCtrl-X", "Exit")
         self.Bind(wx.EVT_MENU, self.on_exit, m_exit)
@@ -139,6 +141,9 @@ class MainFrame(wx.Frame):
     def create_chart_panel(self):
         pass
 
+    def on_save_data(self, event):
+        self.chart_panel.on_save_data(event)
+        
     def on_save_chart(self, event):
         self.chart_panel.on_save_chart(event)
     
