@@ -56,8 +56,6 @@ class PSTHAverage:
             self.parameter = 'spatial_frequency'
         elif np.any(pha_index):
             self.parameter = 'phase'
-        else:
-            self.parameter = None
         param_indices = ori_index + spf_index + pha_index
         offset_trigger = (trigger_values & 1<<OFFSET_BIT) > 0
         param_indices[offset_trigger] = -1
