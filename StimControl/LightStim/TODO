@@ -1,8 +1,7 @@
 TODO:
 
 - Bug fix:
-	when sweep duration in SweepSeque is too long temporal resolution in the queue becomes poor. This can be fixed by fractional repeat in SweepSequeStimulusController. 
-	or set sweep duration in SweepSeque at high refresh rate and reduce the sweep sequence in the controller.
+	
 - Requested Feature:
 	- realtime dense noise generator with random seed synchronization between stimcontrol and experimenter
 	- add pyro index request handling support 
@@ -24,6 +23,8 @@ MEMO:
 	Beautiful is better than ugly. Simple is better than complex. Complex is better than complicated. Sparse is better than dense.
 	
 DONE:
+	- The easiest one is reading first viewport refresh rate. (when sweep duration in SweepSeque is too long temporal resolution in the queue becomes poor. This can be fixed by fractional repeat in SweepSequeStimulusController. 
+	  or set sweep duration in SweepSeque at high refresh rate and reduce the sweep sequence in the controller.)
 	+ control viewport size should be the same as stimulus viewports when different screen resolutions are used.
 	. control viewport indicator frame. (not needed as above feature provide the same mechanism to restrict stimulus position)
 	+ add stamp post for SweepSeque stimulus
