@@ -24,8 +24,6 @@ class STAPanel(wx.Panel):
         
         self.interpolation_changed = False
         self.show_colorbar_changed = False
-        self.gaussian_fit_changed = False
-        self.gabor_fit_changed = False
         self.collecting_data = True
         self.data_started = False
         self.showing_colorbar = True
@@ -101,23 +99,12 @@ class STAPanel(wx.Panel):
         if selected_unit:
             channel, unit = selected_unit
             img = self.sta_data.get_img(data, channel, unit, tau=self.time)
-            if self.img_dim != img.shape or self.interpolation_changed or \
-                    self.show_colorbar_changed or self.gaussian_fit_changed or self.gabor_fit_changed:
+            if self.img_dim != img.shape or self.interpolation_changed or self.show_colorbar_changed:
                 self.make_chart()
                 self.im = self.axes.imshow(img,interpolation=self.interpolation)
                 self.img_dim = img.shape
                 self.interpolation_changed = False
                 self.show_colorbar_changed = False
-                self.gaussian_fit_changed = False
-                self.gabor_fit_changed = False
-                if self.fitting_gaussian:
-                    img = self.sta_data.get_img(data, channel, unit, tau=self.time, format='float')
-                    _params,fitimage = gaussfit(img,returnfitimage=True)
-                    self.axes.imshow(fitimage,interpolation=self.interpolation)
-                if self.fitting_gabor:
-                    img = self.sta_data.get_img(data, channel, unit, tau=self.time, format='float')
-                    _params,fitimage = gaborfit(img,returnfitimage=True)
-                    self.axes.imshow(fitimage,interpolation=self.interpolation)
                 if self.showing_colorbar:
                     self.fig.colorbar(self.im, shrink=1.0, fraction=0.045, pad=0.05, ticks=[0.0, 0.5, 1.0])
                 #===============================================================
@@ -126,8 +113,15 @@ class STAPanel(wx.Panel):
                 # if isinstance(self.sta_data, RevCorr.ParamMapData):
                 #    cbar.ax.set_yticklabels([" ", " ", "response"])
                 #===============================================================
-            else:
-                self.im.set_data(img)
+            elif self.fitting_gaussian:
+                float_img = self.sta_data.get_img(data, channel, unit, tau=self.time, format='float')
+                _params,img = gaussfit(float_img,returnfitimage=True)
+                #self.im = self.axes.imshow(fitimage,interpolation=self.interpolation)
+            elif self.fitting_gabor:
+                float_img = self.sta_data.get_img(data, channel, unit, tau=self.time, format='float')
+                _params,img = gaborfit(float_img,returnfitimage=True)
+                #self.im = self.axes.imshow(fitimage,interpolation=self.interpolation)
+            self.im.set_data(img)
             #self.axes.set_title(self.title)
             if isinstance(self.sta_data,RevCorr.STAData):
                 self.stimulus = 'white_noise'
@@ -167,11 +161,9 @@ class STAPanel(wx.Panel):
         self.restart_data()
         
     def gaussianfit(self, checked):
-        self.gaussian_fit_changed = True
         self.fitting_gaussian = checked
         
     def gaborfit(self, checked):
-        self.gabor_fit_changed = True
         self.fitting_gabor = checked
         
     def show_colorbar(self, checked):
