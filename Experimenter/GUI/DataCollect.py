@@ -96,7 +96,7 @@ class MainFrame(wx.Frame):
         self.menubar = wx.MenuBar()
 
         menu_file = wx.Menu()
-        m_expt_data = menu_file.Append(-1, "&Save &data\tCtrl-D", "Save data to file")
+        m_expt_data = menu_file.Append(-1, "Save &data\tCtrl-D", "Save data to file")
         self.Bind(wx.EVT_MENU, self.on_save_data, m_expt_data)
         m_expt_plot = menu_file.Append(-1, "Save &plot\tCtrl-P", "Save plot to file")
         self.Bind(wx.EVT_MENU, self.on_save_chart, m_expt_plot)
@@ -126,14 +126,16 @@ class MainFrame(wx.Frame):
 
         self.unit_choice = UnitChoice(self.panel, 'Select Unit')
         self.create_chart_panel()
-
+        
+        self.vbox = wx.BoxSizer(wx.VERTICAL)
         self.hbox = wx.BoxSizer(wx.HORIZONTAL)
         #self.hbox.AddSpacer(5)
-        self.hbox.Add(self.unit_choice, flag=wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.hbox.Add(self.unit_choice, flag=wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_TOP, border=5)
         #self.hbox.AddSpacer(5)
-        self.hbox.Add(self.chart_panel, flag=wx.ALL | wx.ALIGN_RIGHT| wx.ALIGN_CENTER_VERTICAL, border=5)
-        self.panel.SetSizer(self.hbox)
-        self.hbox.Fit(self)
+        self.hbox.Add(self.chart_panel, flag=wx.ALL | wx.ALIGN_RIGHT| wx.ALIGN_TOP, border=5)
+        self.vbox.Add(self.hbox, flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.panel.SetSizer(self.vbox)
+        self.vbox.Fit(self)
         self.panel.Layout()
         
     def create_chart_panel(self):

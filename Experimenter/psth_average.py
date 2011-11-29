@@ -35,6 +35,7 @@ class PSTHPanel(wx.Panel):
         self.dpi = 100
         self.fig = Figure((8.0, 6.0), dpi=self.dpi, facecolor='w')
         self.canvas = FigCanvas(self, -1, self.fig)
+                
         self.make_chart()
         
         box = wx.StaticBox(self, -1, label)

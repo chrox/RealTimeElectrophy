@@ -44,6 +44,15 @@ class RevCorrData(object):
         data = {'spikes':self.spike_trains, 
                 'x_indices':self.x_indices,'y_indices':self.y_indices,'timestamps':self.timestamps}
         return data
+    
+    def get_img(self, data, channel, unit, dimension, tau, format, cmap):
+        if format == 'rgb':
+            return RevCorrImg.get_rgb_img(data, channel, unit, dimension, tau, cmap)
+        elif format == 'float':
+            return RevCorrImg.get_float_img(data, channel, unit, dimension, tau, cmap)
+    
+    def float_to_rgb(self, float_img, cmap='jet'):
+        return RevCorrImg._process_img(float_img, cmap)
         
 class RevCorrImg(object):
     @staticmethod
@@ -102,8 +111,13 @@ class RevCorrImg(object):
         return (x_dim, y_dim)
 
     @staticmethod
-    def get_img(data,channel,unit,tau=0.085,cmap='jet'):
-        pass
+    def get_float_img(data,channel,unit,dimension,tau,cmap):
+        raise RuntimeError("%s: Definition of get_float_img() in base class RevCorrImg must be overriden."%(str(self),))
+
+    @staticmethod
+    def get_rgb_img(data,channel,unit,dimension,tau,cmap):
+        img = RevCorrImg.get_float_img(data,channel,unit,dimension,tau,cmap)
+        return RevCorrImg._process_img(img, cmap)
     
     @staticmethod        
     def _process_img(img,cmap):

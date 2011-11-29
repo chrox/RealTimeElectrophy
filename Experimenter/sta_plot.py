@@ -36,7 +36,7 @@ class STAPanel(wx.Panel):
         time_slider = 85
         self.time = time_slider/1000
         
-        self.dpi = 90
+        self.dpi = 100
         self.fig = Figure((6.0, 6.0), dpi=self.dpi, facecolor='w')
         self.canvas = FigCanvas(self, -1, self.fig)
         self.fig.subplots_adjust(bottom=0.05, left=0.05, right=0.95, top=0.95)
@@ -49,6 +49,9 @@ class STAPanel(wx.Panel):
         self.interpolation_menu = wx.Menu()
         for interpolation in interpolations:
             item = self.interpolation_menu.AppendRadioItem(-1, interpolation)
+            # check default interpolation
+            if interpolation == self.interpolation:
+                self.interpolation_menu.Check(item.GetId(), True)
             self.Bind(wx.EVT_MENU, self.on_interpolation_selected, item)
         self.popup_menu = wx.Menu()
         self.popup_menu.AppendMenu(-1, '&Interpolation', self.interpolation_menu)
@@ -73,7 +76,6 @@ class STAPanel(wx.Panel):
         hbox.Add(vbox,flag=wx.TOP)
         
         sizer.Add(hbox, 0, wx.ALIGN_CENTRE)
-        sizer.AddSpacer(30)
         self.SetSizer(sizer)
         sizer.Fit(self)
 
@@ -98,7 +100,7 @@ class STAPanel(wx.Panel):
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit:
             channel, unit = selected_unit
-            img = self.sta_data.get_img(data, channel, unit, tau=self.time)
+            img = self.sta_data.get_img(data, channel, unit, tau=self.time, format='rgb')
             if self.img_dim != img.shape or self.interpolation_changed or self.show_colorbar_changed:
                 self.make_chart()
                 self.im = self.axes.imshow(img,interpolation=self.interpolation)
@@ -113,14 +115,14 @@ class STAPanel(wx.Panel):
                 # if isinstance(self.sta_data, RevCorr.ParamMapData):
                 #    cbar.ax.set_yticklabels([" ", " ", "response"])
                 #===============================================================
-            elif self.fitting_gaussian:
+            if self.fitting_gaussian or self.fitting_gabor:
+                if self.fitting_gaussian:
+                    fit_fun = gaussfit
+                elif self.fitting_gabor:
+                    fit_fun = gaborfit
                 float_img = self.sta_data.get_img(data, channel, unit, tau=self.time, format='float')
-                _params,img = gaussfit(float_img,returnfitimage=True)
-                #self.im = self.axes.imshow(fitimage,interpolation=self.interpolation)
-            elif self.fitting_gabor:
-                float_img = self.sta_data.get_img(data, channel, unit, tau=self.time, format='float')
-                _params,img = gaborfit(float_img,returnfitimage=True)
-                #self.im = self.axes.imshow(fitimage,interpolation=self.interpolation)
+                _params,fitted_img = fit_fun(float_img,returnfitimage=True)
+                img = self.sta_data.float_to_rgb(fitted_img,cmap='jet')
             self.im.set_data(img)
             #self.axes.set_title(self.title)
             if isinstance(self.sta_data,RevCorr.STAData):
@@ -178,6 +180,8 @@ class STAPanel(wx.Panel):
     def on_slider_update(self, event):
         # reverse time in ms
         self.time = self.slider.GetValue() / 1000
+        if hasattr(self, 'data'):
+            self.update_chart(self.data)
         
     def on_interpolation_selected(self, event):
         item = self.interpolation_menu.FindItemById(event.GetId())
@@ -235,12 +239,12 @@ class STAFrame(MainFrame):
         m_param_mapping = menu_source.AppendRadioItem(-1, "Param &Mapping\tCtrl-M", "Parameter mapping data")
         self.Bind(wx.EVT_MENU, self.on_param_mapping_data, m_param_mapping)
         
-        menu_fitting = wx.Menu()
-        self.m_gaussfitter = menu_fitting.AppendCheckItem(-1, "Ga&ussian\tCtrl-U", "Gaussian fitting")
-        menu_fitting.Check(self.m_gaussfitter.GetId(), False)
+        self.menu_fitting = wx.Menu()
+        self.m_gaussfitter = self.menu_fitting.AppendCheckItem(-1, "Ga&ussian\tCtrl-U", "Gaussian fitting")
+        self.menu_fitting.Check(self.m_gaussfitter.GetId(), False)
         self.Bind(wx.EVT_MENU, self.on_check_gaussfitter, self.m_gaussfitter)
-        self.m_gaborfitter = menu_fitting.AppendCheckItem(-1, "Ga&bor\tCtrl-B", "Gabor fitting")
-        menu_fitting.Check(self.m_gaborfitter.GetId(), False)
+        self.m_gaborfitter = self.menu_fitting.AppendCheckItem(-1, "Ga&bor\tCtrl-B", "Gabor fitting")
+        self.menu_fitting.Check(self.m_gaborfitter.GetId(), False)
         self.Bind(wx.EVT_MENU, self.on_check_gaborfitter, self.m_gaborfitter)
         
         menu_view = wx.Menu()
@@ -249,7 +253,7 @@ class STAFrame(MainFrame):
         self.Bind(wx.EVT_MENU, self.on_check_colorbar, self.m_colorbar)
         
         self.menubar.Append(menu_source, "&Source")
-        self.menubar.Append(menu_fitting, "&Fitting")
+        self.menubar.Append(self.menu_fitting, "&Fitting")
         self.menubar.Append(menu_view, "&View")
         self.SetMenuBar(self.menubar)
     
@@ -271,9 +275,19 @@ class STAFrame(MainFrame):
         self.flash_status_message("Data source changed to parameter mapping")
         
     def on_check_gaussfitter(self, event):
+        if self.m_gaussfitter.IsChecked():
+            for item in self.menu_fitting.GetMenuItems():
+                if item.GetId() != self.m_gaussfitter.GetId():
+                    self.menu_fitting.Check(item.GetId(), False)
+            self.flash_status_message("Using gaussian fitting")
         self.chart_panel.gaussianfit(self.m_gaussfitter.IsChecked())
         
     def on_check_gaborfitter(self, event):
+        if self.m_gaborfitter.IsChecked():
+            for item in self.menu_fitting.GetMenuItems():
+                if item.GetId() != self.m_gaborfitter.GetId():
+                    self.menu_fitting.Check(item.GetId(), False)
+            self.flash_status_message("Using gabor fitting")
         self.chart_panel.gaborfit(self.m_gaborfitter.IsChecked())
         
     def on_check_colorbar(self, event):
