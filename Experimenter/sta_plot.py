@@ -11,9 +11,9 @@ matplotlib.use('TkAgg')
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 
+from Experimenter.Data.Fitting import GaussFit,GaborFit
 from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread
 from Experimenter.GUI.DataCollect import MainFrame,adjust_spines
-from Experimenter.Data.gaussfitter import gaussfit
 from Experimenter.ReverseCorrelation import RevCorr
 
 class STAPanel(wx.Panel):
@@ -116,13 +116,12 @@ class STAPanel(wx.Panel):
                 #    cbar.ax.set_yticklabels([" ", " ", "response"])
                 #===============================================================
             if self.fitting_gaussian or self.fitting_gabor:
-                if self.fitting_gaussian:
-                    fit_fun = gaussfit
-                elif self.fitting_gabor:
-                    fit_fun = gaborfit
                 float_img = self.sta_data.get_img(data, channel, unit, tau=self.time, format='float')
-                _params,fitted_img = fit_fun(float_img,returnfitimage=True)
-                img = self.sta_data.float_to_rgb(fitted_img,cmap='jet')
+                if self.fitting_gaussian:
+                    _params,img = self.gauss_fitter.gaussfit2d(float_img,returnfitimage=True)
+                elif self.fitting_gabor:
+                    _params,img = self.gabor_fitter.gaborfit2d(float_img,returnfitimage=True)
+                img = self.sta_data.float_to_rgb(img,cmap='jet')
             self.im.set_data(img)
             #self.axes.set_title(self.title)
             if isinstance(self.sta_data,RevCorr.STAData):
@@ -161,11 +160,13 @@ class STAPanel(wx.Panel):
     def param_mapping_data(self):
         self.sta_data = RevCorr.ParamMapData()
         self.restart_data()
-        
+            
     def gaussianfit(self, checked):
+        self.gauss_fitter = GaussFit()
         self.fitting_gaussian = checked
         
     def gaborfit(self, checked):
+        self.gabor_fitter = GaborFit()
         self.fitting_gabor = checked
         
     def show_colorbar(self, checked):
@@ -246,6 +247,7 @@ class STAFrame(MainFrame):
         self.m_gaborfitter = self.menu_fitting.AppendCheckItem(-1, "Ga&bor\tCtrl-B", "Gabor fitting")
         self.menu_fitting.Check(self.m_gaborfitter.GetId(), False)
         self.Bind(wx.EVT_MENU, self.on_check_gaborfitter, self.m_gaborfitter)
+        self.menu_binds = {self.m_gaussfitter.GetId():self.on_check_gaussfitter, self.m_gaborfitter.GetId():self.on_check_gaborfitter} 
         
         menu_view = wx.Menu()
         self.m_colorbar = menu_view.AppendCheckItem(-1, "&Colorbar\tCtrl-C", "Display colorbar")
@@ -277,16 +279,18 @@ class STAFrame(MainFrame):
     def on_check_gaussfitter(self, event):
         if self.m_gaussfitter.IsChecked():
             for item in self.menu_fitting.GetMenuItems():
-                if item.GetId() != self.m_gaussfitter.GetId():
+                if item.GetId() != self.m_gaussfitter.GetId() and item.IsChecked():
                     self.menu_fitting.Check(item.GetId(), False)
+                    self.menu_binds[item.GetId()](-1)
             self.flash_status_message("Using gaussian fitting")
         self.chart_panel.gaussianfit(self.m_gaussfitter.IsChecked())
         
     def on_check_gaborfitter(self, event):
         if self.m_gaborfitter.IsChecked():
             for item in self.menu_fitting.GetMenuItems():
-                if item.GetId() != self.m_gaborfitter.GetId():
+                if item.GetId() != self.m_gaborfitter.GetId() and item.IsChecked():
                     self.menu_fitting.Check(item.GetId(), False)
+                    self.menu_binds[item.GetId()](-1)
             self.flash_status_message("Using gabor fitting")
         self.chart_panel.gaborfit(self.m_gaborfitter.IsChecked())
         
