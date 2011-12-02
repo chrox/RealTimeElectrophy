@@ -129,9 +129,9 @@ class RevCorrImg(object):
         img = img*factor + 0.5
         #use customized colormap
         #more efficient way?
-        for col in range(img.shape[0]):
-            for row in range(img.shape[1]):
-                rgb_img[col][row] = np.array(RevCorrImg._colormap(img[col][row],cmap))
+        for row in range(img.shape[0]):
+            for col in range(img.shape[1]):
+                rgb_img[row][col] = np.array(RevCorrImg._colormap(img[row][col],cmap))
         return rgb_img
 
 class STAData(RevCorrData):
@@ -179,8 +179,8 @@ class STAImg(RevCorrImg):
         """ Take the time offset between spikes and the triggered stimulus.
         """
         spike_trains = data['spikes']
-        x_indices = data['x_indices']
-        y_indices = data['y_indices']
+        cols = data['x_indices']
+        rows = data['y_indices']
         contrast = data['contrast']
         timestamps = data['timestamps']
         
@@ -192,15 +192,15 @@ class STAImg(RevCorrImg):
             stim_times, _bins = np.histogram(triggered_stim, timestamps)
             take = stim_times > 0
             triggered_times = stim_times[take] 
-            x_index = x_indices[take]
-            y_index = y_indices[take]
+            col = cols[take]
+            row = rows[take]
             contrast = contrast[take]
             contrast[contrast==0] = -1
             for index,times in enumerate(triggered_times):
-                pixel_index_x = x_index[index]
-                pixel_index_y = y_index[index]
-                if pixel_index_x < dimension[0] and pixel_index_y < dimension[1]:
-                    img[pixel_index_x][pixel_index_y] += times*contrast[index]
+                col_index = col[index]
+                row_index = row[index]
+                if row_index < dimension[0] and col_index < dimension[1]:
+                    img[row_index][col_index] += times*contrast[index]
         return img
     
     @staticmethod
@@ -239,8 +239,8 @@ class ParamMapIMG(RevCorrImg):
     @staticmethod
     def get_float_img(data,channel,unit,dimension,tau,cmap='gbr'):
         spike_trains = data['spikes']
-        x_indices = data['x_indices']
-        y_indices = data['y_indices']
+        cols = data['x_indices']
+        rows = data['y_indices']
         timestamps = data['timestamps']
         img = np.zeros(dimension)
         
@@ -249,14 +249,15 @@ class ParamMapIMG(RevCorrImg):
             triggered_stim = spikes - tau
             stim_times, _bins = np.histogram(triggered_stim, timestamps)
             take = stim_times > 0
-            triggered_times = stim_times[take] 
-            x_index = x_indices[take]
-            y_index = y_indices[take]
+            triggered_times = stim_times[take]
+            
+            col = cols[take]
+            row = rows[take]
             for index,times in enumerate(triggered_times):
-                pixel_index_x = x_index[index]
-                pixel_index_y = y_index[index]
-                if pixel_index_x < dimension[0] and pixel_index_y < dimension[1]:
-                    img[pixel_index_x][pixel_index_y] += times
+                col_index = col[index]
+                row_index = row[index]
+                if row_index < dimension[0] and col_index < dimension[1]:
+                    img[row_index][col_index] += times
         return img
 
     @staticmethod
