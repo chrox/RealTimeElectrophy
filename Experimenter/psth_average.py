@@ -202,7 +202,7 @@ class UpdateChartThread(threading.Thread):
                 std = data[channel][unit][index]['std']
                 panel.means[index] = mean
                 panel.stds[index] = std
-            if self.parameter is 'orientation':
+            if self.parameter == 'orientation':
                 panel.x = np.linspace(0.0, 360.0, 17)/180*np.pi
                 self.curve_axes.set_title('Orientation Tuning Curve',fontsize=12)
                 if zeroth_psth_data is not None:
@@ -210,12 +210,12 @@ class UpdateChartThread(threading.Thread):
                         rect.set_height(h)
                 panel.means[-1] = panel.means[0]
                 panel.stds[-1] = panel.stds[0]
-            if self.parameter is 'spatial_frequency':
+            if self.parameter == 'spatial_frequency':
                 panel.x = np.linspace(0.05, 1.0, 16)
                 self.curve_axes.set_title('Spatial Frequency Tuning Curve',fontsize=12)
                 panel.means = panel.means[:len(panel.x)]
                 panel.stds = panel.stds[:len(panel.x)]
-            if self.parameter is 'phase':
+            if self.parameter == 'phase':
                 panel.x = np.linspace(0.0, 360.0, 17)
                 self.curve_axes.set_title('Disparity Tuning Curve',fontsize=12)
                 if zeroth_psth_data is not None:

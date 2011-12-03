@@ -72,12 +72,12 @@ class AdaptiveResponse(object):
 
         i = bisect_right(spike_train, onset_timestamp)
         if i != len(spike_train):
-            if response_type is 'latency':
+            if response_type == 'latency':
                 latency = spike_train[i] - onset_timestamp
                 if latency < LATENCY_BOUNDARY:
                     return latency
                 return None
-            if response_type is 'rate':
+            if response_type == 'rate':
                 j = bisect_right(spike_train, spike_train[i]+INSTANT_RATE_SPAN)
                 if j != len(spike_train):
                     rate = (j - i)/INSTANT_RATE_SPAN
@@ -135,11 +135,11 @@ class AdaptiveResponse(object):
                         self.results[channel][unit][lefty][continuity]['latency'].append(latency)
                         self.results[channel][unit][lefty][continuity]['rate'].append(rate)
                     self.onset_que.popleft()
-                    if lefty is 'left':
+                    if lefty == 'left':
                         self.left_stim_que.popleft()
                     else:
                         self.right_stim_que.popleft()
-                    if continuity is 'continuous':
+                    if continuity == 'continuous':
                         self.con_stim_que.popleft()
                     else:
                         self.alt_stim_que.popleft()
