@@ -26,6 +26,7 @@ class STAPanel(wx.Panel):
         self.show_colorbar_changed = False
         self.collecting_data = True
         self.data_started = False
+        self.connected_to_server = True
         self.showing_colorbar = True
         self.fitting_gaussian = False
         self.fitting_gabor = False
@@ -53,9 +54,11 @@ class STAPanel(wx.Panel):
             if interpolation == self.interpolation:
                 self.interpolation_menu.Check(item.GetId(), True)
             self.Bind(wx.EVT_MENU, self.on_interpolation_selected, item)
+            wx.FindWindowByName('main_frame').Bind(wx.EVT_MENU, self.on_interpolation_selected, item)
         self.popup_menu = wx.Menu()
         self.popup_menu.AppendMenu(-1, '&Interpolation', self.interpolation_menu)
         self.canvas.Bind(wx.EVT_CONTEXT_MENU, self.on_show_popup)
+        wx.FindWindowByName('main_frame').menu_view.AppendSubMenu(self.interpolation_menu, '&Interpolation')
         
         self.make_chart()
         
@@ -95,8 +98,9 @@ class STAPanel(wx.Panel):
     def set_data(self, data):
         self.data = data
     
-    def update_chart(self,data):
-        self.raw_data = data
+    def update_chart(self,data=None):
+        if data is None and hasattr(self, 'data'):
+            data = self.data
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit:
             channel, unit = selected_unit
@@ -134,12 +138,13 @@ class STAPanel(wx.Panel):
             self.canvas.draw()
     
     def on_update_data_timer(self, event):
-        if self.collecting_data:
+        if self.collecting_data and self.connected_to_server:
             self.update_data_thread = UpdateDataThread(self, self.sta_data)
     
     def start_data(self):
         self.collecting_data = True
         self.data_started = True
+        self.connected_to_server = True
     
     def stop_data(self):
         self.collecting_data = False
@@ -192,37 +197,20 @@ class STAPanel(wx.Panel):
         self.interpolation = interpolation
         if hasattr(self, 'data'):
             self.update_chart(self.data)
+    
+    def open_file(self, path):
+        self.sta_data = RevCorr.STAData(path)
+        UpdateDataThread(self, self.sta_data)
+        self.connected_to_server = False
+    
+    def save_data(self):
+        data_dict = {}
+        data_dict['stimulus'] = self.stimulus
+        data_dict['raw_data'] = self.raw_data
+        return data_dict
         
-    def on_save_data(self, event):
-        file_choices = "PKL (*.pkl)|*.pkl"
-        dlg = wx.FileDialog(
-            self,
-            message="Save data as...",
-            wildcard=file_choices,
-            style=wx.SAVE|wx.CHANGE_DIR)
-        if dlg.ShowModal() == wx.ID_OK:
-            import pickle
-            pkl_file = dlg.GetPath()
-            data_dict = {}
-            data_dict['stimulus'] = self.stimulus
-            data_dict['raw_data'] = self.raw_data
-            with open(pkl_file, 'wb') as pkl_output:
-                pickle.dump(data_dict, pkl_output)
-            wx.FindWindowByName('main_frame').flash_status_message("Saved to %s" % pkl_file)
-        
-    def on_save_chart(self, event):
-        file_choices = "PNG (*.png)|*.png"
-        dlg = wx.FileDialog(
-            self,
-            message="Save chart as...",
-            #defaultDir=os.getcwd(),
-            #defaultFile="sta_chart.png",
-            wildcard=file_choices,
-            style=wx.SAVE|wx.CHANGE_DIR)
-        if dlg.ShowModal() == wx.ID_OK:
-            path = dlg.GetPath()
-            self.canvas.print_figure(path, dpi=self.dpi)
-            wx.FindWindowByName('main_frame').flash_status_message("Saved to %s" % path)
+    def save_chart(self, path):
+        self.canvas.print_figure(path, dpi=self.dpi)
 
 class STAFrame(MainFrame):
     """ The main frame of the application
@@ -247,16 +235,16 @@ class STAFrame(MainFrame):
         self.m_gaborfitter = self.menu_fitting.AppendCheckItem(-1, "Ga&bor\tCtrl-B", "Gabor fitting")
         self.menu_fitting.Check(self.m_gaborfitter.GetId(), False)
         self.Bind(wx.EVT_MENU, self.on_check_gaborfitter, self.m_gaborfitter)
-        self.menu_binds = {self.m_gaussfitter.GetId():self.on_check_gaussfitter, self.m_gaborfitter.GetId():self.on_check_gaborfitter} 
+        self.menu_uncheck_binds = {self.m_gaussfitter.GetId():self.uncheck_gaussfitter, self.m_gaborfitter.GetId():self.uncheck_gaborfitter} 
         
-        menu_view = wx.Menu()
-        self.m_colorbar = menu_view.AppendCheckItem(-1, "&Colorbar\tCtrl-C", "Display colorbar")
-        menu_view.Check(self.m_colorbar.GetId(), True)
+        self.menu_view = wx.Menu()
+        self.m_colorbar = self.menu_view.AppendCheckItem(-1, "&Colorbar\tCtrl-C", "Display colorbar")
+        self.menu_view.Check(self.m_colorbar.GetId(), True)
         self.Bind(wx.EVT_MENU, self.on_check_colorbar, self.m_colorbar)
         
         self.menubar.Append(menu_source, "&Source")
         self.menubar.Append(self.menu_fitting, "&Fitting")
-        self.menubar.Append(menu_view, "&View")
+        self.menubar.Append(self.menu_view, "&View")
         self.SetMenuBar(self.menubar)
     
     def create_chart_panel(self):
@@ -265,8 +253,8 @@ class STAFrame(MainFrame):
     def on_data_updated(self, event):
         data = event.get_data()
         self.chart_panel.set_data(data)
-        self.chart_panel.update_chart(data)
         self.unit_choice.update_units(data['spikes'])
+        self.chart_panel.update_chart(data)
     
     def on_sparse_noise_data(self, event):
         self.chart_panel.sparse_noise_data()
@@ -281,21 +269,30 @@ class STAFrame(MainFrame):
             for item in self.menu_fitting.GetMenuItems():
                 if item.GetId() != self.m_gaussfitter.GetId() and item.IsChecked():
                     self.menu_fitting.Check(item.GetId(), False)
-                    self.menu_binds[item.GetId()](-1)
+                    self.menu_uncheck_binds[item.GetId()]()
             self.flash_status_message("Using gaussian fitting")
         self.chart_panel.gaussianfit(self.m_gaussfitter.IsChecked())
+        self.chart_panel.update_chart()
+        
+    def uncheck_gaussfitter(self):
+        self.chart_panel.gaussianfit(False)
         
     def on_check_gaborfitter(self, event):
         if self.m_gaborfitter.IsChecked():
             for item in self.menu_fitting.GetMenuItems():
                 if item.GetId() != self.m_gaborfitter.GetId() and item.IsChecked():
                     self.menu_fitting.Check(item.GetId(), False)
-                    self.menu_binds[item.GetId()](-1)
+                    self.menu_uncheck_binds[item.GetId()]()
             self.flash_status_message("Using gabor fitting")
         self.chart_panel.gaborfit(self.m_gaborfitter.IsChecked())
+        self.chart_panel.update_chart()
         
+    def uncheck_gaborfitter(self):
+        self.chart_panel.gaborfit(False)
+    
     def on_check_colorbar(self, event):
         self.chart_panel.show_colorbar(self.m_colorbar.IsChecked())
+        self.chart_panel.update_chart()
 
 if __name__ == '__main__':
     app = wx.PySimpleApp()

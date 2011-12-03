@@ -60,7 +60,7 @@ class UnitChoice(wx.Panel):
     def on_select(self,event):
         #wx.FindWindowByName('psth_panel').update_chart()
         index = self.unit_list.GetSelection()
-        wx.FindWindowByName('main_frame').flash_status_message("Select unit: %s" % self.items[index])
+        #wx.FindWindowByName('main_frame').flash_status_message("Select unit: %s" % self.items[index])
 
     def update_units(self,data):
         selected_unit = self.get_selected_unit()
@@ -96,6 +96,9 @@ class MainFrame(wx.Frame):
         self.menubar = wx.MenuBar()
 
         menu_file = wx.Menu()
+        m_open_file = menu_file.Append(-1, "&Open data\tCtrl-O", "Open plx file")
+        self.Bind(wx.EVT_MENU, self.on_open_file, m_open_file)
+        menu_file.AppendSeparator()
         m_expt_data = menu_file.Append(-1, "Save &data\tCtrl-D", "Save data to file")
         self.Bind(wx.EVT_MENU, self.on_save_data, m_expt_data)
         m_expt_plot = menu_file.Append(-1, "Save &plot\tCtrl-P", "Save plot to file")
@@ -141,11 +144,44 @@ class MainFrame(wx.Frame):
     def create_chart_panel(self):
         pass
 
+    def on_open_file(self, event):
+        file_choices = "PLX (*.plx)|*.plx"
+        dlg = wx.FileDialog(
+            self,
+            message="Open Plexon plx file...",
+            wildcard=file_choices,
+            style=wx.OPEN|wx.CHANGE_DIR)
+        if dlg.ShowModal() == wx.ID_OK:
+            path = dlg.GetPath()
+            self.flash_status_message("Opening file %s ..." % path, flash_len_ms=5000)
+            self.chart_panel.open_file(path)
+    
     def on_save_data(self, event):
-        self.chart_panel.on_save_data(event)
+        file_choices = "PKL (*.pkl)|*.pkl"
+        dlg = wx.FileDialog(
+            self,
+            message="Save data as...",
+            wildcard=file_choices,
+            style=wx.SAVE|wx.CHANGE_DIR)
+        if dlg.ShowModal() == wx.ID_OK:
+            import pickle
+            pkl_file = dlg.GetPath()
+            data_dict = self.chart_panel.save_data()
+            with open(pkl_file, 'wb') as pkl_output:
+                pickle.dump(data_dict, pkl_output)
+            self.flash_status_message("Saved to %s" % pkl_file)
         
     def on_save_chart(self, event):
-        self.chart_panel.on_save_chart(event)
+        file_choices = "PNG (*.png)|*.png"
+        dlg = wx.FileDialog(
+            self,
+            message="Save chart as...",
+            wildcard=file_choices,
+            style=wx.SAVE|wx.CHANGE_DIR)
+        if dlg.ShowModal() == wx.ID_OK:
+            path = dlg.GetPath()
+            self.chart_panel.save_chart(path)
+            self.flash_status_message("Saved to %s" % path)
     
     def on_exit(self, event):
         self.Destroy()

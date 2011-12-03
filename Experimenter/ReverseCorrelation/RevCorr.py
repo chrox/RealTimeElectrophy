@@ -6,12 +6,24 @@
 
 import numpy as np
 from SpikeRecord.Plexon.PlexClient import PlexClient
+from SpikeRecord.Plexon.PlexFile import PlexFile
 from SpikeRecord.Plexon.PlexUtil import PlexUtil
 
 class RevCorrData(object):
-    def __init__(self):
-        self.pc = PlexClient()
-        self.pc.InitClient()
+    def __init__(self, file=None):
+        
+        self.read_from_server = True
+        self.read_from_file = False
+        self.file_has_read = False
+        
+        if file is None:
+            self.pc = PlexClient()
+            self.pc.InitClient()
+        else:
+            self.read_from_server = False
+            self.read_from_file = True
+            self.pf = PlexFile(file)
+            
         self.pu = PlexUtil()
         
         self.renew_data()
@@ -26,10 +38,17 @@ class RevCorrData(object):
         self.timestamps = np.empty(0)
 
     def _update_data(self):
-        data = self.pc.GetTimeStampArrays()
+        if self.read_from_server:
+            data = self.pc.GetTimeStampArrays()
+        elif self.read_from_file and not self.file_has_read:
+            data = self.pf.GetTimeStampArrays()
+            self.file_has_read = True
+        elif self.file_has_read:
+            data = self.pf.GetNullTimeStamp()
+            
         self.new_triggers = self.pu.GetExtEvents(data, event='unstrobed_word')
-        
         new_spike_trains = self.pu.GetSpikeTrains(data)
+            
         for channel,channel_trains in new_spike_trains.iteritems():
             if channel not in self.spike_trains:
                 self.spike_trains[channel] = channel_trains
@@ -137,8 +156,8 @@ class RevCorrImg(object):
 class STAData(RevCorrData):
     """ Spike triggered average(STA) analysis
     """
-    def __init__(self):
-        super(STAData, self).__init__()
+    def __init__(self,file=None):
+        super(STAData, self).__init__(file)
         self.X_INDEX = 0B111111
         self.X_BIT_SHIFT = 0
         self.Y_INDEX = 0B111111
