@@ -5,6 +5,7 @@
 ### Utilities for Plexon data collection
 ### Written by Huangxin
 ###########################################################
+import time
 from operator import add
 import numpy as np
 import logging
@@ -74,7 +75,7 @@ class PlexUtil(object):
 
         return np.copy(data['timestamp'][unit_spikes])
     
-    def GetExtEvents(self, data, event, bit=None):
+    def GetExtEvents(self, data, event, bit=None, online=True):
         """
         GetExtEvents(data) -> extevents
 
@@ -104,42 +105,49 @@ class PlexUtil(object):
             strobed_timestamp = timestamp[strobed_events]
             first_strobe  = (strobed_unit & 0x8000) != 0
             second_strobe = (strobed_unit & 0x8000) == 0
-            if event is 'first_strobe_word':
+            if event == 'first_strobe_word':
                 return {'value':strobed_unit[first_strobe] & 0x7FFF , 'timestamp':strobed_timestamp[first_strobe]}
             else:
                 return {'value':strobed_unit[second_strobe]         , 'timestamp':strobed_timestamp[second_strobe]}
         # for start event 
-        if event is 'start':
+        if event == 'start':
             return timestamp[channel == Plexon.PL_StartExtChannel]
         # for stop event
-        if event is 'stop':
+        if event == 'stop':
             return timestamp[channel == Plexon.PL_StopExtChannel]
         # for pause event
-        if event is 'pause':
+        if event == 'pause':
             return timestamp[channel == Plexon.PL_Pause]
         # for resume event 
-        if event is 'resume':
+        if event == 'resume':
             return timestamp[channel == Plexon.PL_Resume]
         # for unstrobed events
-        if event is 'unstrobed_bit':
+        if event == 'unstrobed_bit':
             return timestamp[channel == bit + 1 ]
         # reconstruct unstrobed word from unstrobed bits
-        if event is 'unstrobed_word':
+        if event == 'unstrobed_word':
             word_list = []
             timestamp_list = []
+            infinity = float('inf')
             WORD_BITS = 32
             unstrobed_bits = [timestamp[channel == bit + 1 ] for bit in range(WORD_BITS)]
-            bits_num = reduce(add, [len(unstrobed_bits[bit]) for bit in range(WORD_BITS)])
+            bits_length = [len(unstrobed_bits[bit]) for bit in range(WORD_BITS)]
+            #print [len(unstrobed_bits[bit]) for bit in range(WORD_BITS)]
+            bits_num = sum([len(unstrobed_bits[bit]) for bit in range(WORD_BITS)])
             bits_indices = np.array([0]*WORD_BITS)
-            while reduce(add, bits_indices) < bits_num:
-                bit_oldest_timestamps = [unstrobed_bits[bit][index] if index<len(unstrobed_bits[bit]) else float("inf") for bit,index in enumerate(bits_indices)]
-                assert len(bit_oldest_timestamps) == WORD_BITS
-                timestamp = min(bit_oldest_timestamps)
-                timestamp_list.append(timestamp)
-                word_bits = [bit for bit,bit_timestamp in enumerate(bit_oldest_timestamps) if bit_timestamp==timestamp]
-                word = reduce(add, [1<<bit for bit in word_bits])
+            bit_oldest_timestamps = np.array([unstrobed_bits[bit][index] if index<bits_length[bit] else infinity for bit,index in enumerate(bits_indices)])
+            
+            while bits_indices.sum() < bits_num:
+                timestamp = bit_oldest_timestamps.min()
+                word_bits = np.where(bit_oldest_timestamps==timestamp)[0]
+                word = np.left_shift(1,word_bits).sum()
+                
                 word_list.append(word)
+                timestamp_list.append(timestamp)
+                
                 bits_indices[word_bits] += 1
+                bit_oldest_timestamps[word_bits] = [unstrobed_bits[bit][bits_indices[bit]] if bits_indices[bit]<bits_length[bit] else infinity for bit in word_bits]
+            
             if len(timestamp_list) and self.last_timestamp == timestamp_list[0]:
                 word_list[0] += self.last_word
             elif self.last_word is not None:
@@ -149,7 +157,10 @@ class PlexUtil(object):
                     self.last_word = None
                     self.last_timestamp = None
                     return {'value': np.array(word_list), 'timestamp': np.array(timestamp_list)}
-            if len(timestamp_list):
-                self.last_word = word_list[-1]
-                self.last_timestamp = timestamp_list[-1]
-            return {'value': np.array(word_list[:-1]), 'timestamp': np.array(timestamp_list[:-1])}
+            if online:      # in offline mode all timestamps are read at once
+                if len(timestamp_list):
+                    self.last_word = word_list[-1]
+                    self.last_timestamp = timestamp_list[-1]
+                return {'value': np.array(word_list[:-1]), 'timestamp': np.array(timestamp_list[:-1])}
+            else:
+                return {'value': np.array(word_list), 'timestamp': np.array(timestamp_list)}
