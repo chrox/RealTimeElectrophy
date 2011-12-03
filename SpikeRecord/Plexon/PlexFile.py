@@ -212,3 +212,11 @@ class PlexFile(object):
         EventTimestampArray = np.array(data['timestamp'],dtype=np.float32)
         
         return {'type':EventTypeArray, 'channel':EventChannelArray, 'unit':EventUnitArray, 'timestamp':EventTimestampArray}
+
+    def GetNullTimeStamp(self):
+        data = {}
+        data['type'] = np.empty(0)
+        data['channel'] = np.empty(0)
+        data['unit'] = np.empty(0)
+        data['timestamp'] = np.empty(0)
+        return data
