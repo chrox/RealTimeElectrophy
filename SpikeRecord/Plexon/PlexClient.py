@@ -98,14 +98,14 @@ class PlexClient(object):
         num = ctypes.c_int(num)
         data = {}
         if not hasattr(self, 'EventTypeArray'):
-            self.EventTypeArray      = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.int16)
+            self.EventTypeArray      = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.uint16)
         if not hasattr(self, 'EventChannelArray'):
-            self.EventChannelArray   = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.int16)
+            self.EventChannelArray   = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.uint16)
         if not hasattr(self, 'EventUnitArray'):
-            self.EventUnitArray      = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.int16)
+            self.EventUnitArray      = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.uint16)
             #self.UnitChar            = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.char)
         if not hasattr(self, 'EventTimestampArray'):
-            self.EventTimestampArray = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.int32)
+            self.EventTimestampArray = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.uint32)
             #self.TimestampSeconds    = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.float32)
         if self.library:
             Plexon.PL_GetTimeStampArrays(ctypes.byref(num), 
