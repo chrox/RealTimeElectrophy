@@ -130,15 +130,17 @@ class PSTHPanel(wx.Panel):
         data_dict['stimulus'] = self.psth.parameter
         data_dict['x'] = self.x
         data_dict['y'] = self.means
-        data_dict['raw_data'] = self.raw_data
+        data_dict['data'] = self.data
         return data_dict
     
     def save_chart(self,path):
         self.canvas.print_figure(path, dpi=self.dpi)
             
 class UpdateChartThread(threading.Thread):
-    def __init__(self, panel, data):
+    def __init__(self, panel, data=None):
         threading.Thread.__init__(self)
+        if data is None and hasattr(panel, 'data'):
+            data = panel.data
         self.panel = panel
         self.parameter = panel.psth.parameter
         
@@ -154,7 +156,7 @@ class UpdateChartThread(threading.Thread):
         self.update_chart(self.panel, self._data)
         
     def update_chart(self, panel, data):
-        panel.raw_data = data
+        panel.data = data
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit is not None:
             channel, unit = selected_unit
@@ -270,6 +272,7 @@ class PSTHFrame(MainFrame):
         else:
             self.chart_panel.show_errbar(False)
             self.flash_status_message("Stoped showing error bar")
+        UpdateChartThread(self.chart_panel)
 
 if __name__ == '__main__':
     app = wx.PySimpleApp()
