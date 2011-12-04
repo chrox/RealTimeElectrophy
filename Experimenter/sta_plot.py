@@ -206,7 +206,7 @@ class STAPanel(wx.Panel):
     def save_data(self):
         data_dict = {}
         data_dict['stimulus'] = self.stimulus
-        data_dict['raw_data'] = self.raw_data
+        data_dict['data'] = self.data
         return data_dict
         
     def save_chart(self, path):
