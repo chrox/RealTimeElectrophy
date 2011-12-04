@@ -8,6 +8,7 @@ import logging
 import numpy as np
 import scipy.ndimage as nd
 from SpikeRecord.Plexon.PlexClient import PlexClient
+from SpikeRecord.Plexon.PlexFile import PlexFile
 from SpikeRecord.Plexon.PlexUtil import PlexUtil
 
 ONSET_BIT = 12
@@ -17,9 +18,19 @@ SPF_MASK = 0xF<<4
 PHA_MASK = 0xF<<8
 
 class PSTHAverage:
-    def __init__(self):
-        self.pc = PlexClient()
-        self.pc.InitClient()
+    def __init__(self, file=None):
+        self.read_from_server = True
+        self.read_from_file = False
+        self.file_has_read = False
+        
+        if file is None:
+            self.pc = PlexClient()
+            self.pc.InitClient()
+        else:
+            self.read_from_server = False
+            self.read_from_file = True
+            self.pf = PlexFile(file)
+            
         self.pu = PlexUtil()
         
         self.renew_data()
@@ -40,9 +51,17 @@ class PSTHAverage:
         return self.histogram_data
     
     def _update_data(self):
-        data = self.pc.GetTimeStampArrays()
+        if self.read_from_server:
+            data = self.pc.GetTimeStampArrays()
+        elif self.read_from_file and not self.file_has_read:
+            data = self.pf.GetTimeStampArrays()
+            self.file_has_read = True
+        elif self.file_has_read:
+            data = self.pf.GetNullTimeStamp()
+            
         new_triggers = self.pu.GetExtEvents(data, event='unstrobed_word')
         trigger_values = new_triggers['value']
+        
         ori_index = trigger_values & ORI_MASK
         spf_index = (trigger_values & SPF_MASK)>>4
         pha_index = (trigger_values & PHA_MASK)>>8

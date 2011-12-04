@@ -25,6 +25,7 @@ class PSTHPanel(wx.Panel):
         super(PSTHPanel, self).__init__(parent, -1, name=name)
         
         self.collecting_data = True
+        self.connected_to_server = True
         self.data_started = False
         self.show_errbar_changed = False
         self.showing_errbar = False
@@ -94,11 +95,12 @@ class PSTHPanel(wx.Panel):
                 self.hist_patches.append(patches)
     
     def on_update_data_timer(self, event):
-        if self.collecting_data:
+        if self.collecting_data and self.connected_to_server:
             self.update_data_thread = UpdateDataThread(self, self.psth)
         
     def start_data(self):
         self.collecting_data = True
+        self.connected_to_server = True
     
     def stop_data(self):
         self.collecting_data = False
@@ -118,36 +120,21 @@ class PSTHPanel(wx.Panel):
         pos = event.GetEventObject().ScreenToClient(pos)
         self.PopupMenu(self.popup_menu, pos)
     
-    def on_save_data(self, event):
-        file_choices = "PKL (*.pkl)|*.pkl"
-        dlg = wx.FileDialog(
-            self,
-            message="Save data as...",
-            wildcard=file_choices,
-            style=wx.SAVE|wx.CHANGE_DIR)
-        if dlg.ShowModal() == wx.ID_OK:
-            import pickle
-            pkl_file = dlg.GetPath()
-            data_dict = {}
-            data_dict['stimulus'] = self.psth.parameter
-            data_dict['x'] = self.x
-            data_dict['y'] = self.means
-            data_dict['raw_data'] = self.raw_data
-            with open(pkl_file, 'wb') as pkl_output:
-                pickle.dump(data_dict, pkl_output)
-            wx.FindWindowByName('main_frame').flash_status_message("Saved to %s" % pkl_file)
+    def open_file(self, path):
+        self.psth = TimeHistogram.PSTHAverage(path)
+        UpdateDataThread(self, self.psth)
+        self.connected_to_server = False
     
-    def on_save_chart(self, event):
-        file_choices = "PNG (*.png)|*.png"
-        dlg = wx.FileDialog(
-            self,
-            message="Save chart as...",
-            wildcard=file_choices,
-            style=wx.SAVE|wx.CHANGE_DIR)
-        if dlg.ShowModal() == wx.ID_OK:
-            path = dlg.GetPath()
-            self.canvas.print_figure(path, dpi=self.dpi)
-            wx.FindWindowByName('main_frame').flash_status_message("Saved to %s" % path)
+    def save_data(self):
+        data_dict = {}
+        data_dict['stimulus'] = self.psth.parameter
+        data_dict['x'] = self.x
+        data_dict['y'] = self.means
+        data_dict['raw_data'] = self.raw_data
+        return data_dict
+    
+    def save_chart(self,path):
+        self.canvas.print_figure(path, dpi=self.dpi)
             
 class UpdateChartThread(threading.Thread):
     def __init__(self, panel, data):
@@ -174,7 +161,6 @@ class UpdateChartThread(threading.Thread):
             zeroth_psth_data = None
             if channel not in data or unit not in data[channel]:
                 return
-            
             polar_dict = {'orientation':True, 'spatial_frequency':False, 'phase':False}
             if self.parameter in polar_dict:
                 polar_chart = polar_dict[self.parameter]
@@ -191,7 +177,11 @@ class UpdateChartThread(threading.Thread):
                 _trials = data[channel][unit][index]['trials']
                 if len(bins) != len(self.hist_bins[0]) or panel.show_errbar_changed or polar_chart != panel.polar_chart:
                     panel.make_chart(spike_times, bins, polar_chart)
-                    self.hist_bins = panel.hist_bins
+                    self.hist_bins = panel.hist_bins        # update variables in panel after new chart
+                    self.hist_patches = panel.hist_patches
+                    self.errbars = panel.errbars
+                    self.curve_data = panel.curve_data
+                    self.curve_axes = panel.curve_axes
                     panel.show_errbar_changed = False
                 else:
                     for rect,h in zip(self.hist_patches[patch_index],psth_data):
@@ -202,6 +192,7 @@ class UpdateChartThread(threading.Thread):
                 std = data[channel][unit][index]['std']
                 panel.means[index] = mean
                 panel.stds[index] = std
+                
             if self.parameter == 'orientation':
                 panel.x = np.linspace(0.0, 360.0, 17)/180*np.pi
                 self.curve_axes.set_title('Orientation Tuning Curve',fontsize=12)
@@ -268,10 +259,9 @@ class PSTHFrame(MainFrame):
         self.chart_panel = PSTHPanel(self.panel, 'PSTH Chart')
     
     def on_data_updated(self, event):
-        #print event.get_data()
         data = event.get_data()
-        UpdateChartThread(self.chart_panel, data)
         self.unit_choice.update_units(data)
+        UpdateChartThread(self.chart_panel, data)
         
     def on_check_errbar(self, event):
         if self.m_errbar.IsChecked():
