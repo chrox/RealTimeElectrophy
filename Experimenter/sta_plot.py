@@ -24,14 +24,14 @@ class STAPanel(wx.Panel):
         
         self.interpolation_changed = False
         self.show_colorbar_changed = False
-        self.collecting_data = True
+        self.collecting_data = False
         self.data_started = False
-        self.connected_to_server = True
+        self.connected_to_server = False
         self.showing_colorbar = True
         self.fitting_gaussian = False
         self.fitting_gabor = False
         # default data type
-        self.sta_data = RevCorr.STAData()
+        self.sta_data = None
         self.stimulus = None
         # reverse time in ms
         time_slider = 85
@@ -142,6 +142,8 @@ class STAPanel(wx.Panel):
             self.update_data_thread = UpdateDataThread(self, self.sta_data)
     
     def start_data(self):
+        if self.sta_data is None:
+            self.sta_data = RevCorr.STAData()
         self.collecting_data = True
         self.data_started = True
         self.connected_to_server = True
@@ -153,7 +155,8 @@ class STAPanel(wx.Panel):
     def restart_data(self):
         self.collecting_data = False
         self.make_chart()
-        if self.data_started:
+        self.sta_data = RevCorr.STAData()
+        if self.data_started and self.sta_data is not None:
             RestartDataThread(self, self.sta_data, self.update_data_thread)
         self.collecting_data = True
         self.data_started = True

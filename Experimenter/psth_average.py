@@ -24,13 +24,13 @@ class PSTHPanel(wx.Panel):
     def __init__(self, parent, label, name='psth_panel'):
         super(PSTHPanel, self).__init__(parent, -1, name=name)
         
-        self.collecting_data = True
-        self.connected_to_server = True
+        self.collecting_data = False
+        self.connected_to_server = False
         self.data_started = False
         self.show_errbar_changed = False
         self.showing_errbar = False
         
-        self.psth = TimeHistogram.PSTHAverage()
+        self.psth = None
         self.raw_data = None
 
         self.dpi = 100
@@ -99,6 +99,8 @@ class PSTHPanel(wx.Panel):
             self.update_data_thread = UpdateDataThread(self, self.psth)
         
     def start_data(self):
+        if self.psth is None:
+            self.psth = TimeHistogram.PSTHAverage()
         self.collecting_data = True
         self.connected_to_server = True
     
@@ -108,7 +110,9 @@ class PSTHPanel(wx.Panel):
     def restart_data(self):
         self.collecting_data = False
         self.make_chart()
-        RestartDataThread(self, self.psth, self.update_data_thread)
+        self.psth = TimeHistogram.PSTHAverage()
+        if hasattr(self, 'update_data_thread') and self.psth is not None:
+            RestartDataThread(self, self.psth, self.update_data_thread)
         self.collecting_data = True
     
     def show_errbar(self, checked):
@@ -141,6 +145,8 @@ class UpdateChartThread(threading.Thread):
         threading.Thread.__init__(self)
         if data is None and hasattr(panel, 'data'):
             data = panel.data
+        if panel.psth is None:
+            return
         self.panel = panel
         self.parameter = panel.psth.parameter
         

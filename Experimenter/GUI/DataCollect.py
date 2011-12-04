@@ -96,8 +96,10 @@ class MainFrame(wx.Frame):
         self.menubar = wx.MenuBar()
 
         menu_file = wx.Menu()
-        m_open_file = menu_file.Append(-1, "&Open data\tCtrl-O", "Open plx file")
+        m_open_file = menu_file.Append(-1, "&Open file\tCtrl-O", "Open Plexon PLX file")
         self.Bind(wx.EVT_MENU, self.on_open_file, m_open_file)
+        m_connect_server = menu_file.Append(-1, "&Connect to server\tCtrl-C", "Connect to OmniPlex Server")
+        self.Bind(wx.EVT_MENU, self.on_connect_server, m_connect_server)
         menu_file.AppendSeparator()
         m_expt_data = menu_file.Append(-1, "Save &data\tCtrl-D", "Save data to file")
         self.Bind(wx.EVT_MENU, self.on_save_data, m_expt_data)
@@ -143,7 +145,10 @@ class MainFrame(wx.Frame):
         
     def create_chart_panel(self):
         pass
-
+    
+    def on_connect_server(self, event):
+        self.on_start_data(-1)
+    
     def on_open_file(self, event):
         file_choices = "PLX (*.plx)|*.plx"
         dlg = wx.FileDialog(
