@@ -40,11 +40,11 @@ def run():
             print "unstrobed word:%d t=%f" % (value,timestamp)
 
 if __name__ == "__main__":
-        #run()
-        cProfile.run('run()','PlexFile_profile')
-        p = pstats.Stats('PlexFile_profile')
-        p.sort_stats('cumulative')
-        p.print_stats()
+        run()
+        #cProfile.run('run()','PlexFile_profile')
+        #p = pstats.Stats('PlexFile_profile')
+        #p.sort_stats('cumulative')
+        #p.print_stats()
         
         #print h.heap()
 

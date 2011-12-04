@@ -220,7 +220,7 @@ class PlexFile(object):
                 current_speed = previous_speed * 0.5 + avg_speed * 0.5
                 previous_speed = current_speed
                 estimated_time_left = (end_offset - current_pos)/10**6/current_speed
-                sys.stdout.write("Processing %6.1f/%6.1f MB [% 3d:%02d remaining] current speed:%3.1f MB/s\r" % \
+                sys.stdout.write("Processing %6.1f/%6.1f MB [% 3d:%02d remaining] current speed: %3.1f MB/s\r" % \
                                  (current_pos/10**6,end_offset/10**6,estimated_time_left//60 ,estimated_time_left % 60, current_speed))
                 sys.stdout.flush()
             
@@ -270,7 +270,7 @@ class PlexFile(object):
                     current_speed = previous_speed * 0.5 + avg_speed * 0.5
                     previous_speed = current_speed
                     estimated_time_left = (end_offset - current_pos)/10**6/current_speed
-                    sys.stdout.write("Processing %6.1f/%6.1f MB [% 3d:%02d remaining] current speed:%3.1f MB/s\r" % \
+                    sys.stdout.write("Processing %6.1f/%6.1f MB [% 3d:%02d remaining] current speed: %3.1f MB/s\r" % \
                                      (current_pos/10**6,end_offset/10**6,estimated_time_left//60 ,estimated_time_left % 60, current_speed))
                     sys.stdout.flush()
         except ValueError:
