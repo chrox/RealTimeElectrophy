@@ -5,8 +5,7 @@
 ### Utilities for Plexon data collection
 ### Written by Huangxin
 ###########################################################
-import time
-from operator import add
+
 import numpy as np
 import logging
 logger = logging.getLogger('SpikeRecord.Plexon')
@@ -78,6 +77,7 @@ class PlexUtil(object):
     def GetEventsNum(self, data):
         return len(data['timestamp'])
     
+    #@profile
     def GetExtEvents(self, data, event, bit=None, online=True):
         """
         GetExtEvents(data) -> extevents
@@ -133,23 +133,36 @@ class PlexUtil(object):
             timestamp_list = []
             infinity = float('inf')
             WORD_BITS = 32
-            unstrobed_bits = [timestamp[channel == bit + 1 ] for bit in range(WORD_BITS)]
-            bits_length = [len(unstrobed_bits[bit]) for bit in range(WORD_BITS)]
-            #print [len(unstrobed_bits[bit]) for bit in range(WORD_BITS)]
-            bits_num = sum([len(unstrobed_bits[bit]) for bit in range(WORD_BITS)])
+            # add an additional infinity in array end so that index of unstrobed_bits will not get out of range
+            unstrobed_bits_list = [timestamp[channel == bit+1] for bit in xrange(WORD_BITS)]
+            bits_length = [len(unstrobed_bits_list[bit]) for bit in xrange(WORD_BITS)] # actural bits length
+            max_length = max(bits_length)
+            bits_num = sum(bits_length)
+            # make 2d array of timestamp 
+            unstrobed_bits = np.array([np.append(unstrobed_bits_list[bit], [infinity]*(max_length-bits_length[bit]+1)) \
+                                       for bit in xrange(WORD_BITS)])
             bits_indices = np.array([0]*WORD_BITS)
-            bit_oldest_timestamps = np.array([unstrobed_bits[bit][index] if index<bits_length[bit] else infinity for bit,index in enumerate(bits_indices)])
-            
-            while bits_indices.sum() < bits_num:
-                timestamp = bit_oldest_timestamps.min()
-                word_bits = np.where(bit_oldest_timestamps==timestamp)[0]
-                word = np.left_shift(1,word_bits).sum()
-                
-                word_list.append(word)
-                timestamp_list.append(timestamp)
-                
+            bit_oldest_timestamps = np.array([unstrobed_bits[bit][index] if index<bits_length[bit] \
+                                              else infinity for bit,index in enumerate(bits_indices)])
+            # synonyms
+            where = np.where
+            left_shift = np.left_shift
+            word_append = word_list.append
+            timestamp_append = timestamp_list.append
+            indices_sum = bits_indices.sum
+            timestamps_min = bit_oldest_timestamps.min
+            while indices_sum() < bits_num:
+                timestamp = timestamps_min()
+                word_bits = where(bit_oldest_timestamps==timestamp)[0]
+                # construct word from bits
+                word = left_shift(1,word_bits).sum()
+                # append word and timestamp
+                word_append(word)
+                timestamp_append(timestamp)
+                # increment the indices of previous word bits
                 bits_indices[word_bits] += 1
-                bit_oldest_timestamps[word_bits] = [unstrobed_bits[bit][bits_indices[bit]] if bits_indices[bit]<bits_length[bit] else infinity for bit in word_bits]
+                # update oldest timestamp of previous word bits
+                bit_oldest_timestamps[word_bits] = unstrobed_bits[word_bits,bits_indices[word_bits]]
             
             if len(timestamp_list) and self.last_timestamp == timestamp_list[0]:
                 word_list[0] += self.last_word
