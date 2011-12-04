@@ -75,6 +75,9 @@ class PlexUtil(object):
 
         return np.copy(data['timestamp'][unit_spikes])
     
+    def GetEventsNum(self, data):
+        return len(data['timestamp'])
+    
     def GetExtEvents(self, data, event, bit=None, online=True):
         """
         GetExtEvents(data) -> extevents

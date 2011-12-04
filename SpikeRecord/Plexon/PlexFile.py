@@ -7,6 +7,8 @@
 ###########################################################
 
 from __future__ import division
+import sys
+import time
 import numpy as np
 import logging
 logger = logging.getLogger('SpikeRecord.Plexon')
@@ -78,7 +80,6 @@ class  PL_FileHeader(Structure):
                 # channels above channel 211 do not have sample counts.
                 ('EVCounts', ctypes.c_int * 512)]          # number of timestamps[event_number]
 
-
 class PL_ChanHeader(Structure):
     _fields_ = [('Name', ctypes.c_char * 32),       # Name given to the DSP channel
                 ('SIGName', ctypes.c_char * 32),    # Name given to the corresponding SIG channel
@@ -145,10 +146,14 @@ class PlexFile(object):
         self.file = open(filename, 'rb')
         if not self.file:
             logger.error("Could not open file " + filename)
-        self.file_header = PL_FileHeader()
-        self.file.readinto(self.file_header)
+        self.file_header = self.get_header(PL_FileHeader)
         if self.file_header.Version != PLX_VERSION:
-            raise RuntimeError("Currently PLX file version other than %d is not supported." %(PLX_VERSION))
+            raise RuntimeError("PLX file version other than %d is not supported. "
+                               "The version of this file is %d." %(PLX_VERSION,self.file_header.Version))
+        
+        self.wf_evtcounts = sum([self.file_header.WFCounts[i][j] for i in xrange(5) for j in xrange(130)])
+        self.ext_evtcounts = sum([self.file_header.EVCounts[i] for i in xrange(300)])
+
         
         self.data_header_offset = ctypes.sizeof(PL_FileHeader)
         self.data_offset = self.data_header_offset + \
@@ -161,37 +166,115 @@ class PlexFile(object):
     def __exit__(self, type, value, traceback):
         if self.file:
             self.file.close()
-        
+            
+    def get_header(self,Header):
+        header = Header()
+        self.file.readinto(header)
+        return header
+    
     def read_data_header(self):
-        def get_header(Header):
-            header = Header()
-            self.file.readinto(header)
-            return header
-        
         self.file.seek(self.data_header_offset)
-        self.chan_headers = [get_header(PL_ChanHeader) for _i in range(self.file_header.NumDSPChannels)]
-        self.event_headers = [get_header(PL_EventHeader) for _i in range(self.file_header.NumEventChannels)]
-        self.slow_headers = [get_header(PL_SlowChannelHeader) for _i in range(self.file_header.NumSlowChannels)]
+        self.chan_headers = [self.get_header(PL_ChanHeader) for _i in range(self.file_header.NumDSPChannels)]
+        self.event_headers = [self.get_header(PL_EventHeader) for _i in range(self.file_header.NumEventChannels)]
+        self.slow_headers = [self.get_header(PL_SlowChannelHeader) for _i in range(self.file_header.NumSlowChannels)]
         
     def read_timestamps(self):
-        event_type = []
-        event_channel = []
-        event_unit = []
-        event_timestamp = []
-        ad_frequency = self.file_header.ADFrequency
-        self.file.seek(self.data_offset)
-        db = PL_DataBlockHeader()
-        while(self.file.readinto(db)):
-            if (db.Type == PL_SingleWFType and db.Unit > 0) or db.Type != PL_SingleWFType:
-                event_type.append(db.Type)
-                event_channel.append(db.Channel)
-                event_unit.append(db.Unit)
-                event_timestamp.append(db.TimeStamp/ad_frequency) 
-
-            waveform_size = db.NumberOfWaveforms * db.NumberOfWordsInWaveform *2
-            self.file.seek(waveform_size, 1)        # skip waveform block
+        evtcounts = self.wf_evtcounts + self.ext_evtcounts
         
+        event_type = np.zeros(evtcounts,dtype=np.uint16)
+        event_channel = np.zeros(evtcounts,dtype=np.uint16)
+        event_unit = np.zeros(evtcounts,dtype=np.uint16)
+        event_timestamp = np.zeros(evtcounts,dtype=np.float32)
+        index = 0
+        
+        ad_frequency = self.file_header.ADFrequency
+        db = PL_DataBlockHeader()
+        
+        # use synonyms to avoid method lookup in while loop
+        seek = self.file.seek
+        tell = self.file.tell
+        readinto = self.file.readinto
+        
+        # timing file processing
+        start_time = time.time()
+        previous_speed = 20.0
+        seek(0,2)
+        end_offset = tell()
+        nbs = 0
+        
+        seek(self.data_offset)
+        while(readinto(db)):
+            nbs += 1
+            if db.Type == PL_SingleWFType or db.Type == PL_ExtEventType:
+                event_type[index] = db.Type
+                event_channel[index] = db.Channel
+                event_unit[index] = db.Unit
+                event_timestamp[index] = db.TimeStamp/ad_frequency
+                index += 1
+            waveform_size = db.NumberOfWaveforms * db.NumberOfWordsInWaveform *2
+            seek(waveform_size, 1)      # skip waveform block
+            
+            if nbs % 30000 == 0:        # timing file processing
+                current_pos = tell()
+                avg_speed = (current_pos - self.data_offset)/10**6/(time.time() - start_time)
+                current_speed = previous_speed * 0.5 + avg_speed * 0.5
+                previous_speed = current_speed
+                estimated_time_left = (end_offset - current_pos)/10**6/current_speed
+                sys.stdout.write("Processing %6.1f/%6.1f MB [% 3d:%02d remaining] current speed:%3.1f MB/s\r" % \
+                                 (current_pos/10**6,end_offset/10**6,estimated_time_left//60 ,estimated_time_left % 60, current_speed))
+                sys.stdout.flush()
+            
         return {'type':event_type, 'channel':event_channel, 'unit':event_unit, 'timestamp':event_timestamp}
+    
+    def map_timestamps(self):
+        import mmap
+        
+        evtcounts = self.wf_evtcounts + self.ext_evtcounts
+        
+        event_type = np.zeros(evtcounts,dtype=np.uint16)
+        event_channel = np.zeros(evtcounts,dtype=np.uint16)
+        event_unit = np.zeros(evtcounts,dtype=np.uint16)
+        event_timestamp = np.zeros(evtcounts,dtype=np.float32)
+        index = 0
+        
+        ad_frequency = self.file_header.ADFrequency
+        
+        fileno = self.file.fileno()
+        mfile = mmap.mmap(fileno,0,access=mmap.ACCESS_READ)
+        #mfile = mmap.mmap(fileno,0,access=mmap.ACCESS_WRITE|mmap.ACCESS_READ,prot=mmap.PROT_READ|mmap.PROT_WRITE)
+
+        # timing file processing
+        start_time = time.time()
+        previous_speed = 20.0
+        end_offset = len(mfile)
+        nbs = 0
+        
+        current_pos = self.data_offset
+        data_offset = self.data_offset
+        db_size = ctypes.sizeof(PL_DataBlockHeader)
+        try:
+            while(True):
+                db = PL_DataBlockHeader.from_buffer_copy(mfile,current_pos)
+                nbs += 1
+                if db.Type == PL_SingleWFType or db.Type == PL_ExtEventType:
+                    event_type[index] = db.Type
+                    event_channel[index] = db.Channel
+                    event_unit[index] = db.Unit
+                    event_timestamp[index] = db.TimeStamp/ad_frequency
+                    index += 1
+                waveform_size = db.NumberOfWaveforms * db.NumberOfWordsInWaveform *2
+                current_pos += db_size + waveform_size      # skip waveform block
+                
+                if nbs % 30000 == 0:        # timing file processing
+                    avg_speed = (current_pos - data_offset)/10**6/(time.time() - start_time)
+                    current_speed = previous_speed * 0.5 + avg_speed * 0.5
+                    previous_speed = current_speed
+                    estimated_time_left = (end_offset - current_pos)/10**6/current_speed
+                    sys.stdout.write("Processing %6.1f/%6.1f MB [% 3d:%02d remaining] current speed:%3.1f MB/s\r" % \
+                                     (current_pos/10**6,end_offset/10**6,estimated_time_left//60 ,estimated_time_left % 60, current_speed))
+                    sys.stdout.flush()
+        except ValueError:
+            return {'type':event_type, 'channel':event_channel, 'unit':event_unit, 'timestamp':event_timestamp}
     
     def GetTimeStampArrays(self):
         """
@@ -205,13 +288,10 @@ class PlexFile(object):
             Values are four 1-D arrays of the timestamp structure fields. The array length is the actual transferred TimeStamps.
             'timestamp' is converted to seconds.
         """
-        data = self.read_timestamps()
-        EventTypeArray      = np.array(data['type'],dtype=np.uint16)
-        EventChannelArray   = np.array(data['channel'],dtype=np.uint16)
-        EventUnitArray      = np.array(data['unit'],dtype=np.uint16)
-        EventTimestampArray = np.array(data['timestamp'],dtype=np.float32)
+        data = self.map_timestamps()
+        #data = self.read_timestamps()
         
-        return {'type':EventTypeArray, 'channel':EventChannelArray, 'unit':EventUnitArray, 'timestamp':EventTimestampArray}
+        return data
 
     def GetNullTimeStamp(self):
         data = {}

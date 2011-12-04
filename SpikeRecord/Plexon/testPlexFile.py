@@ -5,14 +5,15 @@ from PlexFile import PlexFile
 from PlexUtil import PlexUtil
 
 def run():
-    with PlexFile('test.plx') as pf:
+    with PlexFile('../../data/sparse-noise.plx') as pf:
         pu = PlexUtil()
         #print "reading from file"
         data = pf.GetTimeStampArrays()
+        print "found %d events." %pu.GetEventsNum(data)
         # get spike trains altogether
         spike_trains = pu.GetSpikeTrains(data)
         for channel,channel_trains in spike_trains.iteritems():
-            print '\nfound spike trains of channel:%c' % channel
+            print 'found spike trains of channel:%c' % channel
             #print '  ' + ', '.join(str(spike) for unit_train in channel_trains.itervalues() for spike in unit_train)
         # get spike trian of specific channel and unit
         spike_info = pu.GetSpikesInfo(data)
@@ -39,11 +40,11 @@ def run():
             print "unstrobed word:%d t=%f" % (value,timestamp)
 
 if __name__ == "__main__":
-        run()
-        #cProfile.run('run()','PlexFile_profile')
-        #p = pstats.Stats('PlexFile_profile')
-        #p.sort_stats('cumulative')
-        #p.print_stats()
+        #run()
+        cProfile.run('run()','PlexFile_profile')
+        p = pstats.Stats('PlexFile_profile')
+        p.sort_stats('cumulative')
+        p.print_stats()
         
         #print h.heap()
 
