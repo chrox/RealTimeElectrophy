@@ -16,7 +16,7 @@ from matplotlib import pylab
 
 from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread
 from Experimenter.GUI.DataCollect import MainFrame,adjust_spines
-from Experimenter.TimeHistogram import TimeHistogram
+from Experimenter.SpikeData import TimeHistogram
 
 class PSTHPanel(wx.Panel):
     """ Bar charts of spiking latency and instant firing rate.

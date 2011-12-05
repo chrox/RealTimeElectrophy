@@ -156,13 +156,14 @@ class PlexUtil(object):
                 word_bits = where(bit_oldest_timestamps==timestamp)[0]
                 # construct word from bits
                 word = left_shift(1,word_bits).sum()
-                # append word and timestamp
-                word_append(word)
-                timestamp_append(timestamp)
                 # increment the indices of previous word bits
                 bits_indices[word_bits] += 1
                 # update oldest timestamp of previous word bits
                 bit_oldest_timestamps[word_bits] = unstrobed_bits[word_bits,bits_indices[word_bits]]
+                
+                # append word and timestamp
+                word_append(word)
+                timestamp_append(timestamp)
             
             if len(timestamp_list) and self.last_timestamp == timestamp_list[0]:
                 word_list[0] += self.last_word

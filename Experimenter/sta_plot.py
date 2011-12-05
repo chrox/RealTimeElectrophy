@@ -11,10 +11,10 @@ matplotlib.use('TkAgg')
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 
-from Experimenter.Data.Fitting import GaussFit,GaborFit
+from Experimenter.DataProcessing.Fitting import GaussFit,GaborFit
 from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread
 from Experimenter.GUI.DataCollect import MainFrame,adjust_spines
-from Experimenter.ReverseCorrelation import RevCorr
+from Experimenter.SpikeData import RevCorr
 
 class STAPanel(wx.Panel):
     """ Receptive field plot.

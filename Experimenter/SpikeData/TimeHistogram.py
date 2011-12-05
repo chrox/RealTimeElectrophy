@@ -7,9 +7,7 @@
 import logging
 import numpy as np
 import scipy.ndimage as nd
-from SpikeRecord.Plexon.PlexClient import PlexClient
-from SpikeRecord.Plexon.PlexFile import PlexFile
-from SpikeRecord.Plexon.PlexUtil import PlexUtil
+from PlexSpikeData import PlexSpikeData
 
 ONSET_BIT = 12
 OFFSET_BIT = 13
@@ -17,27 +15,7 @@ ORI_MASK = 0xF<<0
 SPF_MASK = 0xF<<4
 PHA_MASK = 0xF<<8
 
-class PSTHAverage:
-    def __init__(self, file=None):
-        self.read_from_server = True
-        self.read_from_file = False
-        self.file_has_read = False
-        
-        if file is None:
-            self.pc = PlexClient()
-            self.pc.InitClient()
-        else:
-            self.read_from_server = False
-            self.read_from_file = True
-            self.pf = PlexFile(file)
-            
-        self.pu = PlexUtil()
-        
-        self.renew_data()
-
-    def __close__(self):
-        self.pc.CloseClient()
-        
+class PSTHAverage(PlexSpikeData):
     def renew_data(self):
         self.param_indices = np.empty(0,dtype=np.int16)
         self.timestamps = np.empty(0)
@@ -51,15 +29,9 @@ class PSTHAverage:
         return self.histogram_data
     
     def _update_data(self):
-        if self.read_from_server:
-            data = self.pc.GetTimeStampArrays()
-        elif self.read_from_file and not self.file_has_read:
-            data = self.pf.GetTimeStampArrays()
-            self.file_has_read = True
-        elif self.file_has_read:
-            data = self.pf.GetNullTimeStamp()
+        super(PSTHAverage, self)._update_data()
             
-        new_triggers = self.pu.GetExtEvents(data, event='unstrobed_word')
+        new_triggers = self.pu.GetExtEvents(self.data, event='unstrobed_word', online=self.online)
         trigger_values = new_triggers['value']
         
         ori_index = trigger_values & ORI_MASK
@@ -80,7 +52,7 @@ class PSTHAverage:
         self.param_indices = np.append(self.param_indices, param_indices)
         self.timestamps = np.append(self.timestamps, new_triggers['timestamp'])
         
-        new_spike_trains = self.pu.GetSpikeTrains(data)
+        new_spike_trains = self.pu.GetSpikeTrains(self.data)
         for channel,channel_trains in new_spike_trains.iteritems():
             if channel not in self.spike_trains:
                 self.spike_trains[channel] = channel_trains
