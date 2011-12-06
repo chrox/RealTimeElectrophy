@@ -6,9 +6,11 @@
 # See LICENSE.TXT that came with this file.
 
 import os,sys
+import numpy
 from distutils.core import setup,Extension
 
 build_DT = False
+build_unstrobed_word = True
 
 def fullsplit(path, result=None):
     """
@@ -56,9 +58,20 @@ if build_DT and sys.platform == 'win32':
 else:
     package_data['StimControl.LightStim'].append('DT.pyd')
 
+package_dir['SpikeRecord.Plexon'] = os.path.join('SpikeRecord','Plexon')
+package_data['SpikeRecord.Plexon'] = ['_unstrobed_word.c']
+if build_unstrobed_word:
+    numpy_include_dir = numpy.get_include()
+    ext_modules.append(Extension(name='SpikeRecord.Plexon._unstrobed_word',
+                                 sources=['SpikeRecord/Plexon/_unstrobed_word.c'],
+                                 include_dirs=[numpy_include_dir],
+                                 ))
+elif sys.platform == 'win32':
+    package_data['SpikeRecord.Plexon'].append('_unstrobed_word.pyd')
+
 setup(
     name = "RealTimeElectrophy",
-    version = "0.6.6",
+    version = "0.6.7",
     author = "Huang Xin",
     author_email = "hwangxin@hsc.pku.edu.cn",
     url = "http://vislab.hsc.pku.edu.cn/code/RealTimeElectrophy",
