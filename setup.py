@@ -10,7 +10,7 @@ import numpy
 from distutils.core import setup,Extension
 
 build_DT = False
-build_unstrobed_word = True
+build_unstrobed_word = False
 
 def fullsplit(path, result=None):
     """
@@ -66,7 +66,8 @@ if build_unstrobed_word:
                                  sources=['SpikeRecord/Plexon/_unstrobed_word.c'],
                                  include_dirs=[numpy_include_dir],
                                  ))
-elif sys.platform == 'win32':
+#elif sys.platform == 'win32':
+else:
     package_data['SpikeRecord.Plexon'].append('_unstrobed_word.pyd')
 
 setup(
