@@ -1,8 +1,10 @@
 #!/usr/bin/pyhton
 #from guppy import hpy; h = hpy()
-import cProfile,pstats
+#import cProfile,pstats
+import numpy as np
+from line_profiler import LineProfiler
 from PlexFile import PlexFile
-from PlexUtil import PlexUtil
+from PlexUtil import PlexUtil,reconstruct_word
 
 def run():
     with PlexFile('../../data/sparse-noise.plx') as pf:
@@ -35,14 +37,24 @@ def run():
             print "unstrobed bit 3 t=%f" % timestamp
         
         unstrobed_word = pu.GetExtEvents(data, event='unstrobed_word', online=False)
-        print "found %d unstrobed word events. Last 5 events are:" %(len(unstrobed_word['value']))
-        for value,timestamp in zip(unstrobed_word['value'][-5:],unstrobed_word['timestamp'][-5:]) :
-            print "unstrobed word:%d t=%f" % (value,timestamp)
+        print "found %d unstrobed word events in which 10 events are:" %(len(unstrobed_word['value']))
+        indices = np.arange(0,len(unstrobed_word['value']),len(unstrobed_word['value'])/10)
+        for value,timestamp in zip(unstrobed_word['value'][indices],unstrobed_word['timestamp'][indices]) :
+            binary_value = bin(value)
+            print "unstrobed word:%s t=%f" % (binary_value,timestamp)
 
 if __name__ == "__main__":
-        run()
+        #run()
+        profile = LineProfiler()
+        profile.add_function(run)
+        profile.add_function(PlexUtil.GetExtEvents)
+        profile.add_function(reconstruct_word)
+        profile.run('run()')
+        profile.print_stats()
+        profile.dump_stats("testPlexFile_profile.lprof")
+        
         #cProfile.run('run()','PlexFile_profile')
-        #p = pstats.Stats('PlexFile_profile')
+        #p = pstats.Stats('testPlexFile_profile.lprof')
         #p.sort_stats('cumulative')
         #p.print_stats()
         

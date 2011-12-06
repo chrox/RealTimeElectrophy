@@ -11,6 +11,45 @@ import logging
 logger = logging.getLogger('SpikeRecord.Plexon')
 from SpikeRecord import Plexon
 
+def reconstruct_word_in_python(WORD_BITS,bits_num,unstrobed_bits,words_buffer,timestamps_buffer):
+    bits_indices = np.array([0]*WORD_BITS)
+    oldest_timestamps = np.array([unstrobed_bits[bit][0] for bit in xrange(WORD_BITS)])
+    # synonyms
+    bits_num = bits_num
+    unstrobed_bits = unstrobed_bits
+    words_buffer = words_buffer
+    timestamps_buffer = timestamps_buffer
+    
+    where = np.where
+    left_shift = np.left_shift
+    timestamps_min = oldest_timestamps.min
+    
+    words_count = 0
+    indices_sum = 0
+    while indices_sum < bits_num:
+        timestamp = timestamps_min()
+        word_bits = where(oldest_timestamps==timestamp)[0]
+        # construct word from bits
+        word = left_shift(1,word_bits).sum()
+        # increment the indices of previous word bits
+        bits_indices[word_bits] += 1
+        # increment indices sum so that the loop will run until all bits are processed
+        indices_sum += word_bits.size
+        # update oldest timestamp of previous word bits
+        oldest_timestamps[word_bits] = unstrobed_bits[word_bits,bits_indices[word_bits]]
+        # fill word and timestamp in buffers
+        words_buffer[words_count] = word
+        timestamps_buffer[words_count] = timestamp
+        words_count += 1
+    return words_count
+
+try:
+    import _unstrobed_word
+    reconstruct_word = _unstrobed_word.reconstruct_word_32
+except ImportError,ValueError:
+    reconstruct_word = reconstruct_word_in_python
+    logger.info("Cannot import C version of reconstruct_word. Building a C version is highly recommended. We will use Python version this time.")
+
 class PlexUtil(object):
     """
     Utilities for data collection
@@ -129,8 +168,6 @@ class PlexUtil(object):
             return timestamp[channel == bit + 1 ]
         # reconstruct unstrobed word from unstrobed bits
         if event == 'unstrobed_word':
-            word_list = []
-            timestamp_list = []
             infinity = float('inf')
             WORD_BITS = 32
             # add an additional infinity in array end so that index of unstrobed_bits will not get out of range
@@ -140,44 +177,28 @@ class PlexUtil(object):
             bits_num = sum(bits_length)
             # make 2d array of timestamp 
             unstrobed_bits = np.array([np.append(unstrobed_bits_list[bit], [infinity]*(max_length-bits_length[bit]+1)) \
-                                       for bit in xrange(WORD_BITS)])
-            bits_indices = np.array([0]*WORD_BITS)
-            bit_oldest_timestamps = np.array([unstrobed_bits[bit][index] if index<bits_length[bit] \
-                                              else infinity for bit,index in enumerate(bits_indices)])
-            # synonyms
-            where = np.where
-            left_shift = np.left_shift
-            word_append = word_list.append
-            timestamp_append = timestamp_list.append
-            indices_sum = bits_indices.sum
-            timestamps_min = bit_oldest_timestamps.min
-            while indices_sum() < bits_num:
-                timestamp = timestamps_min()
-                word_bits = where(bit_oldest_timestamps==timestamp)[0]
-                # construct word from bits
-                word = left_shift(1,word_bits).sum()
-                # increment the indices of previous word bits
-                bits_indices[word_bits] += 1
-                # update oldest timestamp of previous word bits
-                bit_oldest_timestamps[word_bits] = unstrobed_bits[word_bits,bits_indices[word_bits]]
-                
-                # append word and timestamp
-                word_append(word)
-                timestamp_append(timestamp)
+                                       for bit in xrange(WORD_BITS)],dtype=np.float32)
+            # create numpy buffer to hold words and timestamps
+            words_buffer = np.empty(bits_num,dtype=np.int32)
+            timestamps_buffer = np.empty(bits_num,dtype=np.float32)
             
-            if len(timestamp_list) and self.last_timestamp == timestamp_list[0]:
-                word_list[0] += self.last_word
+            words_count = reconstruct_word(WORD_BITS,bits_num,unstrobed_bits,words_buffer,timestamps_buffer)
+            
+            words = words_buffer[:words_count]
+            timestamps = timestamps_buffer[:words_count]
+            if len(timestamps) and self.last_timestamp == timestamps[0]:
+                words[0] += self.last_word
             elif self.last_word is not None:
-                word_list.insert(0,self.last_word)
-                timestamp_list.insert(0,self.last_timestamp)
-                if len(timestamp_list)==1: 
+                words = np.append(self.last_word, words)
+                timestamps = np.append(self.last_timestamp, timestamps)
+                if len(timestamps)==1: 
                     self.last_word = None
                     self.last_timestamp = None
-                    return {'value': np.array(word_list), 'timestamp': np.array(timestamp_list)}
+                    return {'value': np.array(words), 'timestamp': np.array(timestamps)}
             if online:      # in offline mode all timestamps are read at once
-                if len(timestamp_list):
-                    self.last_word = word_list[-1]
-                    self.last_timestamp = timestamp_list[-1]
-                return {'value': np.array(word_list[:-1]), 'timestamp': np.array(timestamp_list[:-1])}
+                if len(timestamps):
+                    self.last_word = words[-1]
+                    self.last_timestamp = timestamps[-1]
+                return {'value': np.array(words[:-1]), 'timestamp': np.array(timestamps[:-1])}
             else:
-                return {'value': np.array(word_list), 'timestamp': np.array(timestamp_list)}
+                return {'value': np.array(words), 'timestamp': np.array(timestamps)}

@@ -220,10 +220,16 @@ class PlexFile(object):
                 current_speed = previous_speed * 0.5 + avg_speed * 0.5
                 previous_speed = current_speed
                 estimated_time_left = (end_offset - current_pos)/10**6/current_speed
-                sys.stdout.write("Processing %6.1f/%6.1f MB [% 3d:%02d remaining] current speed: %3.1f MB/s\r" % \
-                                 (current_pos/10**6,end_offset/10**6,estimated_time_left//60 ,estimated_time_left % 60, current_speed))
+                sys.stdout.write("Processing %6.1f/%6.1f MB [% 3d:%02d%s remaining ] current speed: %3.1f MB/s\r" % \
+                                     (current_pos/10**6, end_offset/10**6, estimated_time_left//60, \
+                                      estimated_time_left%60, str('%.2f' % (estimated_time_left%1))[1:], current_speed))
                 sys.stdout.flush()
-            
+        
+        elapsed_time = time.time() - start_time
+        sys.stdout.write("Processing %6.1f/%6.1f MB [% 3d:%02d%s  elapsed  ] average speed: %3.1f MB/s\r\r" % \
+                        (end_offset/10**6, end_offset/10**6, elapsed_time//60 ,\
+                         elapsed_time%60, str('%.2f' % (elapsed_time%1))[1:], current_speed))
+        sys.stdout.flush()
         return {'type':event_type, 'channel':event_channel, 'unit':event_unit, 'timestamp':event_timestamp}
     
     def map_timestamps(self):
@@ -246,6 +252,7 @@ class PlexFile(object):
         # timing file processing
         start_time = time.time()
         previous_speed = 20.0
+        current_speed = previous_speed
         end_offset = len(mfile)
         nbs = 0
         
@@ -270,10 +277,16 @@ class PlexFile(object):
                     current_speed = previous_speed * 0.5 + avg_speed * 0.5
                     previous_speed = current_speed
                     estimated_time_left = (end_offset - current_pos)/10**6/current_speed
-                    sys.stdout.write("Processing %6.1f/%6.1f MB [% 3d:%02d remaining] current speed: %3.1f MB/s\r" % \
-                                     (current_pos/10**6,end_offset/10**6,estimated_time_left//60 ,estimated_time_left % 60, current_speed))
+                    sys.stdout.write("Processing %6.1f/%6.1f MB [% 3d:%02d%s remaining ] current speed: %3.1f MB/s\r" % \
+                                     (current_pos/10**6, end_offset/10**6, estimated_time_left//60, \
+                                      estimated_time_left%60, str('%.2f' % (estimated_time_left%1))[1:], current_speed))
                     sys.stdout.flush()
         except ValueError:
+            elapsed_time = time.time() - start_time
+            sys.stdout.write("Processed  %6.1f/%6.1f MB [% 3d:%02d%s  elapsed  ] average speed: %3.1f MB/s\r\r" % \
+                            (end_offset/10**6, end_offset/10**6, elapsed_time//60 ,\
+                             elapsed_time%60, str('%.2f' % (elapsed_time%1))[1:], current_speed))
+            sys.stdout.flush()
             return {'type':event_type, 'channel':event_channel, 'unit':event_unit, 'timestamp':event_timestamp}
     
     def GetTimeStampArrays(self):
