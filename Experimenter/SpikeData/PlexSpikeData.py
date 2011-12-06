@@ -15,6 +15,9 @@ class PlexSpikeData(object):
         self.read_from_file = False
         self.file_has_read = False
         
+        self.pc = None
+        self.pf = None
+        
         if file is None:
             self.pc = PlexClient()
             self.pc.InitClient()
@@ -22,13 +25,12 @@ class PlexSpikeData(object):
             self.read_from_server = False
             self.read_from_file = True
             self.pf = PlexFile(file)
-            
         self.pu = PlexUtil()
-        
         self.renew_data()
 
     def __del__(self):
-        self.pc.CloseClient()
+        if self.pc is not None:
+            self.pc.CloseClient()
         
     def renew_data(self):
         pass
