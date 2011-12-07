@@ -5,19 +5,17 @@
 # See LICENSE.TXT that came with this file.
 
 from __future__ import division
-from StimControl.LightStim.SweepTable import StaticParams
+from StimControl.LightStim.Core import DefaultScreen
+from StimControl.LightStim.SweepSeque import dictattr
 from StimControl.LightStim.FrameControl import FrameSweep
 from StimControl.LightStim.ManGrating import ManGrating
 # Manual Grating experiment parameters, all must be scalars
 
-p = StaticParams()
-# grating width (deg)
-p.widthDeg = 20
-# grating height (deg)
-p.heightDeg = 20
+DefaultScreen(['control','left','right'])
+
+p = dictattr()
 # mask, one of:  None, 'gaussian', or 'circle'
-p.mask = None
-p.maskDiameterDeg = 5
+p.mask = 'circle'
 p.maskSizeStepDeg = 0.5
 # initial grating phase
 p.phase0 = 0
@@ -29,10 +27,14 @@ p.contrast = 1
 p.bgbrightness = 0.5
 # antialiase the bar?
 p.antialiase = True
-# rate of change of size during buttonpress (deg/sec)
-p.sizerateDegSec = 25
-# rate of change of orientation during mouse button press (deg/sec)
-p.orirateDegSec = 18
+# flash the grating?
+p.flash = False
+# duration of each on period (sec)
+p.flashduration = 0.5
+# duration of each off period (sec)
+p.flashinterval = 0.3
+# factor to chage bar width and height by left/right/up/down key
+p.sizemultiplier = 1.02
 # factor to change temporal freq by on up/down
 p.tfreqmultiplier = 1.01
 # factor to change spatial freq by on left/right
@@ -40,7 +42,7 @@ p.sfreqmultiplier = 1.01
 # factor to change contrast by on +/-
 p.contrastmultiplier = 1.005
 # orientation step size to snap to when scrolling mouse wheel (deg)
-p.snapDeg = 18
+p.snapDeg = 12
 
 stimulus_control = ManGrating(disp_info=True, params=p, viewport='control')
 stimulus_left = ManGrating(disp_info=False, params=p, viewport='left')

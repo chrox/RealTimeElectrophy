@@ -15,7 +15,8 @@ from VisionEgg.Core import FixationSpot
 
 from Core import Stimulus
 from LightUtil import TimeFormat
-from SweepController import SweepTableStimulusController,SaveParamsController,DTSweepTableController
+from SweepSeque import dictattr
+from SweepController import SweepSequeStimulusController,SaveParamsController,DTSweepSequeController
 from CheckBoard import CheckBoard
 
 
@@ -31,14 +32,14 @@ class RFModel(object):
         else:
             return min(0,self.gabor_func(xpos,ypos)) 
 
-class WhiteNoiseSweepStampController(DTSweepTableController):
+class WhiteNoiseSweepStampController(DTSweepSequeController):
     """Digital output for triggering and frame timing verification 
     """
     def __init__(self,*args,**kwargs):
         super(WhiteNoiseSweepStampController, self).__init__(*args,**kwargs)
     def during_go_eval(self):
-        index = self.next_index()
-        if index == None: return
+        param = self.next_param()
+        if param == None: return
         """ 
             16-bits stimuli representation code will be posted to DT port
                 001 1 111111 111111
@@ -47,23 +48,24 @@ class WhiteNoiseSweepStampController(DTSweepTableController):
                  |  |-----------------contrast
                  |--------------------reserved 
         """
-        postval = (1<<13) + (self.st.contrast[index]<<12) + (self.st.posindex[index][1]<<6) + self.st.posindex[index][0]
+        x_index, y_index, contrast = param
+        postval = (1<<13) + (contrast<<12) + (y_index<<6) + x_index
         self.post_stamp(postval)
         
-class TargetController(SweepTableStimulusController):
+class TargetController(SweepSequeStimulusController):
     """Target noise in the white noise stimulus"""
     def __init__(self,*args,**kwargs):
         super(TargetController, self).__init__(*args,**kwargs)
         self.tsp = self.stimulus.tsp
     def during_go_eval(self):
-        index = self.next_index()
+        param = self.next_param()
         """Whether draw the target""" 
-        if index == None:
+        if param == None:
             self.tsp.on = False
             return
         else:
             self.tsp.on = True
-        """Update target position, given sweep table index index"""
+        """Update target position, given sweep Seque index index"""
         """
         grid index diagram posindex
              ___________
@@ -74,45 +76,47 @@ class TargetController(SweepTableStimulusController):
             |0,2|1,2|2,2|
             |___|___|___|
         """
-        xposdeg = self.stimulus.xorigDeg - self.stimulus.gridsize/2 + \
-                    self.st.posindex[index][1]*self.stimulus.gridcell[0]+self.stimulus.barsize[0]/2
-        yposdeg = self.stimulus.yorigDeg + self.stimulus.gridsize/2 - \
-                    self.st.posindex[index][0]*self.stimulus.gridcell[1]-self.stimulus.barsize[1]/2
-        """Update target contrast, given sweep table index index"""
-        if self.st.contrast[index] == 0:
+        x_index, y_index, contrast = param
+        xposdeg = self.stimulus.parameters.xorigDeg - self.stimulus.parameters.gridsize/2 + \
+                    y_index*self.stimulus.gridcell[0]+self.stimulus.barsize[0]/2
+        yposdeg = self.stimulus.parameters.yorigDeg + self.stimulus.parameters.gridsize/2 - \
+                    x_index*self.stimulus.gridcell[1]-self.stimulus.barsize[1]/2
+        """Update target contrast, given sweep Seque index index"""
+        if contrast == 0:
             self.tsp.color = (0.0, 0.0, 0.0, 1.0)
         else:
             self.tsp.color = (1.0, 1.0, 1.0, 1.0)
         self.tsp.position = (self.viewport.xorig + self.viewport.deg2pix(xposdeg),
                              self.viewport.yorig + self.viewport.deg2pix(yposdeg))
 
-class CheckBoardController(SweepTableStimulusController):
+class CheckBoardController(SweepSequeStimulusController):
     def __init__(self,*args,**kwargs):
         super(CheckBoardController, self).__init__(*args,**kwargs)
         self.cbp = self.stimulus.cbp
         self.receptive_field = RFModel()
     def during_go_eval(self): 
         """update checkboard color index"""
-        index = self.next_index()
-        if index == None: return
-        xindex, yindex = self.st.posindex[index][0], self.st.posindex[index][1]
-        m, n = self.static.griddim[0], self.static.griddim[1]
-        xpos = xindex/m*8 - 4
-        ypos = 4 - yindex/n*8
-        color_increment = self.receptive_field.response(xpos,ypos,self.st.contrast[index])
-        self.cbp.colorindex[self.st.posindex[index][0],self.st.posindex[index][1]] += color_increment
+        param = self.next_param()
+        if param == None: return
+        x_index, y_index, contrast = param
+        m, n = self.stimulus.parameters.griddim[0], self.stimulus.parameters.griddim[1]
+        xpos = x_index/m*8 - 4
+        ypos = 4 - y_index/n*8
+        color_increment = self.receptive_field.response(xpos,ypos,contrast)
+        self.cbp.colorindex[x_index,y_index] += color_increment
 
 class SavePosParamsController(SaveParamsController):
-    """ Use Every_Frame evaluation controller in case of real time sweep table modification
+    """ Use Every_Frame evaluation controller in case of real time sweep Seque modification
     """
     def __init__(self,stimulus):
         super(SavePosParamsController, self).__init__(stimulus,file_prefix='whitenoise')
         self.file_header = 'Sparse White Noise parameters for every sweep.\n contrast xindex  yindex   postval\n'
         self.file_saved = False
     def during_go_eval(self):
-        index = self.next_index()
-        if index == None: return
-        postval = (self.st.contrast[index]<<12) + (self.st.posindex[index][0]<<6) + self.st.posindex[index][1]
+        param = self.next_param()
+        if param == None: return
+        x_index, y_index, contrast = param
+        postval = (contrast<<12) + (x_index<<6) + y_index
         self.savedpost.append(postval)
     def between_go_eval(self):
         if self.file_saved:
@@ -132,12 +136,16 @@ class SavePosParamsController(SaveParamsController):
 
 class WhiteNoise(Stimulus):
     """WhiteNoise stimulus"""
-    def __init__(self, **kwargs):
+    def __init__(self, params, sweepseq, trigger=True, **kwargs):
         super(WhiteNoise, self).__init__(**kwargs)
         self.name = 'whitenoise'
         self.savedpost = []
-
-        self.load_preference(0)
+        self.parameters = dictattr()
+        self.load_params(self.parameters)
+        self.set_parameters(self.parameters, params)
+        self.sweepseq = sweepseq
+        self.trigger = trigger
+        
         self.make_stimuli()
         self.register_controllers()
         
@@ -150,21 +158,21 @@ class WhiteNoise(Stimulus):
 
         self.bgp = self.background.parameters # synonym
         #set background color before real sweep
-        bgb = self.sweeptable.static.bgbrightness # get it for sweep table index 0
+        bgb = self.parameters.bgbrightness # get it for sweep Seque index 0
         self.bgp.color = bgb, bgb, bgb, 1.0 # set bg colour, do this now so it's correct for the pre-exp delay
         
-        position = (self.viewport.xorig+self.viewport.deg2pix(self.xorigDeg), \
-                    self.viewport.yorig+self.viewport.deg2pix(self.yorigDeg))
+        position = (self.viewport.xorig+self.viewport.deg2pix(self.parameters.xorigDeg), \
+                    self.viewport.yorig+self.viewport.deg2pix(self.parameters.yorigDeg))
         
-        self.gridcell = (self.gridsize/self.sweeptable.static.griddim[0],
-                         self.gridsize/self.sweeptable.static.griddim[1])
+        self.gridcell = (self.parameters.gridsize/self.parameters.griddim[0],
+                         self.parameters.gridsize/self.parameters.griddim[1])
         
-        self.barsize = (self.gridcell[0]*self.sweeptable.static.widthmag,
-                        self.gridcell[1]*self.sweeptable.static.heightmag)
+        self.barsize = (self.gridcell[0]*self.parameters.widthmag,
+                        self.gridcell[1]*self.parameters.heightmag)
         
         self.targetstimulus = Target2D(position = position,
                                        color = (0.0, 0.0, 0.0, 1.0),
-                                       orientation = self.ori,
+                                       orientation = self.parameters.ori,
                                        anchor = 'center',
                                        size = (self.viewport.deg2pix(self.barsize[0]), 
                                                self.viewport.deg2pix(self.barsize[1])),
@@ -178,12 +186,12 @@ class WhiteNoise(Stimulus):
         self.checkboard = CheckBoard(position = position,
                                      orientation = 0.0,
                                      anchor='center',
-                                     size = (self.viewport.deg2pix(self.gridsize), \
-                                             self.viewport.deg2pix(self.gridsize)),
-                                     grid = self.sweeptable.static.griddim,
+                                     size = (self.viewport.deg2pix(self.parameters.gridsize), \
+                                             self.viewport.deg2pix(self.parameters.gridsize)),
+                                     grid = self.parameters.griddim,
                                      drawline = False,
-                                     cellcolor = self.sweeptable.static.cbcolormap,
-                                     on = self.sweeptable.static.checkbdon)
+                                     cellcolor = self.parameters.cbcolormap,
+                                     on = self.parameters.checkbdon)
 
         self.tsp = self.targetstimulus.parameters # synonym
         self.fsp = self.fixationspot.parameters
@@ -197,13 +205,13 @@ class WhiteNoise(Stimulus):
         self.controllers.append(SavePosParamsController(self))
         self.controllers.append(TargetController(self))
         self.controllers.append(CheckBoardController(self))
-        if isinstance(self.controllers[-1],SweepTableStimulusController):
+        if isinstance(self.controllers[-1],SweepSequeStimulusController):
             controller = self.controllers[-1]
             estimated_duration = controller.get_estimated_duration()
             sweep_num = controller.get_sweeps_num()
             logger.info('Estimated stimulus duration: %s for %d sweeps.' %(str(TimeFormat(estimated_duration)), sweep_num))
         
-    def load_preference(self, index):
+    def load_params(self, parameters, index=0):
         name = self.viewport.name
         info = self.name + str(index) + ' in ' + name + ' viewport.'
         logger = logging.getLogger('LightStim.WhiteNoise')
@@ -224,7 +232,7 @@ class WhiteNoise(Stimulus):
                 logger.warning('Cannot load preference for ' + info + ' Use the default preference.')
             self.preference = self.defalut_preference
 
-        self.xorigDeg = self.preference['xorigDeg']
-        self.yorigDeg = self.preference['yorigDeg']
-        self.gridsize = self.preference['widthDeg']
-        self.ori = self.preference['ori']
+        parameters.xorigDeg = self.preference['xorigDeg']
+        parameters.yorigDeg = self.preference['yorigDeg']
+        parameters.gridsize = self.preference['widthDeg']
+        parameters.ori = self.preference['ori']

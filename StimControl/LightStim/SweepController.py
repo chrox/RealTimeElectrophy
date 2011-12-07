@@ -1,4 +1,4 @@
-# This module contains the base class of SweepTableController.
+# This module contains the base class of StimulusController.
 #
 # Copyright (C) 2010-2011 Huang Xin
 #
@@ -35,36 +35,6 @@ class ViewportController(StimulusController):
         super(ViewportController,self).__init__(stimulus)
         if viewport:
             self.set_viewport(viewport)
-
-class SweepTableStimulusController(StimulusController):
-    """ 
-        Assume that all stimulus parameters come from the sweep table. 
-    """
-    def __init__(self,stimulus):
-        super(SweepTableStimulusController,self).__init__(stimulus)
-        
-        self.st = stimulus.sweeptable.data
-        self.static = stimulus.sweeptable.static #shorthand
-        # multiply the sweeptable index with n vsync for every frame sweep
-        nvsync = self.viewport.sec2intvsync(self.static.sweepSec)
-        # -todo: create a global vsynctable so that run time modification could be easier.
-        # runtime control will be achived by pyro parameter pass.
-        vsynctable = [vsync for sweep in stimulus.sweeptable.i for vsync in itertools.repeat(sweep,nvsync)]
-        self.vsync_list = vsynctable
-        # iterator for every vsync sweep
-        self.tableindex = iter(vsynctable)
-    def next_index(self):
-        """Return next vsync sweep index
-        """
-        try:
-            return self.tableindex.next()
-        except StopIteration:
-            self.stimulus.sweep_completed = True
-            return None
-    def get_sweeps_num(self):
-        return len(self.vsync_list)
-    def get_estimated_duration(self):
-        return len(self.vsync_list) / self.viewport.refresh_rate
 
 class SweepSequeStimulusController(StimulusController):
     def __init__(self,stimulus):
@@ -104,14 +74,6 @@ class DTSweepStampController:
         if DTBOARDINSTALLED: 
             DT.postInt16NoDelay(postval)
             DT.clearBitsNoDelay(postval)
-            
-
-class DTSweepTableController(DTSweepStampController, SweepTableStimulusController):
-    """ DTSweepStampController for SweepTable stimulus
-    """
-    def __init__(self,*args,**kwargs):
-        DTSweepStampController.__init__(self)
-        SweepTableStimulusController.__init__(self,*args,**kwargs)
         
 class DTSweepSequeController(DTSweepStampController, SweepSequeStimulusController):
     """ DTSweepStampController for SweepSeque stimulus
@@ -120,7 +82,7 @@ class DTSweepSequeController(DTSweepStampController, SweepSequeStimulusControlle
         DTSweepStampController.__init__(self)
         SweepSequeStimulusController.__init__(self,*args,**kwargs)
 
-class SaveParamsController(SweepTableStimulusController):
+class SaveParamsController(SweepSequeStimulusController):
     """ Use Every_Frame evaluation controller in case of real time sweep table modification
     """
     def __init__(self,stimulus,file_prefix):

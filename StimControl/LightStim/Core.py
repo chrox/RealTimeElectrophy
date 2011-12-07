@@ -43,15 +43,17 @@ class Stimulus(VisionEgg.Core.Stimulus):
     """ One stimulus has one and only one viewport to make things not so hard."""
     # __slot__ specifies which attributes are copied when copy.copy is called.
     __slots__ = ('controllers','sweep_completed')
-    def __init__(self, viewport=None, sweeptable=None, **kwargs):
+    def __init__(self, viewport=None, **kwargs):
         super(Stimulus, self).__init__(**kwargs)
         if viewport:
             self.viewport = Viewport(name=viewport)
-        self.sweeptable = sweeptable
         self.sweep_completed = False
         self.stimuli = []
         self.controllers = []
         self.event_handlers = []
+    def set_parameters(self, dest_params, source_params):
+        for paramname, paramval in source_params.items():
+            setattr(dest_params, paramname, paramval)
     def draw(self):
         for stimulus in self.stimuli:
             stimulus.draw()
@@ -64,8 +66,8 @@ class Stimulus(VisionEgg.Core.Stimulus):
 
 class Dummy_Stimulus(Stimulus):
     """ To keep the framesweep running """
-    def __init__(self, viewport='control', sweeptable=None, **kwargs):
-        super(Dummy_Stimulus, self).__init__(viewport,sweeptable,**kwargs)
+    def __init__(self, viewport='control', sweepseq=None, **kwargs):
+        super(Dummy_Stimulus, self).__init__(viewport,sweepseq,**kwargs)
     def draw(self):
         pass
 

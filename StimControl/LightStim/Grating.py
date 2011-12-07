@@ -24,13 +24,13 @@ from SweepController import StimulusController,SweepSequeStimulusController,DTSw
 class IndexedParam(list):
     def __init__(self,parameter):
         if parameter == 'orientation':
-            super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 17)[:-1])
+            super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 16, endpoint=False))
         elif parameter == 'orientation_180':
-            super(IndexedParam, self).__init__(np.linspace(0.0, 180.0, 17)[:-1])
+            super(IndexedParam, self).__init__(np.linspace(0.0, 180.0, 16, endpoint=False))
         elif parameter == 'spatial_freq':
             super(IndexedParam, self).__init__(np.linspace(0.05, 1.0, 16))
         elif parameter == 'phase_at_t0':
-            super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 17)[:-1])
+            super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 16, endpoint=False))
         elif parameter is None:
             super(IndexedParam, self).__init__([None])
         else:
@@ -199,10 +199,6 @@ class Grating(Stimulus):
     def get_parameters(self):
         param_names = ['on','xorigDeg','yorigDeg','widthDeg','heightDeg','ori','mask','maskDiameterDeg','sfreqCycDeg','tfreqCycSec']
         return dict((paramname,self.parameters[paramname]) for paramname in param_names)
-
-    def set_parameters(self, dest_params, source_params):
-        for paramname, paramval in source_params.items():
-            setattr(dest_params, paramname, paramval)
     
     def register_controllers(self):
         logger = logging.getLogger('LightStim.Grating')

@@ -50,15 +50,26 @@ class TimingSeque(SweepSeque):
         random.shuffle(cycles)
         self.sequence_list = [cycle * self.episode.repeat + interval for cycle in cycles]
         #self.sequence = itertools.chain.from_iterable(self.sequence_list)
-        
-class ParamSeque(SweepSeque):
-    """ stimulus sequence of random orientation and spatial frequency parameters."""
-    def __init__(self, repeat, orientation, spatial_freq, phase_at_t0, frame_duration, blank_duration):
-        super(ParamSeque, self).__init__()
+
+class RandParam(SweepSeque):
+    """ base class for generating random parameter sequence from input """
+    def __init__(self, repeat, frame_duration, blank_duration, *args):
+        super(RandParam, self).__init__()
         frame_sweeps = int(frame_duration // self.sweep_duration)
         blank_sweeps = int(blank_duration // self.sweep_duration)
         blank_sweep = (float('nan'),float('nan'),float('nan')) # will be checked in paramseque controller.
-        params = itertools.product(orientation, spatial_freq, phase_at_t0)
+        params = itertools.product(*args)
         param_sequence = np.random.permutation(list(params) * repeat)
         self.sequence_list = [[param]*frame_sweeps + [blank_sweep]*blank_sweeps for param in param_sequence]
-        #self.sequence = itertools.chain.from_iterable(self.sequence_list)
+
+class ParamSeque(RandParam):
+    """ stimulus sequence of random orientation and spatial frequency parameters."""
+    def __init__(self, repeat, orientation, spatial_freq, phase_at_t0, frame_duration, blank_duration):
+        super(ParamSeque, self).__init__(repeat, frame_duration, blank_duration, orientation, spatial_freq, phase_at_t0)
+
+class SparseNoiseSeque(RandParam):
+    """ stimulus sequence of sparse noise with bar stimulus display in random position and of random brightness. """
+    def __init__(self, repeat, x_index, y_index, contrast, frame_duration, blank_duration):
+        super(SparseNoiseSeque, self).__init__(repeat, frame_duration, blank_duration, x_index, y_index , contrast)
+
+
