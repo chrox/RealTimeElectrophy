@@ -29,8 +29,10 @@ class PlexSpikeData(object):
         self.renew_data()
 
     def __del__(self):
-        if self.pc is not None:
-            self.pc.CloseClient()
+        pass
+        # if one CloseClient is called subsequent pc methods will fail. So I would not close the clients.
+        #if self.pc is not None:
+            #self.pc.CloseClient()
         
     def renew_data(self):
         pass

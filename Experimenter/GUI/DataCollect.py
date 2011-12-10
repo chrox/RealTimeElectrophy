@@ -8,8 +8,10 @@ import threading
 import wx
 import matplotlib
 
-EVT_UPDATED_TYPE = wx.NewEventType()
-EVT_UPDATED = wx.PyEventBinder(EVT_UPDATED_TYPE, 1)
+EVT_DATA_UPDATED_TYPE = wx.NewEventType()
+EVT_DATA_UPDATED = wx.PyEventBinder(EVT_DATA_UPDATED_TYPE, 1)
+EVT_UNIT_SELECTED_TYPE = wx.NewEventType()
+EVT_UNIT_SELECTED = wx.PyEventBinder(EVT_UNIT_SELECTED_TYPE, 1)
 
 class DataUpdatedEvent(wx.PyCommandEvent):
     def __init__(self, etype, eid, data=None):
@@ -26,9 +28,16 @@ class UpdateDataThread(threading.Thread):
         self.run()
     def run(self):
         updated_data = self._source.get_data()
-        evt = DataUpdatedEvent(EVT_UPDATED_TYPE, -1, updated_data)
+        evt = DataUpdatedEvent(EVT_DATA_UPDATED_TYPE, -1, updated_data)
         wx.PostEvent(self._parent, evt)
-        
+
+class UnitSelectedEvent(wx.PyCommandEvent):
+    def __init__(self, etype, eid, unit):
+        wx.PyCommandEvent.__init__(self, etype, eid)
+        self._unit = unit
+    def get_unit(self):
+        return self._unit
+
 class RestartDataThread(threading.Thread):
     def __init__(self, parent, source, update_data_thread):
         threading.Thread.__init__(self)
@@ -58,10 +67,10 @@ class UnitChoice(wx.Panel):
         sizer.Fit(self)
 
     def on_select(self,event):
-        #wx.FindWindowByName('psth_panel').update_chart()
         index = self.unit_list.GetSelection()
-        wx.FindWindowByName('main_frame').flash_status_message("Select unit: %s" % self.items[index])
-        wx.FindWindowByName('main_frame').update_chart()
+        unit = self.items[index]
+        evt = UnitSelectedEvent(EVT_UNIT_SELECTED_TYPE, -1, unit)
+        wx.PostEvent(self.GetParent(), evt)
         
     def update_units(self,data):
         selected_unit = self.get_selected_unit()
@@ -91,7 +100,8 @@ class MainFrame(wx.Frame):
         self.create_status_bar()
         self.create_main_panel()
 
-        self.Bind(EVT_UPDATED, self.on_data_updated)
+        self.Bind(EVT_DATA_UPDATED, self.on_data_updated)
+        self.Bind(EVT_UNIT_SELECTED, self.on_select_unit)
 
     def create_menu(self):
         self.menubar = wx.MenuBar()
@@ -149,6 +159,11 @@ class MainFrame(wx.Frame):
     
     def update_chart(self):
         self.chart_panel.update_chart()
+    
+    def on_select_unit(self, event):
+        unit = event.get_unit()
+        self.chart_panel.update_chart()
+        self.flash_status_message("Select unit: %s" %unit, flash_len_ms=1000)
     
     def on_connect_server(self, event):
         self.on_start_data(-1)
