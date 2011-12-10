@@ -100,6 +100,7 @@ class ParamController(SweepSequeStimulusController):
         super(ParamController, self).__init__(*args,**kwargs)
         self.gp = self.stimulus.gp
     def during_go_eval(self):
+        self.params = self.stimulus.parameters
         self.gp.temporal_freq_hz = 0.0
         next_param = self.next_param()
         if next_param is not None:
@@ -109,8 +110,12 @@ class ParamController(SweepSequeStimulusController):
                 self.gp.orientation = (orientation + 90) % 360.0
             if spatial_freq is not None and spatial_freq == spatial_freq:
                 self.gp.spatial_freq = self.viewport.cycDeg2cycPix(spatial_freq)
-            if phase_at_t0 is not None and phase_at_t0 == phase_at_t0:
-                self.gp.phase_at_t0 = phase_at_t0
+            if phase_at_t0 is not None and phase_at_t0 == phase_at_t0: # phase_at_t0 is not nan
+                if not hasattr(self, 'last_phase'):
+                    self.last_phase = phase_at_t0
+                if self.last_phase != phase_at_t0:
+                    self.params.phase0 = phase_at_t0
+                    self.last_phase = phase_at_t0
             if any(num != num for num in next_param):  # check has any nan. assume that gp can handle nan parameter.
                 self.gp.on = False
 
