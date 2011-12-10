@@ -184,6 +184,10 @@ class ManBar(ManStimulus):
         super(ManBar,self).keydown_callback(event)
         key = event.key
         if key == K_f:
+            if not self.flash:
+                self.restored_on = self.on
+            elif self.flash:
+                self.on = self.restored_on
             self.flash = not self.flash
         if key == K_i: # invert background and bar brightness
             self.brightness, self.bgbrightness = self.bgbrightness, self.brightness
