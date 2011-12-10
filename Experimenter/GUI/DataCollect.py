@@ -60,8 +60,9 @@ class UnitChoice(wx.Panel):
     def on_select(self,event):
         #wx.FindWindowByName('psth_panel').update_chart()
         index = self.unit_list.GetSelection()
-        #wx.FindWindowByName('main_frame').flash_status_message("Select unit: %s" % self.items[index])
-
+        wx.FindWindowByName('main_frame').flash_status_message("Select unit: %s" % self.items[index])
+        wx.FindWindowByName('main_frame').update_chart()
+        
     def update_units(self,data):
         selected_unit = self.get_selected_unit()
         self.units = [(channel,unit) for channel in sorted(data.iterkeys(),key=int) for unit in sorted(data[channel].iterkeys())]
@@ -145,6 +146,9 @@ class MainFrame(wx.Frame):
         
     def create_chart_panel(self):
         pass
+    
+    def update_chart(self):
+        self.chart_panel.update_chart()
     
     def on_connect_server(self, event):
         self.on_start_data(-1)

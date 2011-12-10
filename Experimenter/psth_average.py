@@ -94,6 +94,9 @@ class PSTHPanel(wx.Panel):
                 self.hist_bins.append(bins)
                 self.hist_patches.append(patches)
     
+    def update_chart(self,data=None):
+        UpdateChartThread(self,data)
+    
     def on_update_data_timer(self, event):
         if self.collecting_data and self.connected_to_server:
             self.update_data_thread = UpdateDataThread(self, self.psth)
