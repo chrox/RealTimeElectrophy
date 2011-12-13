@@ -47,7 +47,7 @@ class TimingSeque(SweepSeque):
         stim_sweep_counts = np.round((self.cycle.stimulus + self.cycle.pre - self.cycle.pre) / self.sweep_duration)
         post_sweep_counts = np.round(self.cycle.duration / self.sweep_duration) - pre_sweep_counts - stim_sweep_counts
         
-        logger.info( "Actual sweep duration:\npre-stimulus :  %s\nstimulus :      %s\npost-stimulus : %s" \
+        logger.info( "Actual sweep duration(sec) :\npre-stimulus :  %s\nstimulus :      %s\npost-stimulus : %s" \
                      %('\t'.join(['%.4f' %(count*self.sweep_duration) for count in pre_sweep_counts]),
                        '\t'.join(['%.4f' %(count*self.sweep_duration) for count in stim_sweep_counts]),
                        '\t'.join(['%.4f' %(count*self.sweep_duration) for count in post_sweep_counts])))
@@ -58,8 +58,8 @@ class TimingSeque(SweepSeque):
         if np.any(warned_sweep):
             warned_duration = (self.cycle.pre + self.cycle.stimulus - self.cycle.stimulus)[warned_sweep]
             actual_duration = (pre_sweep_counts * self.sweep_duration)[warned_sweep]
-            logger.warning("Durations %s are not support by current monitor refresh rate."
-                           "They are automatically set to nearest supported durations: %s." \
+            logger.warning("Sweep delays(sec) %s are not supported by current monitor refresh rate. "
+                           "They will be set to nearest supported values: %s." \
                            %(' '.join(['%.4f' %duration for duration in warned_duration]),
                              ' '.join(['%.4f' %duration for duration in actual_duration])))
         
@@ -73,13 +73,21 @@ class RandParam(SweepSeque):
     """ base class for generating random parameter sequence from input """
     def __init__(self, repeat, frame_duration, blank_duration, *args):
         super(RandParam, self).__init__()
-        frame_sweeps = int(frame_duration // self.sweep_duration)
-        blank_sweeps = int(blank_duration // self.sweep_duration)
+        frame_sweeps = int(round(frame_duration / self.sweep_duration))
+        blank_sweeps = int(round(blank_duration / self.sweep_duration))
         blank_sweep = (float('nan'),float('nan'),float('nan')) # will be checked in paramseque controller.
         params = itertools.product(*args)
         param_sequence = np.random.permutation(list(params) * repeat)
         self.sequence_list = [[param]*frame_sweeps + [blank_sweep]*blank_sweeps for param in param_sequence]
-
+        
+        logger = logging.getLogger('LightStim.SweepSeque')
+        logger.info( "Actual frame duration: %.4f sec." %(frame_sweeps*self.sweep_duration))
+        frame_sweeps_rational = frame_duration / self.sweep_duration
+        if abs(frame_sweeps-frame_sweeps_rational) > 0.25:
+            logger.warning("Frame duration %.4fs are not support by current monitor refresh rate. "
+                           "It will be set to nearest supported duration: %.4fs." \
+                           %(frame_sweeps_rational*self.sweep_duration, frame_sweeps*self.sweep_duration))
+                           
 class ParamSeque(RandParam):
     """ stimulus sequence of random orientation and spatial frequency parameters."""
     def __init__(self, repeat, orientation, spatial_freq, phase_at_t0, frame_duration, blank_duration):

@@ -9,6 +9,9 @@ from __future__ import division
 from StimControl.LightStim.SweepSeque import dictattr, SparseNoiseSeque
 from StimControl.LightStim.WhiteNoise import WhiteNoise
 from StimControl.LightStim.FrameControl import FrameSweep
+from StimControl.LightStim.Core import DefaultScreen
+
+DefaultScreen(['left','right'])
 
 p = dictattr()
 
