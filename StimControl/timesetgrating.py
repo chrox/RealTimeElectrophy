@@ -27,7 +27,7 @@ episode_right = dictattr(repeat=50, cycle=cycle_right, interval=1.0)
 sequence_left = TimingSeque(repeat=10, episode=episode_left, shuffle=True)
 sequence_right = TimingSeque(repeat=10, episode=episode_right, shuffle=True)
 
-grating_left = Grating(viewport='left', params=p, sweepseq=sequence_left, trigger=False)
+grating_left = Grating(viewport='left', params=p, sweepseq=sequence_left)
 grating_right = Grating(viewport='right', params=p, sweepseq=sequence_right)
 sweep = FrameSweep()
 sweep.add_stimulus(grating_left)
