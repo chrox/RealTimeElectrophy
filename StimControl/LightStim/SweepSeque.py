@@ -8,6 +8,7 @@ from __future__ import division
 import numpy as np
 import itertools
 import random
+import logging
 from .. import LightStim
 
 class dictattr(dict):
@@ -38,12 +39,17 @@ class TimingSeque(SweepSeque):
     """ stimulus sequence with arbitrary onset and offset timing."""
     def __init__(self, repeat, episode, shuffle):
         super(TimingSeque, self).__init__()
+        logger = logging.getLogger('LightStim.SweepSeque')
         self.episode = episode
         self.cycle = self.episode.cycle
         
-        pre_sweep_counts = (self.cycle.pre + self.cycle.stimulus - self.cycle.stimulus) // self.sweep_duration
-        stim_sweep_counts = (self.cycle.stimulus + self.cycle.pre - self.cycle.pre) // self.sweep_duration
-        post_sweep_counts = (self.cycle.duration // self.sweep_duration) - pre_sweep_counts - stim_sweep_counts
+        pre_sweep_counts = np.round((self.cycle.pre + self.cycle.stimulus - self.cycle.stimulus) / self.sweep_duration)
+        stim_sweep_counts = np.round((self.cycle.stimulus + self.cycle.pre - self.cycle.pre) / self.sweep_duration)
+        post_sweep_counts = np.round(self.cycle.duration / self.sweep_duration) - pre_sweep_counts - stim_sweep_counts
+        logger.info( "Actual sweep duration:\npre-stimulus :  %s\nstimulus :      %s\npost-stimulus : %s" \
+                     %('\t'.join(['%.4f' %(count*self.sweep_duration) for count in pre_sweep_counts]),
+                       '\t'.join(['%.4f' %(count*self.sweep_duration) for count in stim_sweep_counts]),
+                       '\t'.join(['%.4f' %(count*self.sweep_duration) for count in post_sweep_counts])))
         
         interval = [0]*int(self.episode.interval // self.sweep_duration)
         cycles = [[0]*pre_sweep_counts[i]+[1]*stim_sweep_counts[i]+[0]*post_sweep_counts[i] for i in range(len(stim_sweep_counts))] * repeat
