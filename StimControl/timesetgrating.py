@@ -8,7 +8,7 @@ from __future__ import division
 import numpy as np
 from StimControl.LightStim.SweepSeque import dictattr,TimingSeque
 from StimControl.LightStim.FrameControl import FrameSweep
-from StimControl.LightStim.Grating import Grating
+from StimControl.LightStim.Grating import TimingSetGrating
 from StimControl.LightStim.Core import DefaultScreen
 
 DefaultScreen(['left','right'])
@@ -27,8 +27,9 @@ episode_right = dictattr(repeat=50, cycle=cycle_right, interval=1.0)
 sequence_left = TimingSeque(repeat=10, episode=episode_left, shuffle=True)
 sequence_right = TimingSeque(repeat=10, episode=episode_right, shuffle=True)
 
-grating_left = Grating(viewport='left', params=p, sweepseq=sequence_left)
-grating_right = Grating(viewport='right', params=p, sweepseq=sequence_right)
+grating_left = TimingSetGrating(viewport='left', params=p, sweepseq=sequence_left)
+p.phase0 = 180.0
+grating_right = TimingSetGrating(viewport='right', params=p, sweepseq=sequence_right)
 sweep = FrameSweep()
 sweep.add_stimulus(grating_left)
 sweep.add_stimulus(grating_right)

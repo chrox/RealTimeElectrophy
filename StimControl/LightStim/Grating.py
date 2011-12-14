@@ -16,7 +16,7 @@ from VisionEgg.Textures import Mask2D
 from VisionEgg.MoreStimuli import Target2D
 
 from LightUtil import TimeFormat
-from SweepSeque import dictattr, TimingSeque, ParamSeque
+from SweepSeque import dictattr
 from Core import Stimulus
 
 from SweepController import StimulusController,SweepSequeStimulusController,DTSweepSequeController
@@ -143,7 +143,7 @@ class ParamStampController(DTSweepSequeController):
             """ 
             16-bits stimulus representation code will be posted to DT port
             00 1  1 0101 0001 0011 
-               |  |   |    |    |------------orientation index (0.0, 180.0, 16)
+               |  |   |    |    |------------orientation index (0.0, 180.0, 16)/(0.0, 360.0, 16)
                |  |   |    |-----------------spatial_freq index (0.05, 1.0, 16)
                |  |   |----------------------phase_at_t0 index (0.0, 360.0, 16)
                |  |--------------------------stimulus onset
@@ -158,6 +158,13 @@ class ParamStampController(DTSweepSequeController):
         if self.stimulus.trigger:
             self.post_stamp(post_val)
             
+class ParamMappingStamp(ParamStampController):
+    def __init__(self,*args,**kwargs):
+        super(ParamStampController, self).__init__(*args,**kwargs)
+        self.indexed_ori = IndexedParam('orientation_180')
+        self.indexed_sfq = IndexedParam('spatial_freq')
+        self.indexed_pha = IndexedParam('phase_at_t0')
+        self.logger = logging.getLogger('LightStim.Grating')
         
 class Grating(Stimulus):
     def __init__(self, params, sweepseq, trigger=True, **kwargs):
@@ -206,22 +213,15 @@ class Grating(Stimulus):
         return dict((paramname,self.parameters[paramname]) for paramname in param_names)
     
     def register_controllers(self):
-        logger = logging.getLogger('LightStim.Grating')
+        self.logger = logging.getLogger('LightStim.Grating')
         self.controllers.append(GratingController(self))
-        if isinstance(self.sweepseq, TimingSeque):
-            logger.info('Register TimingController.')
-            self.controllers.append(TimingController(self))
-            self.controllers.append(TimingStampController(self))
-        if isinstance(self.sweepseq, ParamSeque):
-            logger.info('Register ParamController.')
-            self.controllers.append(ParamController(self))
-            self.controllers.append(ParamStampController(self))
+        
+    def log_estimated_duration(self):
         if isinstance(self.controllers[-1],SweepSequeStimulusController):
             controller = self.controllers[-1]
             estimated_duration = controller.get_estimated_duration()
             sweep_num = controller.get_sweeps_num()
-            logger.info('Estimated stimulus duration: %s for %d sweeps.' %(str(TimeFormat(estimated_duration)), sweep_num))
-        #self.controllers.append(DTSweepStampController(self))
+            self.logger.info('Estimated stimulus duration: %s for %d sweeps.' %(str(TimeFormat(estimated_duration)), sweep_num))
             
     def load_params(self, index=0):
         name = self.viewport.name
@@ -231,3 +231,27 @@ class Grating(Stimulus):
         with open('Manbar_preference.pkl','rb') as pkl_input:
             preference = pickle.load(pkl_input)[name][index]
             self.set_parameters(self.parameters, preference)
+            
+class TimingSetGrating(Grating):
+    def register_controllers(self):
+        super(TimingSetGrating, self).register_controllers()
+        self.logger.info('Register TimingController.')
+        self.controllers.append(TimingController(self))
+        self.controllers.append(TimingStampController(self))
+        self.log_estimated_duration()
+
+class ParamMapGrating(Grating):
+    def register_controllers(self):
+        super(ParamMapGrating, self).register_controllers()
+        self.logger.info('Register ParamController.')
+        self.controllers.append(ParamController(self))
+        self.controllers.append(ParamMappingStamp(self))
+        self.log_estimated_duration()
+        
+class ParamsGrating(Grating):
+    def register_controllers(self):
+        super(ParamsGrating, self).register_controllers()
+        self.logger.info('Register ParamController.')
+        self.controllers.append(ParamController(self))
+        self.controllers.append(ParamStampController(self))
+        self.log_estimated_duration()

@@ -7,10 +7,10 @@
 from __future__ import division
 from StimControl.LightStim.SweepSeque import dictattr,ParamSeque
 from StimControl.LightStim.FrameControl import FrameSweep
-from StimControl.LightStim.Grating import Grating,IndexedParam
+from StimControl.LightStim.Grating import ParamMapGrating,IndexedParam
 from StimControl.LightStim.Core import DefaultScreen
 
-DefaultScreen(['left'])
+DefaultScreen(['left','right'])
 
 p = dictattr()
 p.ml = 0.5
@@ -25,7 +25,7 @@ phase_at_t0 = [None]
 
 param_sequence = ParamSeque(repeat=4, orientation=orientation, spatial_freq=spatial_freq, phase_at_t0=phase_at_t0, frame_duration=0.1, blank_duration=0.0)
 
-random_grating = Grating(viewport='left', params=p, sweepseq=param_sequence)
+random_grating = ParamMapGrating(viewport='left', params=p, sweepseq=param_sequence)
 sweep = FrameSweep()
 sweep.add_stimulus(random_grating)
 sweep.go()
