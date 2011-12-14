@@ -130,10 +130,8 @@ class STAPanel(wx.Panel):
             #self.axes.set_title(self.title)
             if isinstance(self.sta_data,RevCorr.STAData):
                 self.stimulus = 'white_noise'
-                wx.FindWindowByName('main_frame').SetTitle("Receptive field spatial map")
             if isinstance(self.sta_data,RevCorr.ParamMapData):
                 self.stimulus = 'param_mapping'
-                wx.FindWindowByName('main_frame').SetTitle("Parameters subspace map")
             self.im.autoscale()
             self.canvas.draw()
     
@@ -218,8 +216,8 @@ class STAFrame(MainFrame):
     """ The main frame of the application
     """
     def __init__(self):
-        title = 'Spike Triggered Average(STA)'
-        super(STAFrame, self).__init__(title)
+        self.title = 'Spike Triggered Average(STA)'
+        super(STAFrame, self).__init__(self.title)
 
     def create_menu(self):
         super(STAFrame, self).create_menu()

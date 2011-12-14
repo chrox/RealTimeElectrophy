@@ -3,6 +3,7 @@
 # Copyright (C) 2010-2011 Huang Xin
 # 
 # See LICENSE.TXT that came with this file.
+import os
 import time
 import threading
 import wx
@@ -167,6 +168,7 @@ class MainFrame(wx.Frame):
     
     def on_connect_server(self, event):
         self.on_start_data(-1)
+        self.SetTitle(self.title)
     
     def on_open_file(self, event):
         file_choices = "PLX (*.plx)|*.plx"
@@ -179,6 +181,7 @@ class MainFrame(wx.Frame):
             path = dlg.GetPath()
             self.flash_status_message("Opening file %s ..." % path, flash_len_ms=5000)
             self.chart_panel.open_file(path)
+            self.SetTitle(self.title + ' - ' + os.path.basename(path))
     
     def on_save_data(self, event):
         file_choices = "PKL (*.pkl)|*.pkl"
