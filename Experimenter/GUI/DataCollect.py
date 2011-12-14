@@ -11,6 +11,8 @@ import matplotlib
 
 EVT_DATA_UPDATED_TYPE = wx.NewEventType()
 EVT_DATA_UPDATED = wx.PyEventBinder(EVT_DATA_UPDATED_TYPE, 1)
+EVT_DATA_RESTART_TYPE = wx.NewEventType()
+EVT_DATA_RESTART = wx.PyEventBinder(EVT_DATA_RESTART_TYPE, 1)
 EVT_UNIT_SELECTED_TYPE = wx.NewEventType()
 EVT_UNIT_SELECTED = wx.PyEventBinder(EVT_UNIT_SELECTED_TYPE, 1)
 
@@ -31,6 +33,22 @@ class UpdateDataThread(threading.Thread):
         updated_data = self._source.get_data()
         evt = DataUpdatedEvent(EVT_DATA_UPDATED_TYPE, -1, updated_data)
         wx.PostEvent(self._parent, evt)
+            
+class DataRestartEvent(wx.PyCommandEvent):
+    pass
+
+class CheckRestart(threading.Thread):
+    def __init__(self, parent, source):
+        threading.Thread.__init__(self)
+        self._parent = parent
+        self._source = source
+        self.run()
+    def run(self):
+        if self._source.is_new_start():
+            evt = DataRestartEvent(EVT_DATA_RESTART_TYPE, -1)
+            wx.PostEvent(self._parent, evt)
+            print "New data started."
+            self._source.set_new_start(False)
 
 class UnitSelectedEvent(wx.PyCommandEvent):
     def __init__(self, etype, eid, unit):
@@ -102,8 +120,9 @@ class MainFrame(wx.Frame):
         self.create_main_panel()
 
         self.Bind(EVT_DATA_UPDATED, self.on_data_updated)
+        self.Bind(EVT_DATA_RESTART, self.on_restart_data)
         self.Bind(EVT_UNIT_SELECTED, self.on_select_unit)
-
+        
     def create_menu(self):
         self.menubar = wx.MenuBar()
 

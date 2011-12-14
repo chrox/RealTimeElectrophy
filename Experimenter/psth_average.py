@@ -14,7 +14,7 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 from matplotlib import pylab
 
 from Experimenter.DataProcessing.Fitting import GaussFit,SinusoidFit,GaborFit
-from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread
+from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread,CheckRestart
 from Experimenter.GUI.DataCollect import MainFrame,adjust_spines
 from Experimenter.SpikeData import TimeHistogram
 
@@ -206,6 +206,7 @@ class PSTHPanel(wx.Panel):
     def on_update_data_timer(self, event):
         if self.collecting_data and self.connected_to_server:
             self.update_data_thread = UpdateDataThread(self, self.psth)
+            CheckRestart(self, self.psth)
         
     def start_data(self):
         if self.psth is None:

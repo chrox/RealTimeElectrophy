@@ -1,6 +1,6 @@
 #!/usr/bin/pyhton
 import time
-from guppy import hpy; h = hpy()
+#from guppy import hpy; h = hpy()
 from PlexClient import PlexClient
 from PlexUtil import PlexUtil
 
@@ -24,6 +24,10 @@ if __name__ == "__main__":
                     for timestamp in spikes:
                         print "spike:DSP%d%c t=%f" % (channel, unit, timestamp)
             
+            start_events = pu.GetExtEvents(data, event='start')
+            for timestamp in start_events:
+                print "PlexControl started at t=%f" % timestamp
+            
             bit_2_events = pu.GetExtEvents(data, event='unstrobed_bit', bit=2)
             bit_3_events = pu.GetExtEvents(data, event='unstrobed_bit', bit=3)
             for timestamp in bit_2_events:
@@ -37,5 +41,5 @@ if __name__ == "__main__":
             
             time.sleep(1.0)
 
-            print h.heap()
+            #print h.heap()
 

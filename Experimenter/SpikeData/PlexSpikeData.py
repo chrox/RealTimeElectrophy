@@ -14,6 +14,8 @@ class PlexSpikeData(object):
         self.read_from_server = True
         self.read_from_file = False
         self.file_has_read = False
+        self.online_first_start = True
+        self.new_start = False
         
         self.pc = None
         self.pf = None
@@ -40,10 +42,22 @@ class PlexSpikeData(object):
     def get_data(self):
         pass
     
+    def is_new_start(self):
+        return self.new_start
+    
+    def set_new_start(self, is_new_start):
+        self.new_start = is_new_start
+        
     def _update_data(self):
         if self.read_from_server:
             self.data = self.pc.GetTimeStampArrays()
             self.online = True
+            start_events = self.pu.GetExtEvents(self.data, event='start')
+            if start_events.size != 0:
+                if self.online_first_start:
+                    self.online_first_start = False
+                else:
+                    self.new_start = True
         elif self.read_from_file and not self.file_has_read:
             self.data = self.pf.GetTimeStampArrays()
             self.online = False

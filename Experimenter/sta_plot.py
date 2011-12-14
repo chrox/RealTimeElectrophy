@@ -12,7 +12,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 
 from Experimenter.DataProcessing.Fitting import GaussFit,GaborFit
-from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread
+from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread,CheckRestart
 from Experimenter.GUI.DataCollect import MainFrame,adjust_spines
 from Experimenter.SpikeData import RevCorr
 
@@ -138,6 +138,7 @@ class STAPanel(wx.Panel):
     def on_update_data_timer(self, event):
         if self.collecting_data and self.connected_to_server:
             self.update_data_thread = UpdateDataThread(self, self.sta_data)
+            CheckRestart(self, self.sta_data)
     
     def start_data(self):
         if self.sta_data is None:
