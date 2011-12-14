@@ -7,16 +7,62 @@
 from __future__ import division
 import math
 import numpy as np
-from gaussfitter import gaussfit
-from gaborfitter import gaborfit
+from sinusoidfitter import onedsinusoidfit,onedsinusoid
+from gaussfitter import gaussfit,onedgaussfit,onedgaussian
+from gaborfitter import gaborfit,onedgaborfit,onedgabor
+
+class SinusoidFit(object):
+    def sinusoid1d(self,xax,data,modelx=None,returnfitcurve=True,return_all=False,**kwargs):
+        """
+            1d sinusoidal params: (height, amplitude, frequency, phase)
+        """
+        frequency = 2*np.pi/(xax.max()-xax.min())
+        params=[(data.max()+data.min())/2,(data.max()-data.min())/2,frequency,0]
+        fixed=[False,False,True,False]
+        limitedmin=[True,False,True,True]
+        limitedmax=[True,False,True,True]
+        minpars=[data.min(),0,0.8*frequency,0]
+        maxpars=[data.max(),0,1.2*frequency,360]
+        params,_model,errs,chi2 = onedsinusoidfit(xax,data,params=params,fixed=fixed,\
+                                                  limitedmin=limitedmin,limitedmax=limitedmax,\
+                                                  minpars=minpars,maxpars=maxpars,**kwargs)
+        if modelx == None:
+            modelx = xax
+        model = onedsinusoid(modelx,*params)
+        if return_all:
+            return params,model,errs,chi2
+        elif returnfitcurve:
+            return model
 
 class GaussFit(object):
     def __init__(self):
         self.params = []
-        
+    
+    def gaussfit1d(self,xax,data,modelx=None,returnfitcurve=True,return_all=False,**kwargs):
+        """
+            1d gaussian params: (height, amplitude, shift, width) 
+        """
+        width = xax.max()-xax.min()
+        params=[(data.max()+data.min())/2,(data.max()-data.min())/2,width*0.5,width*0.2]
+        fixed=[False,False,False,False]
+        limitedmin=[True,False,True,True]
+        limitedmax=[True,False,True,True]
+        minpars=[data.min(),0,xax.min()-3*width,width*0.05]
+        maxpars=[data.max(),0,xax.max()+3*width,width*3.0]
+        params,_model,errs,chi2 = onedgaussfit(xax,data,params=params,fixed=fixed,\
+                                               limitedmin=limitedmin,limitedmax=limitedmax,\
+                                               minpars=minpars,maxpars=maxpars,**kwargs)
+        if modelx == None:
+            modelx = xax
+        model = onedgaussian(modelx,*params)
+        if return_all:
+            return params,model,errs,chi2
+        elif returnfitcurve:
+            return model
+
     def gaussfit2d(self,img,returnfitimage=True,return_all=False,**kwargs):
         """ 
-            gaussian params=(height, amplitude, center_x, center_y, width_x, width_y, theta) 
+            2d gaussian params: (height, amplitude, center_x, center_y, width_x, width_y, theta) 
         """
         x_dim,y_dim = img.shape
         limitedmin = [False,False,True,True,True,True,True]
@@ -40,9 +86,32 @@ class GaborFit(object):
     def __init__(self):
         self.params = []
         
+    def gaborfit1d(self,xax,data,modelx=None,returnfitcurve=True,return_all=False,**kwargs):
+        """
+            1d gabor params: (height,amplitude,shift,width,wavelength,phase)
+        """
+        wavelength = xax.max()-xax.min()
+        width = xax.max()-xax.min()
+        params=[(data.max()+data.min())/2,(data.max()-data.min())/2,width*0.5,width*0.2,wavelength,0]
+        fixed=[False,False,False,False,True,False]
+        limitedmin=[True,False,True,True,False,True]
+        limitedmax=[True,False,True,True,False,True]
+        minpars=[data.min(),0,xax.min()-3*width,width*0.05,0,0]
+        maxpars=[data.max(),0,xax.max()+3*width,width*3.00,0,360]
+        params,_model,errs,chi2 = onedgaborfit(xax,data,params=params,fixed=fixed,\
+                                               limitedmin=limitedmin,limitedmax=limitedmax,\
+                                               minpars=minpars,maxpars=maxpars,**kwargs)
+        if modelx == None:
+            modelx = xax
+        model = onedgabor(modelx,*params)
+        if return_all:
+            return params,model,errs,chi2
+        elif returnfitcurve:
+            return model
+        
     def gaborfit2d(self,img,returnfitimage=True,return_all=False,**kwargs):
         """ 
-            gabor params = (height,amplitude,center_x,center_y,width_x,width_y,theta,lambda,phi)
+            2d gabor params: (height,amplitude,center_x,center_y,width_x,width_y,theta,frequency,phase)
             These parameters determine the properties of the spatial receptive field. see Dayan etc., 2002
         """
         x_dim,y_dim = img.shape

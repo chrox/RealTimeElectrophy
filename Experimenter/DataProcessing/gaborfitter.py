@@ -9,6 +9,74 @@ import numpy as np
 from mpfit import mpfit
 from gaussfitter import gaussfit
 
+def onedgabor(x,H,A,dx,w,l,p):
+    """
+    Returns a 1-dimensional gabor of form
+    g = b + a * exp(-(x-dx)**2/(2*w**2)) * cos(2*pi*(x-dx)/lambda + phi)
+    """
+    p = np.pi/180 * p
+    return H+A*np.exp(-(x-dx)**2/(2*w**2)) * np.cos(2*np.pi*(x-dx)/l+p)
+
+def onedgaborfit(xax, data, err=None,
+        params=[0,1,0,1,1,0],fixed=[False,False,False,False,False,False],
+        limitedmin=[False,False,False,True,True,True],
+        limitedmax=[False,False,False,False,False,True], minpars=[0,0,0,0,0,0],
+        maxpars=[0,0,0,0,0,360], quiet=True, shh=True,
+        veryverbose=False):
+    """
+    Inputs:
+       xax - x axis
+       data - y axis
+       err - error corresponding to data
+
+       params - Fit parameters: Height of background, Amplitude, Shift, Width, Wavelength, Phase
+       fixed - Is parameter fixed?
+       limitedmin/minpars - set lower limits on each parameter (default: width>0)
+       limitedmax/maxpars - set upper limits on each parameter
+       quiet - should MPFIT output each iteration?
+       shh - output final parameters?
+
+    Returns:
+       Fit parameters
+       Model
+       Fit errors
+       chi2
+    """
+
+    def mpfitfun(x,y,err):
+        if err is None:
+            def f(p,fjac=None): return [0,(y-onedgabor(x,*p))]
+        else:
+            def f(p,fjac=None): return [0,(y-onedgabor(x,*p))/err]
+        return f
+
+    if xax == None:
+        xax = np.arange(len(data))
+
+    parinfo = [ {'n':0,'value':params[0],'limits':[minpars[0],maxpars[0]],'limited':[limitedmin[0],limitedmax[0]],'fixed':fixed[0],'parname':"HEIGHT",'error':0} ,
+                {'n':1,'value':params[1],'limits':[minpars[1],maxpars[1]],'limited':[limitedmin[1],limitedmax[1]],'fixed':fixed[1],'parname':"AMPLITUDE",'error':0},
+                {'n':2,'value':params[2],'limits':[minpars[2],maxpars[2]],'limited':[limitedmin[2],limitedmax[2]],'fixed':fixed[2],'parname':"SHIFT",'error':0},
+                {'n':3,'value':params[3],'limits':[minpars[3],maxpars[3]],'limited':[limitedmin[3],limitedmax[3]],'fixed':fixed[3],'parname':"WIDTH",'error':0},
+                {'n':4,'value':params[4],'limits':[minpars[4],maxpars[4]],'limited':[limitedmin[4],limitedmax[4]],'fixed':fixed[4],'parname':"WAVELENGTH",'error':0},
+                {'n':5,'value':params[5],'limits':[minpars[5],maxpars[5]],'limited':[limitedmin[5],limitedmax[5]],'fixed':fixed[5],'parname':"PHASE",'error':0}]
+
+    mp = mpfit(mpfitfun(xax,data,err),parinfo=parinfo,quiet=quiet)
+    mpp = mp.params
+    mpperr = mp.perror
+    chi2 = mp.fnorm
+
+    if mp.status == 0:
+        raise Exception(mp.errmsg)
+
+    if (not shh) or veryverbose:
+        print "Fit status: ",mp.status
+        for i,p in enumerate(mpp):
+            parinfo[i]['value'] = p
+            print parinfo[i]['parname'],p," +/- ",mpperr[i]
+        print "Chi2: ",mp.fnorm," Reduced Chi2: ",mp.fnorm/len(data)," DOF:",len(data)-len(mpp)
+
+    return mpp,onedgabor(xax,*mpp),mpperr,chi2
+
 def twodgabor(params, shape=None):
     """Returns a 2d gabor function of the form:
         x' = numpy.cos(theta) * x - numpy.sin(theta) * y

@@ -6,7 +6,6 @@
 from __future__ import division
 import wx
 import numpy as np
-import threading
 import matplotlib
 matplotlib.use('WXAgg')
 import matplotlib.gridspec as gridspec
@@ -14,6 +13,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 from matplotlib import pylab
 
+from Experimenter.DataProcessing.Fitting import GaussFit,SinusoidFit,GaborFit
 from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread
 from Experimenter.GUI.DataCollect import MainFrame,adjust_spines
 from Experimenter.SpikeData import TimeHistogram
@@ -26,6 +26,9 @@ class PSTHPanel(wx.Panel):
         
         self.show_errbar_changed = False
         self.showing_errbar = False
+        self.fitting_gaussian = False
+        self.fitting_sinusoid = False
+        self.fitting_gabor = False
         
         self.psth = None
         self.start_data()
@@ -47,13 +50,17 @@ class PSTHPanel(wx.Panel):
         self.Bind(wx.EVT_TIMER, self.on_update_data_timer, self.update_data_timer)
         self.update_data_timer.Start(1000)
 
-    def make_chart(self,data=np.zeros(1),bins=np.arange(10)+1,polar=False):
+    def make_chart(self,data=np.zeros(1),bins=np.arange(10)+1,polar=False,fitting=False):
         self.polar_chart = polar
         self.hist_bins = []
         self.hist_patches = []
         self.x = np.arange(17)
-        self.means = np.zeros(17)
-        self.stds = np.zeros(17)
+        self.means = np.zeros(self.x.size)
+        self.stds = np.zeros(self.x.size)
+        
+        self.fitting_x = np.linspace(self.x[0], self.x[-1], 100, endpoint=True)
+        self.fitting_y = np.zeros(self.fitting_x.size)
+        
         self.fig.clear()
         grid = 18
         height = grid // 9
@@ -67,6 +74,9 @@ class PSTHPanel(wx.Panel):
         self.curve_data = axes.plot(self.x, self.means, 'ko-')[0]
         self.errbars = axes.errorbar(self.x, self.means, yerr=self.stds, fmt='k.') if self.showing_errbar else None
         self.curve_axes = axes
+        #if fitting:
+        self.fitting_data = axes.plot(self.fitting_x, self.fitting_y, 'k-')[0]
+        
         axes.set_ylim(0,100)
         axes.relim()
         axes.autoscale_view(scalex=True, scaley=False)
@@ -91,9 +101,107 @@ class PSTHPanel(wx.Panel):
                 _n, bins, patches = axes.hist(data, bins, facecolor='black', alpha=1.0)
                 self.hist_bins.append(bins)
                 self.hist_patches.append(patches)
+        
+    def update_chart(self, data=None):
+        if data is None and hasattr(self, 'data'):
+            data = self.data
+        else:
+            self.data = data
+        if self.psth is None:
+            return
+        selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
+        if selected_unit is not None:
+            channel, unit = selected_unit
+            zeroth_psth_data = None
+            if channel not in data or unit not in data[channel]:
+                return
+            polar_dict = {'orientation':True, 'spatial_frequency':False, 'phase':False}
+            self.parameter = self.psth.parameter
+            if self.parameter in polar_dict:
+                polar_chart = polar_dict[self.parameter]
+            else:
+                polar_chart = self.polar_chart
+            # histogram
+            for index in filter(lambda index: not index & 1, data[channel][unit].iterkeys()):
+                patch_index = index // 2
+                spike_times = data[channel][unit][index]['spikes']
+                bins = data[channel][unit][index]['bins']
+                psth_data = data[channel][unit][index]['psth_data']
+                if index == 0:
+                    zeroth_psth_data = psth_data
+                _trials = data[channel][unit][index]['trials']
+                self.show_fitting_changed = False
+                if len(bins) != len(self.hist_bins[0]) or self.show_errbar_changed or polar_chart != self.polar_chart:
+                    self.make_chart(spike_times, bins, polar_chart, self.fitting_gaussian or self.fitting_sinusoid or self.fitting_gabor)
+                    self.show_errbar_changed = False
+                    self.show_fitting_changed = False
+                else:
+                    for rect,h in zip(self.hist_patches[patch_index],psth_data):
+                        rect.set_height(h)
+            
+            for index in data[channel][unit].iterkeys():
+                mean = data[channel][unit][index]['mean']
+                std = data[channel][unit][index]['std']
+                self.means[index] = mean
+                self.stds[index] = std
+                
+            if self.parameter == 'orientation':
+                self.x = np.linspace(0.0, 360.0, 17)/180*np.pi
+                self.curve_axes.set_title('Orientation Tuning Curve',fontsize=12)
+                if zeroth_psth_data is not None:
+                    for rect,h in zip(self.hist_patches[-1],zeroth_psth_data):
+                        rect.set_height(h)
+                self.means[-1] = self.means[0]
+                self.stds[-1] = self.stds[0]
+            if self.parameter == 'spatial_frequency':
+                self.x = np.linspace(0.05, 1.0, 16)
+                self.curve_axes.set_title('Spatial Frequency Tuning Curve',fontsize=12)
+                self.means = self.means[:len(self.x)]
+                self.stds = self.stds[:len(self.x)]
+            if self.parameter == 'phase':
+                self.x = np.linspace(0.0, 360.0, 17)
+                self.curve_axes.set_title('Disparity Tuning Curve',fontsize=12)
+                if zeroth_psth_data is not None:
+                    for rect,h in zip(self.hist_patches[-1],zeroth_psth_data):
+                        rect.set_height(h)
+                self.means[-1] = self.means[0]
+                self.stds[-1] = self.stds[0]
+            
+            self.curve_data.set_xdata(self.x)
+            self.curve_data.set_ydata(self.means)
+            if self.errbars is not None:
+                self._update_errbars(self.errbars,self.x,self.means,self.stds)
+                
+            self.fitting_x = np.linspace(self.x[0], self.x[-1], self.fitting_x.size, endpoint=True)
+            self.fitting_y = np.zeros(self.fitting_x.size)
+            if self.fitting_gaussian:
+                model = self.gauss_fitter.gaussfit1d(self.x, self.means, self.fitting_x)
+            elif self.fitting_sinusoid:
+                model = self.sinusoid_fitter.sinusoid1d(self.x, self.means, self.fitting_x)
+            elif self.fitting_gabor:
+                model = self.gabor_fitter.gaborfit1d(self.x, self.means, self.fitting_x)
+            else:
+                model = self.fitting_y
+            self.fitting_data.set_xdata(self.fitting_x)
+            self.fitting_data.set_ydata(model)
+            
+            self.curve_axes.set_xlim(min(self.x),max(self.x))
+            self.curve_axes.set_ylim(auto=True)
+            #self.curve_axes.set_ylim(0,100)
+            self.curve_axes.relim()
+            self.curve_axes.autoscale_view(scalex=False, scaley=True)
+                
+        self.fig.canvas.draw()
     
-    def update_chart(self,data=None):
-        UpdateChartThread(self,data)
+    def _update_errbars(self, errbar, x, means, yerrs):
+        errbar[0].set_data(x,means)
+        # Find the ending points of the errorbars
+        error_positions = (x,means-yerrs), (x,means+yerrs)
+        # Update the caplines
+        for i,pos in enumerate(error_positions):
+            errbar[1][i].set_data(pos)
+        # Update the error bars
+        errbar[2][0].set_segments(np.array([[x, means-yerrs], [x, means+yerrs]]).transpose((2, 0, 1)))
     
     def on_update_data_timer(self, event):
         if self.collecting_data and self.connected_to_server:
@@ -114,6 +222,18 @@ class PSTHPanel(wx.Panel):
         if hasattr(self, 'update_data_thread') and self.psth is not None:
             RestartDataThread(self, self.psth, self.update_data_thread)
         self.collecting_data = True
+    
+    def gaussianfit(self, checked):
+        self.gauss_fitter = GaussFit()
+        self.fitting_gaussian = checked
+        
+    def sinusoidfit(self, checked):
+        self.sinusoid_fitter = SinusoidFit()
+        self.fitting_sinusoid = checked
+        
+    def gaborfit(self, checked):
+        self.gabor_fitter = GaborFit()
+        self.fitting_gabor = checked
     
     def show_errbar(self, checked):
         self.show_errbar_changed = True
@@ -139,127 +259,37 @@ class PSTHPanel(wx.Panel):
     
     def save_chart(self,path):
         self.canvas.print_figure(path, dpi=self.dpi)
-            
-class UpdateChartThread(threading.Thread):
-    def __init__(self, panel, data=None):
-        threading.Thread.__init__(self)
-        if data is None and hasattr(panel, 'data'):
-            data = panel.data
-        if panel.psth is None:
-            return
-        self.panel = panel
-        self.parameter = panel.psth.parameter
-        
-        self.hist_bins = panel.hist_bins
-        self.hist_patches = panel.hist_patches
-        self.errbars = panel.errbars
-        self.curve_data = panel.curve_data
-        self.curve_axes = panel.curve_axes
-        
-        self._data = data
-        self.run()
-    def run(self):
-        self.update_chart(self.panel, self._data)
-        
-    def update_chart(self, panel, data):
-        panel.data = data
-        selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
-        if selected_unit is not None:
-            channel, unit = selected_unit
-            zeroth_psth_data = None
-            if channel not in data or unit not in data[channel]:
-                return
-            polar_dict = {'orientation':True, 'spatial_frequency':False, 'phase':False}
-            if self.parameter in polar_dict:
-                polar_chart = polar_dict[self.parameter]
-            else:
-                polar_chart = panel.polar_chart
-            # histogram
-            for index in filter(lambda index: not index & 1, data[channel][unit].iterkeys()):
-                patch_index = index // 2
-                spike_times = data[channel][unit][index]['spikes']
-                bins = data[channel][unit][index]['bins']
-                psth_data = data[channel][unit][index]['psth_data']
-                if index == 0:
-                    zeroth_psth_data = psth_data
-                _trials = data[channel][unit][index]['trials']
-                if len(bins) != len(self.hist_bins[0]) or panel.show_errbar_changed or polar_chart != panel.polar_chart:
-                    panel.make_chart(spike_times, bins, polar_chart)
-                    self.hist_bins = panel.hist_bins        # update variables in panel after new chart
-                    self.hist_patches = panel.hist_patches
-                    self.errbars = panel.errbars
-                    self.curve_data = panel.curve_data
-                    self.curve_axes = panel.curve_axes
-                    panel.show_errbar_changed = False
-                else:
-                    for rect,h in zip(self.hist_patches[patch_index],psth_data):
-                        rect.set_height(h)
-            
-            for index in data[channel][unit].iterkeys():
-                mean = data[channel][unit][index]['mean']
-                std = data[channel][unit][index]['std']
-                panel.means[index] = mean
-                panel.stds[index] = std
-                
-            if self.parameter == 'orientation':
-                panel.x = np.linspace(0.0, 360.0, 17)/180*np.pi
-                self.curve_axes.set_title('Orientation Tuning Curve',fontsize=12)
-                if zeroth_psth_data is not None:
-                    for rect,h in zip(self.hist_patches[-1],zeroth_psth_data):
-                        rect.set_height(h)
-                panel.means[-1] = panel.means[0]
-                panel.stds[-1] = panel.stds[0]
-            if self.parameter == 'spatial_frequency':
-                panel.x = np.linspace(0.05, 1.0, 16)
-                self.curve_axes.set_title('Spatial Frequency Tuning Curve',fontsize=12)
-                panel.means = panel.means[:len(panel.x)]
-                panel.stds = panel.stds[:len(panel.x)]
-            if self.parameter == 'phase':
-                panel.x = np.linspace(0.0, 360.0, 17)
-                self.curve_axes.set_title('Disparity Tuning Curve',fontsize=12)
-                if zeroth_psth_data is not None:
-                    for rect,h in zip(self.hist_patches[-1],zeroth_psth_data):
-                        rect.set_height(h)
-                panel.means[-1] = panel.means[0]
-                panel.stds[-1] = panel.stds[0]
-            
-            self.curve_data.set_xdata(panel.x)
-            self.curve_data.set_ydata(panel.means)
-            if self.errbars is not None:
-                self._update_errbars(self.errbars,panel.x,panel.means,panel.stds)
-                
-            self.curve_axes.set_xlim(min(panel.x),max(panel.x))
-            self.curve_axes.set_ylim(auto=True)
-            #self.curve_axes.set_ylim(0,100)
-            self.curve_axes.relim()
-            self.curve_axes.autoscale_view(scalex=False, scaley=True)
-        panel.fig.canvas.draw()
-    
-    def _update_errbars(self, errbar, x, means, yerrs):
-        errbar[0].set_data(x,means)
-        # Find the ending points of the errorbars
-        error_positions = (x,means-yerrs), (x,means+yerrs)
-        # Update the caplines
-        for i,pos in enumerate(error_positions):
-            errbar[1][i].set_data(pos)
-        # Update the error bars
-        errbar[2][0].set_segments(np.array([[x, means-yerrs], [x, means+yerrs]]).transpose((2, 0, 1)))
 
 class PSTHFrame(MainFrame):
     """ The main frame of the application
     """
     def __init__(self):
-        title = 'Peri-Stimulus Time Histogram(PSTH) Average'
-        super(PSTHFrame, self).__init__(title)
+        self.title = 'Peri-Stimulus Time Histogram(PSTH) Average'
+        super(PSTHFrame, self).__init__(self.title)
         
     def create_menu(self):
         super(PSTHFrame, self).create_menu()
+        
+        self.menu_fitting = wx.Menu()
+        self.m_gaussfitter = self.menu_fitting.AppendCheckItem(-1, "Ga&ussian\tCtrl-U", "Gaussian curve")
+        self.menu_fitting.Check(self.m_gaussfitter.GetId(), False)
+        self.Bind(wx.EVT_MENU, self.on_check_gaussfitter, self.m_gaussfitter)
+        self.m_sinfitter = self.menu_fitting.AppendCheckItem(-1, "&Sinusoidal\tCtrl-S", "Sinusoidal curve")
+        self.menu_fitting.Check(self.m_sinfitter.GetId(), False)
+        self.Bind(wx.EVT_MENU, self.on_check_sinfitter, self.m_sinfitter)
+        self.m_gaborfitter = self.menu_fitting.AppendCheckItem(-1, "Ga&bor\tCtrl-B", "Gabor curve")
+        self.menu_fitting.Check(self.m_gaborfitter.GetId(), False)
+        self.Bind(wx.EVT_MENU, self.on_check_gaborfitter, self.m_gaborfitter)
+        self.menu_uncheck_binds = {self.m_gaussfitter.GetId():self.uncheck_gaussfitter,\
+                                   self.m_sinfitter.GetId():self.uncheck_sinfitter,\
+                                   self.m_gaborfitter.GetId():self.uncheck_gaborfitter}
         
         menu_view = wx.Menu()
         self.m_errbar = menu_view.AppendCheckItem(-1, "&Errorbar\tCtrl-E", "Display errorbar")
         menu_view.Check(self.m_errbar.GetId(), False)
         self.Bind(wx.EVT_MENU, self.on_check_errbar, self.m_errbar)
         
+        self.menubar.Append(self.menu_fitting, "&Fitting")
         self.menubar.Append(menu_view, "&View")
         self.SetMenuBar(self.menubar)
         
@@ -269,7 +299,46 @@ class PSTHFrame(MainFrame):
     def on_data_updated(self, event):
         data = event.get_data()
         self.unit_choice.update_units(data)
-        UpdateChartThread(self.chart_panel, data)
+        self.chart_panel.update_chart(data)
+        
+    def on_check_gaussfitter(self, event):
+        if self.m_gaussfitter.IsChecked():
+            for item in self.menu_fitting.GetMenuItems():
+                if item.GetId() != self.m_gaussfitter.GetId() and item.IsChecked():
+                    self.menu_fitting.Check(item.GetId(), False)
+                    self.menu_uncheck_binds[item.GetId()]()
+            self.flash_status_message("Using gaussian fitting")
+        self.chart_panel.gaussianfit(self.m_gaussfitter.IsChecked())
+        self.chart_panel.update_chart()
+        
+    def uncheck_gaussfitter(self):
+        self.chart_panel.gaussianfit(False)
+        
+    def on_check_sinfitter(self, event):
+        if self.m_sinfitter.IsChecked():
+            for item in self.menu_fitting.GetMenuItems():
+                if item.GetId() != self.m_sinfitter.GetId() and item.IsChecked():
+                    self.menu_fitting.Check(item.GetId(), False)
+                    self.menu_uncheck_binds[item.GetId()]()
+            self.flash_status_message("Using sinusoidal fitting")
+        self.chart_panel.sinusoidfit(self.m_sinfitter.IsChecked())
+        self.chart_panel.update_chart()
+        
+    def uncheck_sinfitter(self):
+        self.chart_panel.sinusoidfit(False)
+        
+    def on_check_gaborfitter(self, event):
+        if self.m_gaborfitter.IsChecked():
+            for item in self.menu_fitting.GetMenuItems():
+                if item.GetId() != self.m_gaborfitter.GetId() and item.IsChecked():
+                    self.menu_fitting.Check(item.GetId(), False)
+                    self.menu_uncheck_binds[item.GetId()]()
+            self.flash_status_message("Using gabor fitting")
+        self.chart_panel.gaborfit(self.m_gaborfitter.IsChecked())
+        self.chart_panel.update_chart()
+        
+    def uncheck_gaborfitter(self):
+        self.chart_panel.gaborfit(False)
         
     def on_check_errbar(self, event):
         if self.m_errbar.IsChecked():
@@ -278,7 +347,7 @@ class PSTHFrame(MainFrame):
         else:
             self.chart_panel.show_errbar(False)
             self.flash_status_message("Stoped showing error bar")
-        UpdateChartThread(self.chart_panel)
+        self.chart_panel.update_chart()
 
 if __name__ == '__main__':
     app = wx.PySimpleApp()
