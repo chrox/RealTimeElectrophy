@@ -15,7 +15,7 @@ from matplotlib import pylab
 
 from Experimenter.DataProcessing.Fitting import GaussFit,SinusoidFit,GaborFit
 from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread,CheckRestart
-from Experimenter.GUI.DataCollect import MainFrame,adjust_spines
+from Experimenter.GUI.DataCollect import MainFrame,DataForm,adjust_spines
 from Experimenter.SpikeData import TimeHistogram
 
 class PSTHPanel(wx.Panel):
@@ -33,16 +33,26 @@ class PSTHPanel(wx.Panel):
         self.psth = None
         self.start_data()
         self.raw_data = None
-
-        self.dpi = 100
-        self.fig = Figure((8.0, 6.0), dpi=self.dpi, facecolor='w')
-        self.canvas = FigCanvas(self, -1, self.fig)
-                
-        self.make_chart()
         
+        # layout sizer
         box = wx.StaticBox(self, -1, label)
         sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        sizer.Add(self.canvas, 0, flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=5)
+        
+        # canvas
+        self.dpi = 100
+        self.fig = Figure((8.0, 6.0), dpi=self.dpi, facecolor='w')
+        self.canvas = FigCanvas(self, -1, self.fig)      
+        self.make_chart()
+        
+        # data form
+        self.data_form = DataForm(self, 'Data form')
+        
+        # layout hbox 
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        hbox.Add(self.canvas, 0, flag=wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_TOP, border=5)
+        hbox.Add(self.data_form, 0, flag=wx.ALL | wx.ALIGN_RIGHT | wx.ALIGN_TOP, border=5)
+        
+        sizer.Add(hbox, 0, wx.ALIGN_CENTRE)
         self.SetSizer(sizer)
         sizer.Fit(self)
 
@@ -71,7 +81,7 @@ class PSTHPanel(wx.Panel):
             adjust_spines(axes,spines=['left','bottom','right'],spine_outward=['left','right','bottom'],xoutward=10,youtward=30,\
                           xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5,xminor_auto_loc=2,yminor_auto_loc=2)
             axes.set_ylabel('Response(spikes/sec)',fontsize=12)
-        self.curve_data = axes.plot(self.x, self.means, 'ko-')[0]
+        self.curve_data = axes.plot(self.x, self.means, 'ko')[0]
         self.errbars = axes.errorbar(self.x, self.means, yerr=self.stds, fmt='k.') if self.showing_errbar else None
         self.curve_axes = axes
         #if fitting:
@@ -173,17 +183,17 @@ class PSTHPanel(wx.Panel):
                 self._update_errbars(self.errbars,self.x,self.means,self.stds)
                 
             self.fitting_x = np.linspace(self.x[0], self.x[-1], self.fitting_x.size, endpoint=True)
-            self.fitting_y = np.zeros(self.fitting_x.size)
+            model = np.zeros(self.fitting_x.size)
             if self.fitting_gaussian:
                 model = self.gauss_fitter.gaussfit1d(self.x, self.means, self.fitting_x)
             elif self.fitting_sinusoid:
                 model = self.sinusoid_fitter.sinusoid1d(self.x, self.means, self.fitting_x)
             elif self.fitting_gabor:
                 model = self.gabor_fitter.gaborfit1d(self.x, self.means, self.fitting_x)
-            else:
-                model = self.fitting_y
             self.fitting_data.set_xdata(self.fitting_x)
             self.fitting_data.set_ydata(model)
+            label = [self.parameter, 'rate', 'std']
+            self.data_form.gen_curve_data(self.x, self.means, self.stds, self.fitting_x, model, label)
             
             self.curve_axes.set_xlim(min(self.x),max(self.x))
             self.curve_axes.set_ylim(auto=True)

@@ -13,8 +13,41 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 
 from Experimenter.DataProcessing.Fitting import GaussFit,GaborFit
 from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread,CheckRestart
-from Experimenter.GUI.DataCollect import MainFrame,adjust_spines
+from Experimenter.GUI.DataCollect import MainFrame,DataForm,adjust_spines
 from Experimenter.SpikeData import RevCorr
+
+EVT_TIME_UPDATED_TYPE = wx.NewEventType()
+EVT_TIME_UPDATED = wx.PyEventBinder(EVT_TIME_UPDATED_TYPE, 1)
+
+class TimeUpdatedEvent(wx.PyCommandEvent):
+    def __init__(self, etype, eid, time=None):
+        wx.PyCommandEvent.__init__(self, etype, eid)
+        self._time = time
+    def get_time(self):
+        return self._time
+
+class OptionPanel(wx.Panel):
+    """ display options.
+    """
+    def __init__(self, parent, label, time=85, name='options'):
+        super(OptionPanel, self).__init__(parent, -1, name=name)
+        self.time = time
+        
+        time_text = wx.StaticText(self, -1, 'Time:', style=wx.ALIGN_LEFT)
+        self.slider = wx.Slider(self, -1, self.time, 0, 200, None, (250, 50), style=wx.SL_HORIZONTAL | wx.SL_LABELS)
+        self.Bind(wx.EVT_SLIDER, self.on_slider_update)
+
+        box = wx.StaticBox(self, -1, label)
+        sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        sizer.Add(time_text, 0, flag=wx.ALL, border=5)
+        sizer.Add(self.slider, 0, flag=wx.ALIGN_LEFT, border=5)
+        self.SetSizer(sizer)
+        sizer.Fit(self)
+    def on_slider_update(self, event):
+        # reverse time in ms
+        time = self.slider.GetValue() / 1000
+        evt = TimeUpdatedEvent(EVT_TIME_UPDATED_TYPE, -1, time)
+        wx.PostEvent(self.GetParent(), evt)
 
 class STAPanel(wx.Panel):
     """ Receptive field plot.
@@ -40,8 +73,7 @@ class STAPanel(wx.Panel):
         self.fig = Figure((6.0, 6.0), dpi=self.dpi, facecolor='w')
         self.canvas = FigCanvas(self, -1, self.fig)
         self.fig.subplots_adjust(bottom=0.05, left=0.05, right=0.95, top=0.95)
-        #
-        self.slider = wx.Slider(self, -1, time_slider, 0, 200, None, (250, 50), style=wx.SL_HORIZONTAL | wx.SL_LABELS)
+        
         # popup menu of cavas
         interpolations = ['none', 'nearest', 'bilinear', 'bicubic', 'spline16', 'spline36', 'hanning', 'hamming', 'hermite', \
                                'kaiser', 'quadric', 'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc', 'lanczos']
@@ -64,18 +96,21 @@ class STAPanel(wx.Panel):
         #layout things
         box = wx.StaticBox(self, -1, label)
         sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        # slider
+        
+        # options
+        self.options = OptionPanel(self, 'Options', time=time_slider)
+        self.Bind(EVT_TIME_UPDATED, self.on_update_time_slider)
+        # results 
+        self.results = DataForm(self, 'Results', text_size=(250,150))
+        
         vbox = wx.BoxSizer(wx.VERTICAL)
-        option_hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-        time_text = wx.StaticText(self, -1, 'Time:')
-        option_hbox1.Add(time_text,0,wx.LEFT)
-        option_hbox1.Add(self.slider,0,wx.LEFT)
-        vbox.Add(option_hbox1,1,wx.TOP, 20)
-
+        vbox.Add(self.options,1,wx.TOP|wx.CENTER, 0)
+        vbox.Add(self.results,1,wx.TOP|wx.CENTER, 0)
+        
         # canvas 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        hbox.Add(self.canvas, 0, flag=wx.TOP | wx.ALIGN_CENTER_VERTICAL, border=10)
-        hbox.Add(vbox,flag=wx.TOP)
+        hbox.Add(self.canvas, 0, flag=wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_TOP, border=5)
+        hbox.Add(vbox, 0, flag=wx.ALL | wx.ALIGN_RIGHT | wx.ALIGN_TOP, border=5)
         
         sizer.Add(hbox, 0, wx.ALIGN_CENTRE)
         self.SetSizer(sizer)
@@ -84,7 +119,6 @@ class STAPanel(wx.Panel):
         self.update_data_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_update_data_timer, self.update_data_timer)
         self.update_data_timer.Start(2000)
-        self.Bind(wx.EVT_SLIDER, self.on_slider_update)
                 
     def make_chart(self):
         self.fig.clear()
@@ -93,7 +127,6 @@ class STAPanel(wx.Panel):
         img = np.zeros((64,64,3))
         self.img_dim = img.shape
         self.im = self.axes.imshow(img,interpolation=self.interpolation)
-        self.canvas.draw()
         
     def set_data(self, data):
         self.data = data
@@ -125,7 +158,9 @@ class STAPanel(wx.Panel):
                     _params,img = self.gauss_fitter.gaussfit2d(float_img,returnfitimage=True)
                 elif self.fitting_gabor:
                     _params,img = self.gabor_fitter.gaborfit2d(float_img,returnfitimage=True)
+                self.results.gen_img_data(img, self.stimulus)
                 img = self.sta_data.float_to_rgb(img,cmap='jet')
+
             self.im.set_data(img)
             #self.axes.set_title(self.title)
             if isinstance(self.sta_data,RevCorr.STAData):
@@ -139,6 +174,10 @@ class STAPanel(wx.Panel):
         if self.collecting_data and self.connected_to_server:
             self.update_data_thread = UpdateDataThread(self, self.sta_data)
             CheckRestart(self, self.sta_data)
+    
+    def on_update_time_slider(self, event):
+        self.time = event.get_time()
+        self.update_chart()
     
     def start_data(self):
         if self.sta_data is None:
@@ -183,12 +222,6 @@ class STAPanel(wx.Panel):
         pos = event.GetPosition()
         pos = event.GetEventObject().ScreenToClient(pos)
         self.PopupMenu(self.popup_menu, pos)
-    
-    def on_slider_update(self, event):
-        # reverse time in ms
-        self.time = self.slider.GetValue() / 1000
-        if hasattr(self, 'data'):
-            self.update_chart(self.data)
         
     def on_interpolation_selected(self, event):
         item = self.interpolation_menu.FindItemById(event.GetId())
@@ -200,7 +233,11 @@ class STAPanel(wx.Panel):
             self.update_chart(self.data)
     
     def open_file(self, path):
-        self.sta_data = RevCorr.STAData(path)
+        data_type = wx.FindWindowByName('main_frame').get_data_type()
+        if data_type == 'sparse_noise':
+            self.sta_data = RevCorr.STAData(path)
+        elif data_type == 'param_map':
+            self.sta_data = RevCorr.ParamMapData(path)
         UpdateDataThread(self, self.sta_data)
         self.connected_to_server = False
     
@@ -224,10 +261,10 @@ class STAFrame(MainFrame):
         super(STAFrame, self).create_menu()
         
         menu_source = wx.Menu()
-        m_sparse_noise = menu_source.AppendRadioItem(-1, "Sparse &Noise\tCtrl-N", "Sparse noise data")
-        self.Bind(wx.EVT_MENU, self.on_sparse_noise_data, m_sparse_noise)
-        m_param_mapping = menu_source.AppendRadioItem(-1, "Param &Mapping\tCtrl-M", "Parameter mapping data")
-        self.Bind(wx.EVT_MENU, self.on_param_mapping_data, m_param_mapping)
+        self.m_sparse_noise = menu_source.AppendRadioItem(-1, "Sparse &Noise\tCtrl-N", "Sparse noise data")
+        self.Bind(wx.EVT_MENU, self.on_sparse_noise_data, self.m_sparse_noise)
+        self.m_param_mapping = menu_source.AppendRadioItem(-1, "Param &Mapping\tCtrl-M", "Parameter mapping data")
+        self.Bind(wx.EVT_MENU, self.on_param_mapping_data, self.m_param_mapping)
         
         self.menu_fitting = wx.Menu()
         self.m_gaussfitter = self.menu_fitting.AppendCheckItem(-1, "Ga&ussian\tCtrl-U", "Gaussian fitting")
@@ -264,6 +301,12 @@ class STAFrame(MainFrame):
     def on_param_mapping_data(self, event):
         self.chart_panel.param_mapping_data()
         self.flash_status_message("Data source changed to parameter mapping")
+        
+    def get_data_type(self):
+        if self.m_sparse_noise.IsChecked():
+            return 'sparse_noise'
+        elif self.m_param_mapping.IsChecked():
+            return 'param_map'
         
     def on_check_gaussfitter(self, event):
         if self.m_gaussfitter.IsChecked():

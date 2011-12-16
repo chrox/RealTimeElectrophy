@@ -3,11 +3,28 @@
 # Copyright (C) 2010-2011 Huang Xin
 # 
 # See LICENSE.TXT that came with this file.
+import numpy as np
 import os
 import time
 import threading
 import wx
 import matplotlib
+#from StimControl.LightStim.LightData import IndexedParam
+
+class IndexedParam(list):
+    def __init__(self,parameter):
+        if parameter == 'orientation':
+            super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 16, endpoint=False))
+        elif parameter == 'orientation_180':
+            super(IndexedParam, self).__init__(np.linspace(0.0, 180.0, 16, endpoint=False))
+        elif parameter == 'spatial_freq':
+            super(IndexedParam, self).__init__(np.linspace(0.05, 1.0, 16))
+        elif parameter == 'phase_at_t0':
+            super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 16, endpoint=False))
+        elif parameter is None:
+            super(IndexedParam, self).__init__([None])
+        else:
+            raise RuntimeError('Cannot understand parameter:%s' %str(parameter))
 
 EVT_DATA_UPDATED_TYPE = wx.NewEventType()
 EVT_DATA_UPDATED = wx.PyEventBinder(EVT_DATA_UPDATED_TYPE, 1)
@@ -107,6 +124,61 @@ class UnitChoice(wx.Panel):
         if index is not wx.NOT_FOUND:
             return self.units[index]
         
+class DataForm(wx.Panel):
+    """ display results.
+    """
+    def __init__(self, parent, label, text_size=(100,600), name='results'):
+        super(DataForm, self).__init__(parent, -1, name=name)
+        
+        self.results = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.HSCROLL | wx.VSCROLL | wx.TE_READONLY, size=text_size)        
+        box = wx.StaticBox(self, -1, label)
+        sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        sizer.Add(self.results, 0, flag=wx.ALL, border=5)
+        self.SetSizer(sizer)
+        sizer.Fit(self)
+
+    def gen_curve_data(self, x, means, stds, fittings, model, label):
+        if label[0] == 'orientation':
+            label[0] = 'ori'
+        elif label[0] == 'spatial_frequency':
+            label[0] = 'spf'
+        elif label[0] == 'phase':
+            label[0] = 'pha'
+        data = '-'*18 + '\nData:\n' + "\t".join(label) + '\n'
+        for line in zip(x,means,stds):
+            dataline = '\t'.join('%.1f' %value for value in line)
+            data += dataline + '\n'
+        extremes = ''
+        if any(model):
+            max_index = model.argmax()
+            min_index = model.argmin()
+            extremes += '\n' + '-'*18 + '\nMax/min values:\n'
+            extremes += 'Max '+ label[1] + '\t' + label[0] + '\n'
+            extremes += '%.1f\t%.1f\n' %(model[max_index], fittings[max_index])
+            extremes += 'Min '+ label[1] + '\t' + label[0] + '\n'
+            extremes += '%.1f\t%.1f\n' %(model[min_index], fittings[min_index])
+        form = data + extremes
+        self.results.SetValue(form)
+        
+    def gen_img_data(self,img,type):
+        dims = img.shape
+        data = ''
+        extremes = ''
+        if type == 'white_noise':
+            pass
+        elif type == 'param_mapping':
+            ori = IndexedParam('orientation_180')
+            spf = IndexedParam('spatial_freq')
+            x_max,y_max = np.unravel_index(img.argmax(), dims)
+            x_min,y_min = np.unravel_index(img.argmin(), dims)
+            extremes += '\n' + '-'*18 + '\nMax/min values:\n'
+            extremes += 'Max: ' + '\tori' + '\tspf\n'
+            extremes += '\t%.1f\t%.1f\n' %(ori[x_max], spf[y_max])
+            extremes += 'Min ' + '\tori' + '\tspf\n'
+            extremes += '\t%.1f\t%.1f\n' %(ori[x_min], spf[y_min])
+        form = data + extremes
+        self.results.SetValue(form)
+
 class MainFrame(wx.Frame):
     """ The main frame of the application
     """
@@ -169,6 +241,8 @@ class MainFrame(wx.Frame):
         self.hbox.Add(self.unit_choice, flag=wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_TOP, border=5)
         #self.hbox.AddSpacer(5)
         self.hbox.Add(self.chart_panel, flag=wx.ALL | wx.ALIGN_RIGHT| wx.ALIGN_TOP, border=5)
+        #self.hbox.Add(self.results, flag=wx.ALL | wx.ALIGN_RIGHT| wx.ALIGN_TOP, border=5)
+        
         self.vbox.Add(self.hbox, flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=5)
         self.panel.SetSizer(self.vbox)
         self.vbox.Fit(self)
@@ -247,6 +321,9 @@ class MainFrame(wx.Frame):
         self.chart_panel.restart_data()
         self.flash_status_message("Data collecting restarted")
 
+    def set_results(self, results):
+        self.results.set_results(results)
+    
     def flash_status_message(self, msg, flash_len_ms=1500):
         self.statusbar.SetStatusText(msg)
         self.timeroff = wx.Timer(self)
