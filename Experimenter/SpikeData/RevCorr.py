@@ -198,8 +198,8 @@ class STAImg(RevCorrImg):
         return STAImg._process_img(img, cmap)
         
 class ParamMapData(RevCorrData):
-    def __init__(self):
-        super(ParamMapData,self).__init__()
+    def __init__(self,file=None):
+        super(ParamMapData,self).__init__(file)
         self.X_INDEX = 0B1111
         self.X_BIT_SHIFT = 0
         self.Y_INDEX = 0B1111
