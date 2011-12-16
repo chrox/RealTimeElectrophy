@@ -11,25 +11,6 @@ import random
 import logging
 from .. import LightStim
 
-class dictattr(dict):
-    """ Dictionary with attribute access"""
-    def __init__(self, *args, **kwargs):
-        super(dictattr, self).__init__(*args, **kwargs)
-        for k, v in kwargs.iteritems():
-            self.__setitem__(k, v) # call our own __setitem__ so we get keys as attribs even on kwarg init
-    def __getattr__(self, key):
-        try:
-            return self[key]
-        except KeyError:
-            raise AttributeError, '%r object has no attribute %r' % ('dictattr', key)
-    def __setattr__(self, key, val):
-        self[key] = val
-    def __setitem__(self, key, val):
-        super(dictattr, self).__setitem__(key, val)
-        if key.__class__ == str and not key[0].isdigit(): # key isn't a number or a string starting with a number
-            key = key.replace(' ', '_') # get rid of any spaces
-            self.__dict__[key] = val # make the key show up as an attrib upon dir()
-
 class SweepSeque(object):
     def __init__(self):
         assumed_refresh_rate = LightStim.config.assume_viewport_refresh_rate()

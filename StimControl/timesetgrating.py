@@ -6,7 +6,8 @@
 
 from __future__ import division
 import numpy as np
-from StimControl.LightStim.SweepSeque import dictattr,TimingSeque
+from StimControl.LightStim.SweepSeque import TimingSeque
+from StimControl.LightStim.LightData import dictattr
 from StimControl.LightStim.FrameControl import FrameSweep
 from StimControl.LightStim.Grating import TimingSetGrating
 from StimControl.LightStim.Core import DefaultScreen

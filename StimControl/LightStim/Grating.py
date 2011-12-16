@@ -16,25 +16,11 @@ from VisionEgg.Textures import Mask2D
 from VisionEgg.MoreStimuli import Target2D
 
 from LightUtil import TimeFormat
-from SweepSeque import dictattr
+from LightData import dictattr
 from Core import Stimulus
 
 from SweepController import StimulusController,SweepSequeStimulusController,DTSweepSequeController
-
-class IndexedParam(list):
-    def __init__(self,parameter):
-        if parameter == 'orientation':
-            super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 16, endpoint=False))
-        elif parameter == 'orientation_180':
-            super(IndexedParam, self).__init__(np.linspace(0.0, 180.0, 16, endpoint=False))
-        elif parameter == 'spatial_freq':
-            super(IndexedParam, self).__init__(np.linspace(0.05, 1.0, 16))
-        elif parameter == 'phase_at_t0':
-            super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 16, endpoint=False))
-        elif parameter is None:
-            super(IndexedParam, self).__init__([None])
-        else:
-            raise RuntimeError('Cannot understand parameter:%s' %str(parameter))
+from LightData import IndexedParam
 
 class GratingController(StimulusController):
     """ update mangrating parameters """

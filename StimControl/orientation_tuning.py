@@ -5,10 +5,11 @@
 # See LICENSE.TXT that came with this file.
 
 from __future__ import division
-from StimControl.LightStim.SweepSeque import dictattr,ParamSeque
+from StimControl.LightStim.SweepSeque import ParamSeque
 from StimControl.LightStim.FrameControl import FrameSweep
-from StimControl.LightStim.Grating import ParamsGrating,IndexedParam
+from StimControl.LightStim.Grating import ParamsGrating
 from StimControl.LightStim.Core import DefaultScreen
+from StimControl.LightStim.LightData import dictattr,IndexedParam
 
 DefaultScreen(['left','right'])
 

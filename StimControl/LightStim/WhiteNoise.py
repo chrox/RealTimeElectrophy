@@ -15,7 +15,7 @@ from VisionEgg.Core import FixationSpot
 
 from Core import Stimulus
 from LightUtil import TimeFormat
-from SweepSeque import dictattr
+from LightData import dictattr
 from SweepController import SweepSequeStimulusController,SaveParamsController,DTSweepSequeController
 from CheckBoard import CheckBoard
 
