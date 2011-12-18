@@ -18,11 +18,11 @@ class SweepSeque(object):
 
 class TimingSeque(SweepSeque):
     """ stimulus sequence with arbitrary onset and offset timing."""
-    def __init__(self, repeat, episode, shuffle):
+    def __init__(self, repeat, block, shuffle):
         super(TimingSeque, self).__init__()
         logger = logging.getLogger('LightStim.SweepSeque')
-        self.episode = episode
-        self.cycle = self.episode.cycle
+        self.block = block
+        self.cycle = self.block.cycle
         
         pre_sweep_counts = np.round((self.cycle.pre + self.cycle.stimulus - self.cycle.stimulus) / self.sweep_duration)
         stim_sweep_counts = np.round((self.cycle.stimulus + self.cycle.pre - self.cycle.pre) / self.sweep_duration)
@@ -44,10 +44,10 @@ class TimingSeque(SweepSeque):
                            %(' '.join(['%.4f' %duration for duration in warned_duration]),
                              ' '.join(['%.4f' %duration for duration in actual_duration])))
         
-        interval = [0]*int(self.episode.interval // self.sweep_duration)
+        interval = [0]*int(self.block.interval // self.sweep_duration)
         cycles = [[0]*pre_sweep_counts[i]+[1]*stim_sweep_counts[i]+[0]*post_sweep_counts[i] for i in range(len(stim_sweep_counts))] * repeat
         random.shuffle(cycles)
-        self.sequence_list = [cycle * self.episode.repeat + interval for cycle in cycles]
+        self.sequence_list = [cycle * self.block.repeat + interval for cycle in cycles]
         #self.sequence = itertools.chain.from_iterable(self.sequence_list)
 
 class RandParam(SweepSeque):
