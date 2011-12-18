@@ -77,11 +77,13 @@ class PSTHPanel(wx.Panel):
         gs = gridspec.GridSpec(grid, grid)
         # make tuning curve plot
         axes = self.fig.add_subplot(gs[:-height*2,height//2:-height//2],polar=polar)
-        if not polar:
+        if polar:
+            self.curve_data = axes.plot(self.x, self.means, 'ko-')[0]
+        else:
             adjust_spines(axes,spines=['left','bottom','right'],spine_outward=['left','right','bottom'],xoutward=10,youtward=30,\
                           xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5,xminor_auto_loc=2,yminor_auto_loc=2)
             axes.set_ylabel('Response(spikes/sec)',fontsize=12)
-        self.curve_data = axes.plot(self.x, self.means, 'ko')[0]
+            self.curve_data = axes.plot(self.x, self.means, 'ko')[0]
         self.errbars = axes.errorbar(self.x, self.means, yerr=self.stds, fmt='k.') if self.showing_errbar else None
         self.curve_axes = axes
         #if fitting:
