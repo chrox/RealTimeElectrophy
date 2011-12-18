@@ -21,12 +21,12 @@ p.bgbrightness = 0.0
 p.phase0 = 0
 p.contrast = 1
 
-cycle_left = dictattr(duration=0.2, pre=np.linspace(0.0,0.0,1), stimulus=0.05)
-cycle_right = dictattr(duration=0.2, pre=np.linspace(0.03,0.03,1), stimulus=0.05)
-episode_left = dictattr(repeat=50, cycle=cycle_left, interval=1.0)
-episode_right = dictattr(repeat=50, cycle=cycle_right, interval=1.0)
-sequence_left = TimingSeque(repeat=10, episode=episode_left, shuffle=True)
-sequence_right = TimingSeque(repeat=10, episode=episode_right, shuffle=True)
+cycle_left = dictattr(duration=0.132, pre=np.linspace(0.0,0.0,1), stimulus=0.016)
+cycle_right = dictattr(duration=0.132, pre=np.linspace(0.016,0.016,1), stimulus=0.016)
+episode_left = dictattr(repeat=1600, cycle=cycle_left, interval=0.0)
+episode_right = dictattr(repeat=1600, cycle=cycle_right, interval=0.0)
+sequence_left = TimingSeque(repeat=1, episode=episode_left, shuffle=True)
+sequence_right = TimingSeque(repeat=1, episode=episode_right, shuffle=True)
 
 grating_left = TimingSetGrating(viewport='left', params=p, sweepseq=sequence_left)
 p.phase0 = 180.0
