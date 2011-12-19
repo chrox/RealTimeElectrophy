@@ -36,8 +36,10 @@ class DefaultScreen(Screen):
     """ Specified before stimulus definition.
     """
     screen = None
+    viewports = None
     def __init__(self,viewports_list):
         DefaultScreen.screen = Screen(viewports_list)
+        DefaultScreen.viewports = viewports_list
 
 class Stimulus(VisionEgg.Core.Stimulus):
     """ One stimulus has one and only one viewport to make things not so hard."""
@@ -122,8 +124,11 @@ class Viewport(VisionEgg.Core.Viewport):
         # update viewport position
         known_viewports = LightStim.config.get_known_viewports()
         min_viewport_order = min([LightStim.config.get_viewport_index(viewport_name) for viewport_name in Viewport.defined_viewports])
-        max_viewport_order = max([LightStim.config.get_viewport_index(viewport_name) for viewport_name in Viewport.defined_viewports]) 
-        screen_viewports = known_viewports[min_viewport_order:max_viewport_order+1]
+        max_viewport_order = max([LightStim.config.get_viewport_index(viewport_name) for viewport_name in Viewport.defined_viewports])
+        if DefaultScreen.viewports is not None:
+            screen_viewports = DefaultScreen.viewports
+        else:
+            screen_viewports = known_viewports[min_viewport_order:max_viewport_order+1]
         offset = sum([LightStim.config.get_viewport_width_pix(viewport_name) for viewport_name in screen_viewports[:screen_viewports.index(self.name)]])
         height = LightStim.config.get_screen_height_pix(Viewport.defined_viewports)
         self.parameters.position = offset, height
