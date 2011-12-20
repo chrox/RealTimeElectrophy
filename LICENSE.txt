@@ -1,4 +1,4 @@
-Copyright (c) 2010-1011, Huang Xin
+Copyright (c) 2010-2011, Huang Xin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, 
