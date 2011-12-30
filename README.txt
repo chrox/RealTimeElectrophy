@@ -21,6 +21,7 @@ INSTALLATION
 
 First, download and install these dependencies:
 	- python (version >= 2.6 , but NOT version 3)
+	- Pyro (Python remote objects, version >= 3.2, but NOT version 4)
 	- PIL (Python Imaging Library, version >= 1.1.6)
 	- PyOpenGL (version >= 3.0.1)
 	- pygame (version >= 1.8)
