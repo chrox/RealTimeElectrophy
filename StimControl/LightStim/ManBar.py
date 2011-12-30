@@ -12,7 +12,7 @@ np.seterr(all='raise')
 import pickle
 import logging
 
-from pygame.locals import K_f, K_i, K_p
+from pygame.locals import K_f, K_i, K_o
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
 
@@ -191,7 +191,7 @@ class ManBar(ManStimulus):
             self.flash = not self.flash
         if key == K_i: # invert background and bar brightness
             self.brightness, self.bgbrightness = self.bgbrightness, self.brightness
-        if key == K_p: # orientation is perpendicular to bar moving direction
+        if key == K_o: # orientation is perpendicular to bar moving direction
             self.perpend_to_dir = not self.perpend_to_dir
     
     def load_preference(self, index):

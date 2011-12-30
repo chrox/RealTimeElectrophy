@@ -79,7 +79,7 @@ In manbar and mangrating stimulation:
     - 'G' sets gaussian mask for grating
     - 'H' controls stimulus on/off on all viewports
     - 'I' inverts the bar and background brightness levels
-    - 'P' sets the bar orientation perpendicular to bar moving direction
+    - 'O' sets the bar orientation orthogonal to motion
     - '-'/'+' adjust brightness of bar and contrast of grating
     - '['/']' adjust grating temporal frequency
     - '<'/'>' adjust grating spatial frequency (','/'.' do the same thing)
