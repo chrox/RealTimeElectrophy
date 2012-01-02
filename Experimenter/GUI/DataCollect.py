@@ -127,7 +127,7 @@ class UnitChoice(wx.Panel):
 class DataForm(wx.Panel):
     """ display results.
     """
-    def __init__(self, parent, label, text_size=(120,600), name='results'):
+    def __init__(self, parent, label, text_size=(150,600), name='results'):
         super(DataForm, self).__init__(parent, -1, name=name)
         
         self.results = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.HSCROLL | wx.VSCROLL | wx.TE_READONLY, size=text_size)        
@@ -154,9 +154,9 @@ class DataForm(wx.Panel):
             min_index = model.argmin()
             extremes += '\n' + '-'*18 + '\nMax/min values:\n'
             extremes += 'Max '+ label[1] + '\t' + label[0] + '\n'
-            extremes += '%.1f\t\t%.1f\n' %(model[max_index], fittings[max_index])
+            extremes += '%.2f\t\t%.2f\n' %(model[max_index], fittings[max_index])
             extremes += 'Min '+ label[1] + '\t' + label[0] + '\n'
-            extremes += '%.1f\t\t%.1f\n' %(model[min_index], fittings[min_index])
+            extremes += '%.2f\t\t%.2f\n' %(model[min_index], fittings[min_index])
         form = data + extremes
         self.results.SetValue(form)
         
@@ -173,9 +173,9 @@ class DataForm(wx.Panel):
             x_min,y_min = np.unravel_index(img.argmin(), dims)
             extremes += '\n' + '-'*18 + '\nMax/min values:\n'
             extremes += 'Max: ' + '\tori' + '\tspf\n'
-            extremes += '\t%.1f\t%.1f\n' %(ori[x_max], spf[y_max])
+            extremes += '\t%.2f\t%.2f\n' %(ori[x_max], spf[y_max])
             extremes += 'Min: ' + '\tori' + '\tspf\n'
-            extremes += '\t%.1f\t%.1f\n' %(ori[x_min], spf[y_min])
+            extremes += '\t%.2f\t%.2f\n' %(ori[x_min], spf[y_min])
         form = data + extremes
         self.results.SetValue(form)
 
