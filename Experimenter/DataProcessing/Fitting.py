@@ -17,12 +17,13 @@ class SinusoidFit(object):
             1d sinusoidal params: (height, amplitude, frequency, phase)
         """
         frequency = 2*np.pi/(xax.max()-xax.min())
-        params=[(data.max()+data.min())/2,(data.max()-data.min())/2,frequency,0]
+        amplitude = data.max()-data.min()
+        params=[(data.max()+data.min())/2,amplitude,frequency,0]
         fixed=[False,False,True,False]
-        limitedmin=[True,False,True,True]
-        limitedmax=[True,False,True,True]
-        minpars=[data.min(),0,0.8*frequency,0]
-        maxpars=[data.max(),0,1.2*frequency,360]
+        limitedmin=[True,True,True,True]
+        limitedmax=[True,True,True,True]
+        minpars=[data.min(),0.8*amplitude,0.8*frequency,0]
+        maxpars=[data.max(),1.2*amplitude,1.2*frequency,360]
         params,_model,errs,chi2 = onedsinusoidfit(xax,data,params=params,fixed=fixed,\
                                                   limitedmin=limitedmin,limitedmax=limitedmax,\
                                                   minpars=minpars,maxpars=maxpars,**kwargs)
