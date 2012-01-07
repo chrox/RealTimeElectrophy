@@ -130,6 +130,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         pass
             
     def quit_callback(self,event):
+        Viewport.registered_viewports = []
         self.parameters.go_duration = (0,'frames')
 
     def go(self,prestim=None,poststim=None):
