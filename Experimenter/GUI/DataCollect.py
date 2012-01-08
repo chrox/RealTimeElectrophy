@@ -34,6 +34,8 @@ EVT_UNIT_SELECTED_TYPE = wx.NewEventType()
 EVT_UNIT_SELECTED = wx.PyEventBinder(EVT_UNIT_SELECTED_TYPE, 1)
 EVT_PROG_BAR_HIDE_TYPE = wx.NewEventType()
 EVT_PROG_BAR_HIDE = wx.PyEventBinder(EVT_PROG_BAR_HIDE_TYPE, 1)
+EVT_PROG_BAR_SHOW_TYPE = wx.NewEventType()
+EVT_PROG_BAR_SHOW = wx.PyEventBinder(EVT_PROG_BAR_SHOW_TYPE, 1)
 
 class DataUpdatedEvent(wx.PyCommandEvent):
     def __init__(self, etype, eid, data=None):
@@ -71,7 +73,7 @@ class CheckRestart(threading.Thread):
         threading.Thread.__init__(self)
         self._parent = parent
         self._source = source
-        self.run()
+
     def run(self):
         if self._source.is_new_start():
             evt = DataRestartEvent(EVT_DATA_RESTART_TYPE, -1)
@@ -91,7 +93,7 @@ class RestartDataThread(threading.Thread):
         self._parent = parent
         self._source = source
         self._update_data_thread = update_data_thread
-        self.run()
+
     def run(self):
         # wait until the update data threat quits
         while self._update_data_thread.isAlive():
@@ -100,6 +102,19 @@ class RestartDataThread(threading.Thread):
 
 class HideProgressBarEvent(wx.PyCommandEvent):
     pass
+
+class ShowProgressBarEvent(wx.PyCommandEvent):
+    def __init__(self, etype, eid, percentage,done_size,file_size):
+        wx.PyCommandEvent.__init__(self, etype, eid)
+        self._percentage = percentage
+        self._done_size = done_size
+        self._file_size = file_size
+    def get_percentage(self):
+        return self._percentage
+    def get_done_size(self):
+        return self._done_size
+    def get_file_size(self):
+        return self._file_size
 
 class UnitChoice(wx.Panel):
     """ A listbox of available channels and units.
@@ -154,6 +169,7 @@ class DataForm(wx.Panel):
     def gen_curve_data(self, x, means, stds, fittings, model, label):
         if label[0] == 'orientation':
             label[0] = 'ori'
+            x = x*180/np.pi
         elif label[0] == 'spatial_frequency':
             label[0] = 'spf'
         elif label[0] == 'phase':
@@ -186,10 +202,10 @@ class DataForm(wx.Panel):
             x_max,y_max = np.unravel_index(img.argmax(), dims)
             x_min,y_min = np.unravel_index(img.argmin(), dims)
             extremes += '\n' + '-'*18 + '\nMax/min values:\n'
-            extremes += 'Max: ' + ' ori' + ' spf\n'
-            extremes += '%.2f %.2f\n' %(ori[x_max], spf[y_max])
-            extremes += 'Min: ' + ' ori' + ' spf\n'
-            extremes += '%.2f %.2f\n' %(ori[x_min], spf[y_min])
+            extremes += 'Max: ' + '\tori' + '\tspf\n'
+            extremes += '\t%.2f\t%.2f\n' %(ori[x_max], spf[y_max])
+            extremes += 'Min: ' + '\tori' + '\tspf\n'
+            extremes += '\t%.2f\t%.2f\n' %(ori[x_min], spf[y_min])
         form = data + extremes
         self.results.SetValue(form)
 
@@ -242,16 +258,18 @@ class MainFrame(wx.Frame):
     def create_status_bar(self):
         self.statusbar = self.CreateStatusBar(name='status_bar')
         self.statusbar.SetFieldsCount(4) 
-        self.statusbar.SetStatusWidths([-10, -2, -1, -2])
-        self.progress_bar = wx.Gauge(self.statusbar, -1, 100, style=wx.GA_HORIZONTAL)
+        self.statusbar.SetStatusWidths([-7, -2, -1, 140])
+        self.progress_bar = wx.Gauge(self.statusbar, -1, 100, style=wx.GA_HORIZONTAL|wx.GA_SMOOTH)
         self.progress_bar.Hide()
         
+        self.Bind(EVT_PROG_BAR_SHOW, self.progress_bar_on_show)
         self.Bind(EVT_PROG_BAR_HIDE, self.progress_bar_on_hide)
+        self.Bind(EVT_PROG_BAR_SHOW, self.status_bar_on_update)
         
         wx.EVT_SIZE(self.statusbar, self.status_bar_on_size)
         self.timer_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.status_bar_on_timer, self.timer_timer)
-        self.timer_timer.Start(500)
+        self.timer_timer.Start(1000)
 
     def status_bar_on_size(self,evt):
         rect = self.statusbar.GetFieldRect(1) 
@@ -264,21 +282,28 @@ class MainFrame(wx.Frame):
         self.statusbar.SetStatusText(st,3)
     
     def progress_bar_on_update(self,percentage,done_size,file_size,elapsed_time,left_time):
+        wx.PostEvent(self, ShowProgressBarEvent(EVT_PROG_BAR_SHOW_TYPE,-1,percentage,done_size,file_size))
+        if percentage == 1.0: 
+            wx.PostEvent(self, HideProgressBarEvent(EVT_PROG_BAR_HIDE_TYPE,-1))
+            
+    def progress_bar_on_show(self,evt):
+        percentage = evt.get_percentage()
+        evt.Skip()
         self.progress_bar.Show()
         self.progress_bar.SetValue(int(percentage*100))
-        if percentage == 1.0:
-            evt = HideProgressBarEvent(EVT_PROG_BAR_HIDE_TYPE,-1)
-            wx.PostEvent(self, evt)
     
     def progress_bar_on_hide(self,evt):
         self.hide_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER,
-                  self.hide_progress_bar,
+                  lambda evt: self.progress_bar.Hide(),
                   self.hide_timer)
         self.hide_timer.Start(500, oneShot=True)
-    
-    def hide_progress_bar(self,evt):
-        self.progress_bar.Hide()
+        
+    def status_bar_on_update(self,evt):
+        done_size = evt.get_done_size()
+        file_size = evt.get_file_size()
+        evt.Skip()
+        self.statusbar.SetStatusText("%4.1f/%4.1f MB" %(done_size,file_size), 2)
     
     def create_main_panel(self):
         self.panel = wx.Panel(self)
