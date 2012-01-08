@@ -14,8 +14,8 @@ class RevCorrData(PlexSpikeData):
         self.y_indices = np.empty(0,dtype=np.int16)
         self.timestamps = np.empty(0)
 
-    def _update_data(self):
-        super(RevCorrData, self)._update_data()
+    def _update_data(self,callback=None):
+        super(RevCorrData, self)._update_data(callback)
         self.new_triggers = self.pu.GetExtEvents(self.data, event='unstrobed_word', online=self.online)
         new_spike_trains = self.pu.GetSpikeTrains(self.data)
             
@@ -28,8 +28,8 @@ class RevCorrData(PlexSpikeData):
                         self.spike_trains[channel][unit] = unit_train
                     else:
                         self.spike_trains[channel][unit] = np.append(self.spike_trains[channel][unit], unit_train)
-    def get_data(self):
-        self._update_data()
+    def get_data(self,callback=None):
+        self._update_data(callback)
         data = {'spikes':self.spike_trains, 
                 'x_indices':self.x_indices,'y_indices':self.y_indices,'timestamps':self.timestamps}
         return data
@@ -139,8 +139,8 @@ class STAData(RevCorrData):
         super(STAData, self).renew_data()
         self.contrast = np.empty(0,dtype=np.int16)
 
-    def _update_data(self):
-        super(STAData,self)._update_data()
+    def _update_data(self,callback=None):
+        super(STAData,self)._update_data(callback)
         trigger_values = self.new_triggers['value']
         trigger_timestamps = self.new_triggers['timestamp']
         x_index = (trigger_values & self.X_INDEX<<self.X_BIT_SHIFT)>>self.X_BIT_SHIFT
@@ -151,8 +151,8 @@ class STAData(RevCorrData):
         self.contrast = np.append(self.contrast, contrast)
         self.timestamps = np.append(self.timestamps, trigger_timestamps)
 
-    def get_data(self):
-        data = super(STAData,self).get_data()
+    def get_data(self,callback=None):
+        data = super(STAData,self).get_data(callback)
         data['contrast'] = self.contrast
         return data
     
@@ -206,8 +206,8 @@ class ParamMapData(RevCorrData):
         self.Y_BIT_SHIFT = 4
     def renew_data(self):
         super(ParamMapData,self).renew_data()
-    def _update_data(self):
-        super(ParamMapData,self)._update_data()
+    def _update_data(self,callback=None):
+        super(ParamMapData,self)._update_data(callback)
         trigger_values = self.new_triggers['value']
         trigger_timestamps = self.new_triggers['timestamp']
         x_index = (trigger_values & self.X_INDEX<<self.X_BIT_SHIFT)>>self.X_BIT_SHIFT
@@ -215,8 +215,8 @@ class ParamMapData(RevCorrData):
         self.x_indices = np.append(self.x_indices, x_index)
         self.y_indices = np.append(self.y_indices, y_index)
         self.timestamps = np.append(self.timestamps, trigger_timestamps)
-    def get_data(self):
-        data = super(ParamMapData,self).get_data()
+    def get_data(self,callback=None):
+        data = super(ParamMapData,self).get_data(callback)
         return data
     def get_img(self, data, channel, unit, dimension=(16,16), tau=0.085, format='rgb', cmap='jet'):
         if format == 'rgb':

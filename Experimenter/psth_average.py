@@ -14,7 +14,7 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 from matplotlib import pylab
 
 from Experimenter.DataProcessing.Fitting import GaussFit,SinusoidFit,GaborFit
-from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread,CheckRestart
+from Experimenter.GUI.DataCollect import UpdateDataThread,UpdateFileDataThread,RestartDataThread,CheckRestart
 from Experimenter.GUI.DataCollect import MainFrame,DataForm,adjust_spines
 from Experimenter.SpikeData import TimeHistogram
 
@@ -257,9 +257,10 @@ class PSTHPanel(wx.Panel):
         pos = event.GetEventObject().ScreenToClient(pos)
         self.PopupMenu(self.popup_menu, pos)
     
-    def open_file(self, path):
+    def open_file(self, path, callback=None):
         self.psth = TimeHistogram.PSTHAverage(path)
-        UpdateDataThread(self, self.psth)
+        data_thread = UpdateFileDataThread(self, self.psth, callback)
+        data_thread.start()
         self.connected_to_server = False
     
     def save_data(self):

@@ -32,6 +32,8 @@ EVT_DATA_RESTART_TYPE = wx.NewEventType()
 EVT_DATA_RESTART = wx.PyEventBinder(EVT_DATA_RESTART_TYPE, 1)
 EVT_UNIT_SELECTED_TYPE = wx.NewEventType()
 EVT_UNIT_SELECTED = wx.PyEventBinder(EVT_UNIT_SELECTED_TYPE, 1)
+EVT_PROG_BAR_HIDE_TYPE = wx.NewEventType()
+EVT_PROG_BAR_HIDE = wx.PyEventBinder(EVT_PROG_BAR_HIDE_TYPE, 1)
 
 class DataUpdatedEvent(wx.PyCommandEvent):
     def __init__(self, etype, eid, data=None):
@@ -45,9 +47,19 @@ class UpdateDataThread(threading.Thread):
         threading.Thread.__init__(self)
         self._parent = parent
         self._source = source
-        self.run()
+        
     def run(self):
         updated_data = self._source.get_data()
+        evt = DataUpdatedEvent(EVT_DATA_UPDATED_TYPE, -1, updated_data)
+        wx.PostEvent(self._parent, evt)
+
+class UpdateFileDataThread(UpdateDataThread):
+    def __init__(self, parent, source, callback=None):
+        super(UpdateFileDataThread,self).__init__(parent,source)
+        self._callback = callback
+        
+    def run(self):
+        updated_data = self._source.get_data(self._callback)
         evt = DataUpdatedEvent(EVT_DATA_UPDATED_TYPE, -1, updated_data)
         wx.PostEvent(self._parent, evt)
             
@@ -64,7 +76,6 @@ class CheckRestart(threading.Thread):
         if self._source.is_new_start():
             evt = DataRestartEvent(EVT_DATA_RESTART_TYPE, -1)
             wx.PostEvent(self._parent, evt)
-            print "New data started."
             self._source.set_new_start(False)
 
 class UnitSelectedEvent(wx.PyCommandEvent):
@@ -86,6 +97,9 @@ class RestartDataThread(threading.Thread):
         while self._update_data_thread.isAlive():
             time.sleep(0.1)
         self._source.renew_data()
+
+class HideProgressBarEvent(wx.PyCommandEvent):
+    pass
 
 class UnitChoice(wx.Panel):
     """ A listbox of available channels and units.
@@ -152,11 +166,11 @@ class DataForm(wx.Panel):
         if any(model):
             max_index = model.argmax()
             min_index = model.argmin()
-            extremes += '\n' + '-'*18 + '\nMax/min values:\n'
-            extremes += 'Max '+ label[1] + '\t' + label[0] + '\n'
-            extremes += '%.2f\t\t%.2f\n' %(model[max_index], fittings[max_index])
-            extremes += 'Min '+ label[1] + '\t' + label[0] + '\n'
-            extremes += '%.2f\t\t%.2f\n' %(model[min_index], fittings[min_index])
+            extremes += '\n' + '-'*18 + '\nMax/min '+label[1]+':\n'
+            extremes += 'Max ' + '\t' + label[0] + '\n'
+            extremes += '%.2f\t%.2f\n' %(model[max_index], fittings[max_index])
+            extremes += 'Min ' + '\t' + label[0] + '\n'
+            extremes += '%.2f\t%.2f\n' %(model[min_index], fittings[min_index])
         form = data + extremes
         self.results.SetValue(form)
         
@@ -172,10 +186,10 @@ class DataForm(wx.Panel):
             x_max,y_max = np.unravel_index(img.argmax(), dims)
             x_min,y_min = np.unravel_index(img.argmin(), dims)
             extremes += '\n' + '-'*18 + '\nMax/min values:\n'
-            extremes += 'Max: ' + '\tori' + '\tspf\n'
-            extremes += '\t%.2f\t%.2f\n' %(ori[x_max], spf[y_max])
-            extremes += 'Min: ' + '\tori' + '\tspf\n'
-            extremes += '\t%.2f\t%.2f\n' %(ori[x_min], spf[y_min])
+            extremes += 'Max: ' + ' ori' + ' spf\n'
+            extremes += '%.2f %.2f\n' %(ori[x_max], spf[y_max])
+            extremes += 'Min: ' + ' ori' + ' spf\n'
+            extremes += '%.2f %.2f\n' %(ori[x_min], spf[y_min])
         form = data + extremes
         self.results.SetValue(form)
 
@@ -227,7 +241,45 @@ class MainFrame(wx.Frame):
 
     def create_status_bar(self):
         self.statusbar = self.CreateStatusBar(name='status_bar')
+        self.statusbar.SetFieldsCount(4) 
+        self.statusbar.SetStatusWidths([-10, -2, -1, -2])
+        self.progress_bar = wx.Gauge(self.statusbar, -1, 100, style=wx.GA_HORIZONTAL)
+        self.progress_bar.Hide()
+        
+        self.Bind(EVT_PROG_BAR_HIDE, self.progress_bar_on_hide)
+        
+        wx.EVT_SIZE(self.statusbar, self.status_bar_on_size)
+        self.timer_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.status_bar_on_timer, self.timer_timer)
+        self.timer_timer.Start(500)
 
+    def status_bar_on_size(self,evt):
+        rect = self.statusbar.GetFieldRect(1) 
+        self.progress_bar.SetPosition((rect.x+2, rect.y+2)) 
+        self.progress_bar.SetSize((rect.width-4, rect.height-4))
+    
+    def status_bar_on_timer(self,evt):
+        t = time.localtime(time.time())
+        st = time.strftime("%a %b %d %H:%M:%S", t)
+        self.statusbar.SetStatusText(st,3)
+    
+    def progress_bar_on_update(self,percentage,done_size,file_size,elapsed_time,left_time):
+        self.progress_bar.Show()
+        self.progress_bar.SetValue(int(percentage*100))
+        if percentage == 1.0:
+            evt = HideProgressBarEvent(EVT_PROG_BAR_HIDE_TYPE,-1)
+            wx.PostEvent(self, evt)
+    
+    def progress_bar_on_hide(self,evt):
+        self.hide_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER,
+                  self.hide_progress_bar,
+                  self.hide_timer)
+        self.hide_timer.Start(500, oneShot=True)
+    
+    def hide_progress_bar(self,evt):
+        self.progress_bar.Hide()
+    
     def create_main_panel(self):
         self.panel = wx.Panel(self)
         self.panel.SetBackgroundColour("White")
@@ -272,8 +324,8 @@ class MainFrame(wx.Frame):
             style=wx.OPEN|wx.CHANGE_DIR)
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
-            self.flash_status_message("Opening file %s ..." % path, flash_len_ms=5000)
-            self.chart_panel.open_file(path)
+            self.flash_status_message("Opening file %s ..." % path, flash_len_ms=1000)
+            self.chart_panel.open_file(path,self.progress_bar_on_update)
             self.SetTitle(self.title + ' - ' + os.path.basename(path))
     
     def on_save_data(self, event):
@@ -325,7 +377,7 @@ class MainFrame(wx.Frame):
         self.results.set_results(results)
     
     def flash_status_message(self, msg, flash_len_ms=1500):
-        self.statusbar.SetStatusText(msg)
+        self.statusbar.SetStatusText(msg, 0)
         self.timeroff = wx.Timer(self)
         self.Bind(
             wx.EVT_TIMER,

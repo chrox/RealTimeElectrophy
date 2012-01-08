@@ -23,13 +23,13 @@ class PSTHAverage(PlexSpikeData):
         self.spike_trains = {}
         self.histogram_data = {}
     
-    def get_data(self):
-        self._update_data()
+    def get_data(self,callback=None):
+        self._update_data(callback)
         self._get_psth_data()
         return self.histogram_data
     
-    def _update_data(self):
-        super(PSTHAverage, self)._update_data()
+    def _update_data(self,callback=None):
+        super(PSTHAverage, self)._update_data(callback)
             
         new_triggers = self.pu.GetExtEvents(self.data, event='unstrobed_word', online=self.online)
         trigger_values = new_triggers['value']

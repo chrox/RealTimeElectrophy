@@ -12,7 +12,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 
 from Experimenter.DataProcessing.Fitting import GaussFit,GaborFit
-from Experimenter.GUI.DataCollect import UpdateDataThread,RestartDataThread,CheckRestart
+from Experimenter.GUI.DataCollect import UpdateDataThread,UpdateFileDataThread,RestartDataThread,CheckRestart
 from Experimenter.GUI.DataCollect import MainFrame,DataForm,adjust_spines
 from Experimenter.SpikeData import RevCorr
 
@@ -232,13 +232,14 @@ class STAPanel(wx.Panel):
         if hasattr(self, 'data'):
             self.update_chart(self.data)
     
-    def open_file(self, path):
+    def open_file(self, path, callback):
         data_type = wx.FindWindowByName('main_frame').get_data_type()
         if data_type == 'sparse_noise':
             self.sta_data = RevCorr.STAData(path)
         elif data_type == 'param_map':
             self.sta_data = RevCorr.ParamMapData(path)
-        UpdateDataThread(self, self.sta_data)
+        data_thread = UpdateFileDataThread(self, self.sta_data, callback)
+        data_thread.start()
         self.connected_to_server = False
     
     def save_data(self):

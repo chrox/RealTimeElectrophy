@@ -48,7 +48,7 @@ class PlexSpikeData(object):
     def set_new_start(self, is_new_start):
         self.new_start = is_new_start
         
-    def _update_data(self):
+    def _update_data(self,callback=None):
         if self.read_from_server:
             self.data = self.pc.GetTimeStampArrays()
             self.online = True
@@ -59,7 +59,7 @@ class PlexSpikeData(object):
                 else:
                     self.new_start = True
         elif self.read_from_file and not self.file_has_read:
-            self.data = self.pf.GetTimeStampArrays()
+            self.data = self.pf.GetTimeStampArrays(callback)
             self.online = False
             self.file_has_read = True
         elif self.file_has_read:

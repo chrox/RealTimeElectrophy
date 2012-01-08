@@ -11,6 +11,7 @@ import sys
 import time
 import numpy as np
 import logging
+import mmap
 logger = logging.getLogger('SpikeRecord.Plexon')
 import ctypes
 from ctypes import Structure
@@ -177,64 +178,8 @@ class PlexFile(object):
         self.chan_headers = [self.get_header(PL_ChanHeader) for _i in range(self.file_header.NumDSPChannels)]
         self.event_headers = [self.get_header(PL_EventHeader) for _i in range(self.file_header.NumEventChannels)]
         self.slow_headers = [self.get_header(PL_SlowChannelHeader) for _i in range(self.file_header.NumSlowChannels)]
-        
-    def read_timestamps(self):
-        evtcounts = self.wf_evtcounts + self.ext_evtcounts
-        
-        event_type = np.zeros(evtcounts,dtype=np.uint16)
-        event_channel = np.zeros(evtcounts,dtype=np.uint16)
-        event_unit = np.zeros(evtcounts,dtype=np.uint16)
-        event_timestamp = np.zeros(evtcounts,dtype=np.float32)
-        index = 0
-        
-        ad_frequency = self.file_header.ADFrequency
-        db = PL_DataBlockHeader()
-        
-        # use synonyms to avoid method lookup in while loop
-        seek = self.file.seek
-        tell = self.file.tell
-        readinto = self.file.readinto
-        
-        # timing file processing
-        start_time = time.time()
-        previous_speed = 20.0
-        seek(0,2)
-        end_offset = tell()
-        nbs = 0
-        
-        seek(self.data_offset)
-        while(readinto(db)):
-            nbs += 1
-            if db.Type == PL_SingleWFType or db.Type == PL_ExtEventType:
-                event_type[index] = db.Type
-                event_channel[index] = db.Channel
-                event_unit[index] = db.Unit
-                event_timestamp[index] = db.TimeStamp/ad_frequency
-                index += 1
-            waveform_size = db.NumberOfWaveforms * db.NumberOfWordsInWaveform *2
-            seek(waveform_size, 1)      # skip waveform block
-            
-            if nbs % 30000 == 0:        # timing file processing
-                current_pos = tell()
-                avg_speed = (current_pos - self.data_offset)/10**6/(time.time() - start_time)
-                current_speed = previous_speed * 0.5 + avg_speed * 0.5
-                previous_speed = current_speed
-                estimated_time_left = (end_offset - current_pos)/10**6/current_speed
-                sys.stdout.write("Processing %6.1f/%6.1f MB [% 3d:%02d%s remaining ] current speed: %3.1f MB/s\r" % \
-                                     (current_pos/10**6, end_offset/10**6, estimated_time_left//60, \
-                                      estimated_time_left%60, str('%.2f' % (estimated_time_left%1))[1:], current_speed))
-                sys.stdout.flush()
-        
-        elapsed_time = time.time() - start_time
-        sys.stdout.write("Processing %6.1f/%6.1f MB [% 3d:%02d%s  elapsed  ] average speed: %3.1f MB/s\r\r" % \
-                        (end_offset/10**6, end_offset/10**6, elapsed_time//60 ,\
-                         elapsed_time%60, str('%.2f' % (elapsed_time%1))[1:], current_speed))
-        sys.stdout.flush()
-        return {'type':event_type, 'channel':event_channel, 'unit':event_unit, 'timestamp':event_timestamp}
     
-    def map_timestamps(self):
-        import mmap
-        
+    def read_timestamps(self, callback):
         evtcounts = self.wf_evtcounts + self.ext_evtcounts
         
         event_type = np.zeros(evtcounts,dtype=np.uint16)
@@ -254,6 +199,7 @@ class PlexFile(object):
         previous_speed = 20.0
         current_speed = previous_speed
         end_offset = len(mfile)
+        file_size = end_offset/10**6
         nbs = 0
         
         current_pos = self.data_offset
@@ -272,27 +218,30 @@ class PlexFile(object):
                 waveform_size = db.NumberOfWaveforms * db.NumberOfWordsInWaveform *2
                 current_pos += db_size + waveform_size      # skip waveform block
                 
-                if nbs % 30000 == 0:        # timing file processing
-                    avg_speed = (current_pos - data_offset)/10**6/(time.time() - start_time)
+                if callback and nbs % 30000 == 0:        # callback to indicate progress every 30000 blocks
+                    elapsed_time = time.time() - start_time
+                    avg_speed = (current_pos - data_offset)/10**6/(elapsed_time)
                     current_speed = previous_speed * 0.5 + avg_speed * 0.5
                     previous_speed = current_speed
                     estimated_time_left = (end_offset - current_pos)/10**6/current_speed
-                    sys.stdout.write("Processing %6.1f/%6.1f MB [% 3d:%02d%s remaining ] current speed: %3.1f MB/s\r" % \
-                                     (current_pos/10**6, end_offset/10**6, estimated_time_left//60, \
-                                      estimated_time_left%60, str('%.2f' % (estimated_time_left%1))[1:], current_speed))
-                    sys.stdout.flush()
+                    done_size = current_pos/10**6
+                    done_percentage = current_pos / end_offset
+                    callback(done_percentage,done_size,file_size,elapsed_time,estimated_time_left)
         except ValueError:
-            elapsed_time = time.time() - start_time
-            sys.stdout.write("Processed  %6.1f/%6.1f MB [% 3d:%02d%s  elapsed  ] average speed: %3.1f MB/s\r\r" % \
-                            (end_offset/10**6, end_offset/10**6, elapsed_time//60 ,\
-                             elapsed_time%60, str('%.2f' % (elapsed_time%1))[1:], current_speed))
-            sys.stdout.flush()
+            if callback:
+                elapsed_time = time.time() - start_time
+                callback(1.0,file_size,file_size,elapsed_time,0.0)
             return {'type':event_type, 'channel':event_channel, 'unit':event_unit, 'timestamp':event_timestamp}
     
-    def GetTimeStampArrays(self):
+    def GetTimeStampArrays(self,callback=None):
         """
-        GetTimeStampArrays() -> {'type', 'channel', 'unit', 'timestamp'}
-
+        GetTimeStampArrays(callback) -> {'type', 'channel', 'unit', 'timestamp'}
+        
+        Parameters
+        ----------
+        callback(percentage,done_size,file_size,elapsed_time,left_time)
+            Callback method reports file reading progress.
+        
         Return dictionary of all timestamps.
         
         Returns
@@ -301,9 +250,7 @@ class PlexFile(object):
             Values are four 1-D arrays of the timestamp structure fields. The array length is the actual transferred TimeStamps.
             'timestamp' is converted to seconds.
         """
-        data = self.map_timestamps()
-        #data = self.read_timestamps()
-        
+        data = self.read_timestamps(callback)
         return data
 
     def GetNullTimeStamp(self):
