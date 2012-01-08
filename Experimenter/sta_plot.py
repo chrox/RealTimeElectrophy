@@ -173,7 +173,9 @@ class STAPanel(wx.Panel):
     def on_update_data_timer(self, event):
         if self.collecting_data and self.connected_to_server:
             self.update_data_thread = UpdateDataThread(self, self.sta_data)
-            CheckRestart(self, self.sta_data)
+            self.update_data_thread.start()
+            check_restart_thread = CheckRestart(self, self.sta_data)
+            check_restart_thread.start()
     
     def on_update_time_slider(self, event):
         self.time = event.get_time()
@@ -194,7 +196,8 @@ class STAPanel(wx.Panel):
         self.collecting_data = False
         self.make_chart()
         if self.data_started and self.sta_data is not None:
-            RestartDataThread(self, self.sta_data, self.update_data_thread)
+            restart_data_thread = RestartDataThread(self, self.sta_data, self.update_data_thread)
+            restart_data_thread.start()
         self.collecting_data = True
         self.data_started = True
            

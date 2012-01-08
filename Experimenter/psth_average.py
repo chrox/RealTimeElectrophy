@@ -218,7 +218,9 @@ class PSTHPanel(wx.Panel):
     def on_update_data_timer(self, event):
         if self.collecting_data and self.connected_to_server:
             self.update_data_thread = UpdateDataThread(self, self.psth)
-            CheckRestart(self, self.psth)
+            self.update_data_thread.start()
+            check_restart_thread = CheckRestart(self, self.psth)
+            check_restart_thread.start()
         
     def start_data(self):
         if self.psth is None:
@@ -233,7 +235,8 @@ class PSTHPanel(wx.Panel):
         self.collecting_data = False
         self.make_chart()
         if hasattr(self, 'update_data_thread') and self.psth is not None:
-            RestartDataThread(self, self.psth, self.update_data_thread)
+            restart_data_thread = RestartDataThread(self, self.psth, self.update_data_thread)
+            restart_data_thread.start()
         self.collecting_data = True
     
     def gaussianfit(self, checked):
