@@ -7,7 +7,6 @@
 ###########################################################
 
 from __future__ import division
-import sys
 import time
 import numpy as np
 import logging
@@ -152,8 +151,9 @@ class PlexFile(object):
             raise RuntimeError("PLX file version other than %d is not supported. "
                                "The version of this file is %d." %(PLX_VERSION,self.file_header.Version))
         
-        self.wf_evtcounts = sum([self.file_header.WFCounts[i][j] for i in xrange(5) for j in xrange(130)])
-        self.ext_evtcounts = sum([self.file_header.EVCounts[i] for i in xrange(300)])
+        self.single_wf_counts = sum([self.file_header.WFCounts[i][j] for i in xrange(5) for j in xrange(130)])
+        self.ext_event_counts = sum([self.file_header.EVCounts[i] for i in xrange(300)])
+        self.ad_data_counts = sum([self.file_header.EVCounts[i] for i in xrange(300,512)])
 
         
         self.data_header_offset = ctypes.sizeof(PL_FileHeader)
@@ -180,7 +180,7 @@ class PlexFile(object):
         self.slow_headers = [self.get_header(PL_SlowChannelHeader) for _i in range(self.file_header.NumSlowChannels)]
     
     def read_timestamps(self, callback):
-        evtcounts = self.wf_evtcounts + self.ext_evtcounts
+        evtcounts = self.single_wf_counts + self.ext_event_counts + self.ad_data_counts
         
         event_type = np.zeros(evtcounts,dtype=np.uint16)
         event_channel = np.zeros(evtcounts,dtype=np.uint16)
@@ -209,7 +209,7 @@ class PlexFile(object):
             while(True):
                 db = PL_DataBlockHeader.from_buffer_copy(mfile,current_pos)
                 nbs += 1
-                if db.Type == PL_SingleWFType or db.Type == PL_ExtEventType:
+                if db.Type == PL_SingleWFType or db.Type == PL_ExtEventType or db.Type == PL_ADDataType:
                     event_type[index] = db.Type
                     event_channel[index] = db.Channel
                     event_unit[index] = db.Unit
