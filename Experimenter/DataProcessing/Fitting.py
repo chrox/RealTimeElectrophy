@@ -17,7 +17,7 @@ class SinusoidFit(object):
             1d sinusoidal params: (height, amplitude, frequency, phase)
         """
         frequency = 2*np.pi/(xax.max()-xax.min())
-        amplitude = data.max()-data.min()
+        amplitude = (data.max()-data.min())/2
         params=[(data.max()+data.min())/2,amplitude,frequency,0]
         fixed=[False,False,True,False]
         limitedmin=[True,True,True,True]
