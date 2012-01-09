@@ -136,7 +136,7 @@ class PL_DataBlockHeader(Structure):
                 ('NumberOfWordsInWaveform', ctypes.c_short)]        # Number of samples per waveform in the data to follow
                 # 16 bytes
 
-PLX_VERSION = 106
+TESTED_PLX_VERSIONS = (105,106)
 
 class PlexFile(object):
     """
@@ -147,9 +147,10 @@ class PlexFile(object):
         if not self.file:
             logger.error("Could not open file " + filename)
         self.file_header = self.get_header(PL_FileHeader)
-        if self.file_header.Version != PLX_VERSION:
-            raise RuntimeError("PLX file version other than %d is not supported. "
-                               "The version of this file is %d." %(PLX_VERSION,self.file_header.Version))
+        if self.file_header.Version not in TESTED_PLX_VERSIONS:
+            raise RuntimeError("PLX file version other than %s is not supported. "
+                               "The version of this file is %d." \
+                               %(','.join([str(v) for v in TESTED_PLX_VERSIONS]),self.file_header.Version))
         
         self.single_wf_counts = sum([self.file_header.WFCounts[i][j] for i in xrange(5) for j in xrange(130)])
         self.ext_event_counts = sum([self.file_header.EVCounts[i] for i in xrange(300)])
