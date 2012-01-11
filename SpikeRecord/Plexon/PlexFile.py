@@ -181,7 +181,7 @@ class PlexFile(object):
         self.slow_headers = [self.get_header(PL_SlowChannelHeader) for _i in range(self.file_header.NumSlowChannels)]
     
     def read_timestamps(self, callback):
-        evtcounts = self.single_wf_counts + self.ext_event_counts + self.ad_data_counts
+        evtcounts = self.single_wf_counts + self.ext_event_counts
         
         event_type = np.zeros(evtcounts,dtype=np.uint16)
         event_channel = np.zeros(evtcounts,dtype=np.uint16)
@@ -210,7 +210,7 @@ class PlexFile(object):
             while(True):
                 db = PL_DataBlockHeader.from_buffer_copy(mfile,current_pos)
                 nbs += 1
-                if db.Type == PL_SingleWFType or db.Type == PL_ExtEventType or db.Type == PL_ADDataType:
+                if db.Type == PL_SingleWFType or db.Type == PL_ExtEventType:
                     event_type[index] = db.Type
                     event_channel[index] = db.Channel
                     event_unit[index] = db.Unit
@@ -261,3 +261,82 @@ class PlexFile(object):
         data['unit'] = np.empty(0)
         data['timestamp'] = np.empty(0)
         return data
+    
+    def read_ad_data(self, callback=None):
+        self.read_data_header()
+        gains = [self.slow_headers[channel].Gain for channel in xrange(self.file_header.NumSlowChannels)]
+        adfreqs = [self.slow_headers[channel].ADFreq for channel in xrange(self.file_header.NumSlowChannels)]
+        
+        ad_data_counts = self.ad_data_counts
+        wf_buffer = (ctypes.c_short * 256)()
+        ad_channel = np.zeros(ad_data_counts,dtype=np.uint16)
+        ad_value = np.zeros(ad_data_counts,dtype=np.float32)
+        ad_timestamp = np.zeros(ad_data_counts,dtype=np.float32)
+        index = 0
+        
+        ad_frequency = self.file_header.ADFrequency
+        
+        fileno = self.file.fileno()
+        mfile = mmap.mmap(fileno,0,access=mmap.ACCESS_READ)
+
+        # timing file processing
+        start_time = time.time()
+        previous_speed = 20.0
+        current_speed = previous_speed
+        end_offset = len(mfile)
+        file_size = end_offset/10**6
+        nbs = 0
+        
+        current_pos = self.data_offset
+        data_offset = self.data_offset
+        db_size = ctypes.sizeof(PL_DataBlockHeader)
+        try:
+            while(True):
+                db = PL_DataBlockHeader.from_buffer_copy(mfile,current_pos)
+                waveform_size = db.NumberOfWaveforms * db.NumberOfWordsInWaveform * 2
+                nbs += 1
+                if db.Type == PL_ADDataType:
+                    channel = db.Channel
+                    ctypes.memmove(wf_buffer, mfile[current_pos+db_size:current_pos+db_size+waveform_size], waveform_size)
+                    for i in xrange(db.NumberOfWordsInWaveform):
+                        ad_channel[index] = channel
+                        ad_value[index] = (wf_buffer[i]*5./2048.)/gains[channel]
+                        ad_timestamp[index] = (db.TimeStamp + i*ad_frequency/adfreqs[channel])/ad_frequency
+                        index += 1
+                current_pos += db_size + waveform_size      # skip waveform block
+                
+                if callback and nbs % 30000 == 0:        # callback to indicate progress every 30000 blocks
+                    elapsed_time = time.time() - start_time
+                    avg_speed = (current_pos - data_offset)/10**6/(elapsed_time)
+                    current_speed = previous_speed * 0.5 + avg_speed * 0.5
+                    previous_speed = current_speed
+                    estimated_time_left = (end_offset - current_pos)/10**6/current_speed
+                    done_size = current_pos/10**6
+                    done_percentage = current_pos / end_offset
+                    callback(done_percentage,done_size,file_size,elapsed_time,estimated_time_left)
+        except ValueError:
+            if callback:
+                elapsed_time = time.time() - start_time
+                callback(1.0,file_size,file_size,elapsed_time,0.0)
+            return {'channel':ad_channel, 'value':ad_value, 'timestamp':ad_timestamp}
+        
+    def GetADDataArrays(self,callback=None):
+        """
+        GetADDataArrays(callback) -> {'channel', 'value', 'timestamp'}
+        
+        Parameters
+        ----------
+        callback(percentage,done_size,file_size,elapsed_time,left_time)
+            Callback method reports file reading progress.
+        
+        Return dictionary of all channels,values and timestamps.
+        
+        Returns
+        -------
+        'channel', 'value', 'timestamp': dict keys
+            Values are four 1-D arrays of the ad data fields.
+            'timestamp' is converted to seconds.
+        """
+        data = self.read_ad_data(callback)
+        return data
+    
