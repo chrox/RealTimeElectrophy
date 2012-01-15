@@ -294,17 +294,18 @@ class PlexFile(object):
             while(True):
                 db = PL_DataBlockHeader.from_buffer_copy(mfile,current_pos)
                 waveform_size = db.NumberOfWaveforms * db.NumberOfWordsInWaveform * 2
-                nbs += 1
+                current_pos += db_size
                 if db.Type == PL_ADDataType:
                     channel = db.Channel
-                    ctypes.memmove(wf_buffer, mfile[current_pos+db_size:current_pos+db_size+waveform_size], waveform_size)
+                    ctypes.memmove(wf_buffer, mfile[current_pos:current_pos+waveform_size], waveform_size)
                     for i in xrange(db.NumberOfWordsInWaveform):
                         ad_channel[index] = channel
                         ad_value[index] = (wf_buffer[i]*5./2048.)/gains[channel]
                         ad_timestamp[index] = (db.TimeStamp + i*ad_frequency/adfreqs[channel])/ad_frequency
                         index += 1
-                current_pos += db_size + waveform_size      # skip waveform block
+                current_pos += waveform_size
                 
+                nbs += 1
                 if callback and nbs % 30000 == 0:        # callback to indicate progress every 30000 blocks
                     elapsed_time = time.time() - start_time
                     avg_speed = (current_pos - data_offset)/10**6/(elapsed_time)

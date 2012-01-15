@@ -190,13 +190,13 @@ class DataForm(wx.Panel):
         form = data + extremes
         self.results.SetValue(form)
         
-    def gen_img_data(self,img,type):
+    def gen_img_data(self,img,stim_type):
         dims = img.shape
         data = ''
         extremes = ''
-        if type == 'white_noise':
+        if stim_type == 'white_noise':
             pass
-        elif type == 'param_mapping':
+        elif stim_type == 'param_mapping':
             ori = IndexedParam('orientation_180')
             spf = IndexedParam('spatial_freq')
             x_max,y_max = np.unravel_index(img.argmax(), dims)
