@@ -29,6 +29,10 @@ class PSTHPanel(wx.Panel):
         self.fitting_gaussian = False
         self.fitting_sinusoid = False
         self.fitting_gabor = False
+        self.append_data_curve = False
+        self.data_curves = 1
+        self.data_point_styles = ['g.','r.','b.']
+        self.fitting_curve_styles = ['g-','r--','b-.']
         
         self.psth = None
         self.start_data()
@@ -38,14 +42,14 @@ class PSTHPanel(wx.Panel):
         box = wx.StaticBox(self, -1, label)
         sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         
+        # data form
+        self.data_form = DataForm(self, 'Data form')
+        
         # canvas
         self.dpi = 100
         self.fig = Figure((8.0, 6.0), dpi=self.dpi, facecolor='w')
         self.canvas = FigCanvas(self, -1, self.fig)      
         self.make_chart()
-        
-        # data form
-        self.data_form = DataForm(self, 'Data form')
         
         # layout hbox 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -70,8 +74,8 @@ class PSTHPanel(wx.Panel):
         
         self.fitting_x = np.linspace(self.x[0], self.x[-1], 100, endpoint=True)
         self.fitting_y = np.zeros(self.fitting_x.size)
-        
         self.fig.clear()
+        
         grid = 18
         height = grid // 9
         gs = gridspec.GridSpec(grid, grid)
@@ -83,11 +87,11 @@ class PSTHPanel(wx.Panel):
             adjust_spines(axes,spines=['left','bottom','right'],spine_outward=['left','right','bottom'],xoutward=10,youtward=30,\
                           xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5,xminor_auto_loc=2,yminor_auto_loc=2)
             axes.set_ylabel('Response(spikes/sec)',fontsize=12)
-            self.curve_data = axes.plot(self.x, self.means, 'ko')[0]
+            self.curve_data = axes.plot(self.x, self.means, self.data_point_styles[0])[0]
         self.errbars = axes.errorbar(self.x, self.means, yerr=self.stds, fmt='k.') if self.showing_errbar else None
         self.curve_axes = axes
         #if fitting:
-        self.fitting_data = axes.plot(self.fitting_x, self.fitting_y, 'k-')[0]
+        self.fitting_data = axes.plot(self.fitting_x, self.fitting_y, self.fitting_curve_styles[0])[0]
         
         axes.set_ylim(0,100)
         axes.relim()
@@ -113,6 +117,8 @@ class PSTHPanel(wx.Panel):
                 _n, bins, patches = axes.hist(data, bins, facecolor='black', alpha=1.0)
                 self.hist_bins.append(bins)
                 self.hist_patches.append(patches)
+                
+        self.fig.canvas.draw()
         
     def update_chart(self, data=None):
         if data is None and hasattr(self, 'data'):
@@ -179,8 +185,11 @@ class PSTHPanel(wx.Panel):
                 self.means[-1] = self.means[0]
                 self.stds[-1] = self.stds[0]
             
-            self.curve_data.set_xdata(self.x)
-            self.curve_data.set_ydata(self.means)
+            if self.append_data_curve:
+                self.curve_axes.plot(self.x, self.means, self.data_point_styles[self.data_curves-1])
+            else:
+                self.curve_data.set_xdata(self.x)
+                self.curve_data.set_ydata(self.means)
             if self.errbars is not None:
                 self._update_errbars(self.errbars,self.x,self.means,self.stds)
                 
@@ -192,8 +201,11 @@ class PSTHPanel(wx.Panel):
                 model = self.sinusoid_fitter.sinusoid1d(self.x, self.means, self.fitting_x)
             elif self.fitting_gabor:
                 model = self.gabor_fitter.gaborfit1d(self.x, self.means, self.fitting_x)
-            self.fitting_data.set_xdata(self.fitting_x)
-            self.fitting_data.set_ydata(model)
+            if self.append_data_curve:
+                self.curve_axes.plot(self.fitting_x, model, self.fitting_curve_styles[self.data_curves-1])
+            else:
+                self.fitting_data.set_xdata(self.fitting_x)
+                self.fitting_data.set_ydata(model)
             label = [self.parameter, 'rate', 'std']
             self.data_form.gen_curve_data(self.x, self.means, self.stds, self.fitting_x, model, label)
             
@@ -233,7 +245,7 @@ class PSTHPanel(wx.Panel):
         
     def restart_data(self):
         self.collecting_data = False
-        self.make_chart()
+        self.clear_data()
         if hasattr(self, 'update_data_thread') and self.psth is not None:
             restart_data_thread = RestartDataThread(self, self.psth, self.update_data_thread)
             restart_data_thread.start()
@@ -265,6 +277,16 @@ class PSTHPanel(wx.Panel):
         data_thread = UpdateFileDataThread(self, self.psth, callback)
         data_thread.start()
         self.connected_to_server = False
+    
+    def append_data(self, path, callback=None):
+        self.append_data_curve = True
+        self.data_curves += 1
+        self.open_file(path, callback)
+        
+    def clear_data(self):
+        self.make_chart()
+        wx.FindWindowByName('main_frame').unit_choice.clear_unit()
+        self.data_form.clear_data()
     
     def save_data(self):
         data_dict = {}

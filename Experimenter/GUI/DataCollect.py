@@ -130,7 +130,10 @@ class UnitChoice(wx.Panel):
         sizer.Add(self.unit_list, 0, flag=wx.ALL, border=5)
         self.SetSizer(sizer)
         sizer.Fit(self)
-
+    
+    def clear_unit(self):
+        self.unit_list.SetItems([])
+    
     def on_select(self,event):
         index = self.unit_list.GetSelection()
         unit = self.items[index]
@@ -165,6 +168,9 @@ class DataForm(wx.Panel):
         sizer.Add(self.results, 0, flag=wx.ALL, border=5)
         self.SetSizer(sizer)
         sizer.Fit(self)
+        
+    def clear_data(self):
+        self.results.SetValue('')
 
     def gen_curve_data(self, x, means, stds, fittings, model, label):
         if label[0] == 'orientation':
@@ -231,6 +237,11 @@ class MainFrame(wx.Frame):
         menu_file = wx.Menu()
         m_open_file = menu_file.Append(-1, "&Open file\tCtrl-O", "Open Plexon PLX file")
         self.Bind(wx.EVT_MENU, self.on_open_file, m_open_file)
+        m_append_data = menu_file.Append(-1, "&Append data\tCtrl-A", "Append data curve")
+        self.Bind(wx.EVT_MENU, self.on_append_data, m_append_data)
+        m_clear_data = menu_file.Append(-1, "Clea&r data\tCtrl-R", "Clear data plot")
+        self.Bind(wx.EVT_MENU, self.on_clear_data, m_clear_data)
+        menu_file.AppendSeparator()
         m_connect_server = menu_file.Append(-1, "&Connect to server\tCtrl-C", "Connect to OmniPlex Server")
         self.Bind(wx.EVT_MENU, self.on_connect_server, m_connect_server)
         menu_file.AppendSeparator()
@@ -353,6 +364,23 @@ class MainFrame(wx.Frame):
             self.chart_panel.open_file(path,self.progress_bar_on_update)
             self.SetTitle(self.title + ' - ' + os.path.basename(path))
     
+    def on_append_data(self, event):
+        file_choices = "PLX (*.plx)|*.plx"
+        dlg = wx.FileDialog(
+            self,
+            message="Open Plexon plx file...",
+            wildcard=file_choices,
+            style=wx.OPEN|wx.CHANGE_DIR)
+        if dlg.ShowModal() == wx.ID_OK:
+            path = dlg.GetPath()
+            self.flash_status_message("Opening file %s ..." % path, flash_len_ms=1000)
+            self.chart_panel.append_data(path,self.progress_bar_on_update)
+            self.SetTitle(self.title + ' - ' + os.path.basename(path))
+    
+    def on_clear_data(self, event):
+        self.chart_panel.clear_data()
+        self.SetTitle(self.title)
+        
     def on_save_data(self, event):
         file_choices = "PKL (*.pkl)|*.pkl"
         dlg = wx.FileDialog(
