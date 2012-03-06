@@ -164,6 +164,7 @@ class Grating(Stimulus):
         
         self.make_stimuli()
         self.register_controllers()
+        self.log_estimated_duration()
     def make_stimuli(self):
         size = self.viewport.get_size()
         self.background = Target2D(position=(size[0]/2, size[1]/2),
@@ -224,7 +225,6 @@ class TimingSetGrating(Grating):
         self.logger.info('Register TimingController.')
         self.controllers.append(TimingController(self))
         self.controllers.append(TimingStampController(self))
-        self.log_estimated_duration()
 
 class ParamMapGrating(Grating):
     def register_controllers(self):
@@ -232,7 +232,6 @@ class ParamMapGrating(Grating):
         self.logger.info('Register ParamController.')
         self.controllers.append(ParamController(self))
         self.controllers.append(ParamMappingStamp(self))
-        self.log_estimated_duration()
         
 class ParamsGrating(Grating):
     def register_controllers(self):
@@ -240,4 +239,11 @@ class ParamsGrating(Grating):
         self.logger.info('Register ParamController.')
         self.controllers.append(ParamController(self))
         self.controllers.append(ParamStampController(self))
-        self.log_estimated_duration()
+        
+class PhaseGrating(Grating):
+    def register_controllers(self):
+        super(PhaseGrating, self).register_controllers()
+        self.logger.info('Register ParamController.')
+        self.controllers.append(ParamController(self))
+        self.controllers.append(ParamStampController(self))
+        

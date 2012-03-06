@@ -21,10 +21,7 @@ p.phase0 = 0
 p.contrast = 1
 
 orientation = IndexedParam('orientation')
-spatial_freq = [None]
-phase_at_t0 = [None]
-
-param_sequence = ParamSeque(repeat=4, orientation=orientation, spatial_freq=spatial_freq, phase_at_t0=phase_at_t0, frame_duration=2.0, blank_duration=1.0)
+param_sequence = ParamSeque(repeat=4, orientation=orientation, frame_duration=2.0, blank_duration=1.0)
 
 random_grating = ParamsGrating(viewport='left', params=p, sweepseq=param_sequence)
 sweep = FrameSweep()

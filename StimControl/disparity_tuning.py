@@ -20,13 +20,11 @@ p.bgbrightness = 0.0
 p.phase0 = 0
 p.contrast = 1
 
-orientation = [None]
-spatial_freq = [None]
 phase_at_t0 = [0]*16
-param_left = ParamSeque(repeat=4, orientation=orientation, spatial_freq=spatial_freq, phase_at_t0=phase_at_t0, frame_duration=2.0, blank_duration=1.0)
+param_left = ParamSeque(repeat=4, phase_at_t0=phase_at_t0, frame_duration=2.0, blank_duration=1.0)
 
 phase_at_t0 = IndexedParam('phase_at_t0')
-param_right = ParamSeque(repeat=4, orientation=orientation, spatial_freq=spatial_freq, phase_at_t0=phase_at_t0, frame_duration=2.0, blank_duration=1.0)
+param_right = ParamSeque(repeat=4, phase_at_t0=phase_at_t0, frame_duration=2.0, blank_duration=1.0)
 
 grating_left = ParamsGrating(viewport='left', params=p, sweepseq=param_left, trigger=False)
 grating_right = ParamsGrating(viewport='right', params=p, sweepseq=param_right)
