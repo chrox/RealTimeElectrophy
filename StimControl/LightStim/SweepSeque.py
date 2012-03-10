@@ -71,7 +71,7 @@ class RandParam(SweepSeque):
                            
 class ParamSeque(RandParam):
     """ stimulus sequence of random orientation and spatial frequency parameters."""
-    def __init__(self, repeat, orientation, spatial_freq, phase_at_t0, frame_duration, blank_duration):
+    def __init__(self, repeat, frame_duration, blank_duration, orientation=[None], spatial_freq=[None], phase_at_t0=[None]):
         super(ParamSeque, self).__init__(repeat, frame_duration, blank_duration, orientation, spatial_freq, phase_at_t0)
 
 class SparseNoiseSeque(RandParam):
