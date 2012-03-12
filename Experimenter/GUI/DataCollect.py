@@ -443,7 +443,8 @@ class MainFrame(wx.Frame):
         
 def adjust_spines(ax,spines,spine_outward=['left','right'],xoutward=0,youtward=5,xticks='bottom',yticks='left',\
                   xtick_dir='out',ytick_dir='out',tick_label=['x','y'],xaxis_loc=None,yaxis_loc=None,
-                  xminor_auto_loc=None,yminor_auto_loc=None):
+                  xminor_auto_loc=None,yminor_auto_loc=None,
+                  xmajor_loc=None,ymajor_loc=None):
         for loc, spine in ax.spines.iteritems():
             if loc not in spines:
                 spine.set_color('none') # don't draw spine
@@ -457,6 +458,8 @@ def adjust_spines(ax,spines,spine_outward=['left','right'],xoutward=0,youtward=5
             ax.xaxis.set_major_locator(matplotlib.ticker.LinearLocator(xaxis_loc))
         if xminor_auto_loc:
             ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator(xminor_auto_loc))
+        if xmajor_loc is not None:
+            ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator(xmajor_loc))
         if xticks is 'none':
             ax.xaxis.set_ticks([])
         if 'x' not in tick_label:
@@ -468,6 +471,8 @@ def adjust_spines(ax,spines,spine_outward=['left','right'],xoutward=0,youtward=5
             ax.yaxis.set_major_locator(matplotlib.ticker.LinearLocator(yaxis_loc))
         if yminor_auto_loc:
             ax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator(yminor_auto_loc))
+        if ymajor_loc is not None:
+            ax.yaxis.set_major_locator(matplotlib.ticker.FixedLocator(ymajor_loc))
         if yticks is 'none':
             ax.yaxis.set_ticks([])
         if 'y' not in tick_label:

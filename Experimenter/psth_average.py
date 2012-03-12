@@ -162,7 +162,9 @@ class PSTHPanel(wx.Panel):
                 std = data[channel][unit][index]['std']
                 self.means[index] = mean
                 self.stds[index] = std
-                
+            
+            self.curve_axes.set_xscale('linear')
+            
             if self.parameter == 'orientation':
                 self.x = np.linspace(0.0, 360.0, 17)/180*np.pi
                 self.curve_axes.set_title('Orientation Tuning Curve',fontsize=12)
@@ -172,10 +174,13 @@ class PSTHPanel(wx.Panel):
                 self.means[-1] = self.means[0]
                 self.stds[-1] = self.stds[0]
             if self.parameter == 'spatial_frequency':
-                self.x = np.linspace(0.05, 1.0, 16)
+                self.x = np.logspace(-1.0,0.5,16)
                 self.curve_axes.set_title('Spatial Frequency Tuning Curve',fontsize=12)
+                self.curve_axes.set_xscale('log')
                 self.means = self.means[:len(self.x)]
                 self.stds = self.stds[:len(self.x)]
+                adjust_spines(self.curve_axes,spines=['left','bottom','right'],spine_outward=['left','right','bottom'],xoutward=10,youtward=30,\
+                              xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5,xminor_auto_loc=2,yminor_auto_loc=2,xmajor_loc=[0.1,0.5,1.0,2.0])
             if self.parameter == 'phase':
                 self.x = np.linspace(0.0, 360.0, 17)
                 self.curve_axes.set_title('Disparity Tuning Curve',fontsize=12)
