@@ -116,6 +116,7 @@ class PSTHAverage(PlexSpikeData):
                 self.histogram_data[channel][unit][param_index]['spikes'] = spikes
                 self.histogram_data[channel][unit][param_index]['trials'] = trials
                 self.histogram_data[channel][unit][param_index]['psth_data'] = psth_data
+                self.histogram_data[channel][unit][param_index]['smooth_psth'] = smooth_psth
                 self.histogram_data[channel][unit][param_index]['bins'] = bins
                 self.histogram_data[channel][unit][param_index]['mean'] = mean
                 self.histogram_data[channel][unit][param_index]['means'].append(trial_mean)

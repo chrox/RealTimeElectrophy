@@ -213,7 +213,8 @@ class PSTHPanel(wx.Panel):
                 self.fitting_data.set_ydata(model)
             label = [self.parameter, 'rate', 'std']
             self.data_form.gen_curve_data(self.x, self.means, self.stds, self.fitting_x, model, label)
-            
+            if self.parameter == 'orientation':
+                self.data_form.gen_psth_data(data[channel][unit])
             self.curve_axes.set_xlim(min(self.x),max(self.x))
             self.curve_axes.set_ylim(auto=True)
             #self.curve_axes.set_ylim(0,100)

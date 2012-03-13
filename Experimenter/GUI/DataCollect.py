@@ -9,6 +9,7 @@ import time
 import threading
 import wx
 import matplotlib
+import scipy
 #from StimControl.LightStim.LightData import IndexedParam
 
 class IndexedParam(list):
@@ -171,7 +172,22 @@ class DataForm(wx.Panel):
         
     def clear_data(self):
         self.results.SetValue('')
-
+    
+    def gen_psth_data(self, channel_unit_data):
+        index = max(channel_unit_data, key=lambda k: channel_unit_data[k]['mean'])
+        psth_data = channel_unit_data[index]['smooth_psth']
+        fft_data = abs(scipy.fft(psth_data))
+        try:
+            F1 = max(fft_data[1:len(psth_data)//2])*2.0/len(psth_data)
+            F0 = fft_data[0]/len(psth_data)
+            ratio = F1/F0
+        except ZeroDivisionError:
+            ratio = np.nan
+        mod_ratio = ''
+        mod_ratio += '\n' + '-'*18 + '\nF1/F0 :\n'
+        mod_ratio += '%.2f\n' %ratio
+        self.results.AppendText(mod_ratio)
+        
     def gen_curve_data(self, x, means, stds, fittings, model, label):
         if label[0] == 'orientation':
             label[0] = 'ori'
@@ -182,7 +198,7 @@ class DataForm(wx.Panel):
             label[0] = 'pha'
         data = '-'*18 + '\nData:\n' + "\t".join(label) + '\n'
         for line in zip(x,means,stds):
-            dataline = '\t'.join('%.1f' %value for value in line)
+            dataline = '\t'.join('%.2f' %value for value in line)
             data += dataline + '\n'
         extremes = ''
         if any(model):
