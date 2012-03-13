@@ -204,12 +204,21 @@ class DataForm(wx.Panel):
         if any(model):
             max_index = model.argmax()
             min_index = model.argmin()
-            extremes += '\n' + '-'*18 + '\nMax/min '+label[1]+':\n'
+            extremes += '-'*18 + '\nMax/min '+label[1]+':\n'
             extremes += 'Max ' + '\t' + label[0] + '\n'
             extremes += '%.2f\t%.2f\n' %(model[max_index], fittings[max_index])
             extremes += 'Min ' + '\t' + label[0] + '\n'
             extremes += '%.2f\t%.2f\n' %(model[min_index], fittings[min_index])
-        form = data + extremes
+        BII = ''
+        S2N = ''
+        if any(model) and label[0] == 'pha':
+            bii_ratio = 2.0*(max(model)-min(model))/(max(model)+min(model))
+            BII += '-'*18 + '\nBII :\n'
+            BII += '%.2f\n' %bii_ratio
+            s2n_ratio = (max(model)-min(model))/np.mean(stds)
+            S2N += '-'*18 + '\nS/N :\n'
+            S2N += '%.2f\n' %s2n_ratio
+        form = data + extremes + BII + S2N
         self.results.SetValue(form)
         
     def gen_img_data(self,img,stim_type):
