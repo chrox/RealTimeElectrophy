@@ -151,8 +151,8 @@ class GratingSizeController(SizeController):
             super(GratingSizeController, self).during_go_eval()
 
 class ManGrating(ManStimulus):
-    def __init__(self, **kwargs):
-        super(ManGrating, self).__init__(**kwargs)
+    def __init__(self, params, **kwargs):
+        super(ManGrating, self).__init__(params=params, **kwargs)
         self.name = 'mangrating'
         self.COMMA, self.PERIOD = False,False
         self.LEFTBRACKET, self.RIGHTBRACKET = False,False
@@ -161,6 +161,7 @@ class ManGrating(ManStimulus):
         #self.register_event_handlers()
         # load preference from saved file
         self.load_preference(0)
+        self.set_parameters(params)
     def make_stimuli(self):
         nsinsamples = 1024
         self.grating = SinGrating2D(anchor='center',

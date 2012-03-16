@@ -127,13 +127,14 @@ class FlashController(StimulusController):
             self.vsync_count = (self.vsync_count + 1) % self.flash_cycle_nvsync if self.flash_cycle_nvsync != 0 else 1
 
 class ManBar(ManStimulus):
-    def __init__(self, **kwargs):
-        super(ManBar, self).__init__(**kwargs)
+    def __init__(self, params, **kwargs):
+        super(ManBar, self).__init__(params=params, **kwargs)
         
         self.name = 'manbar'
         self.perpend_to_dir = False
         self.register_controllers()
         self.load_preference(0)
+        self.set_parameters(params)
         
     def make_stimuli(self):
         self.target = Target2D(anchor='center',
