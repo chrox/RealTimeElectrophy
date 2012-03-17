@@ -1,26 +1,57 @@
 # Stimulation server extended from VisionEgg.PyroApps.EPhysServer
 
 from distutils.version import LooseVersion as V
+import ast
 import Pyro
 import VisionEgg
 import VisionEgg.PyroApps.EPhysServer as server
-import VisionEgg.PyroApps.AST_ext as AST_ext
 from StimControl import LightStim
 from StimControl.LightStim.Core import DefaultScreen
 
 from VisionEgg.PyroHelpers import PyroServer
-from VisionEgg.PyroApps.ScreenPositionServer import ScreenPositionMetaController
-from VisionEgg.PyroApps.ScreenPositionGUI import ScreenPositionParameters
 
 server_modules = [VisionEgg.PyroApps.DropinServer]
 
-class RTEPhysServer(server.EPhysServer):
-    def exec_AST(self, screen, dropin_meta_params):
-        if dropin_meta_params.vars_list is not None:
-            for var in dropin_meta_params.vars_list:
-                self.AST = AST_ext.modify_AST(self.AST, var[0], var[1])
+class Targets(object):
+        def __init__(self, targets_list):
+            self.targets = targets_list
+        def __eq__(self,other):
+            if len(self.targets)!=len(other.targets):
+                return False
+            for i in range(len(other.targets)):
+                if not self.equal_target(self.targets[i],other.targets[i]):
+                    return False
+            return True
+                
+        def equal_target(self, left, right):
+            if isinstance(left, ast.Attribute) and isinstance(right, ast.Attribute):
+                print 'compare' + left.attr + right.attr
+                return self.equal_target(left.value, right.value) and left.attr == right.attr
+            if isinstance(left, ast.Name) and isinstance(right, ast.Name):
+                print 'compare' + left.id + right.id
+                return left.id == right.id
+            return False
 
-        code_module = self.AST.compile()
+class ModAssignments(ast.NodeTransformer):  
+    def __init__(self, assign_exp):
+        ast.NodeTransformer.__init__(self)
+        self.new_assign = ast.parse(assign_exp).body[0]
+    def visit_Assign(self, node):
+        if Targets(node.targets) == Targets(self.new_assign.targets):
+            node.value = self.new_assign.value
+        return node
+
+class RTEPhysServer(server.EPhysServer):
+    """
+        TODO: exec_AST should be interruptable from client side.
+    """
+    def build_AST(self, source, assignments=[]):
+        AST = ast.parse(source)
+        for assign in assignments:
+            AST = ModAssignments(assign).visit(AST)
+        self.AST = AST
+    def exec_AST(self, screen):
+        code_module = compile(self.AST, '', 'exec')
         exec code_module in locals()
         if isinstance(locals()['p'], VisionEgg.FlowControl.Presentation):
             presentation = locals()['p']
@@ -29,19 +60,20 @@ class RTEPhysServer(server.EPhysServer):
         self.script_dropped_frames = presentation.were_frames_dropped_in_last_go_loop()
         self.presentation.last_go_loop_start_time_absolute_sec = presentation.last_go_loop_start_time_absolute_sec # evil hack...
         self.exec_demoscript_flag = False
+        self.set_quit_status(False)
         
 class NewPyroServer(PyroServer):
-    def disconnect(self,object):
+    def disconnect(self, _object):
         try:
             VERSION = Pyro.core.constants.VERSION
         except:
             VERSION = Pyro.constants.VERSION
         if V(VERSION) >= V('3.2'):
-            self.daemon.disconnect(object)
+            self.daemon.disconnect(_object)
         else:
             # workaround bug in Pyro pre-3.2
-            del self.daemon.implementations[object.GUID()]
-            object.setDaemon(None)
+            del self.daemon.implementations[_object.GUID()]
+            _object.setDaemon(None)
         
 def start_server( server_modules, server_class=RTEPhysServer ):
     loadNewExpr = True
@@ -51,15 +83,7 @@ def start_server( server_modules, server_class=RTEPhysServer ):
     DefaultScreen(default_viewports)
     screen = DefaultScreen.screen
     
-    temp = ScreenPositionParameters()
-
-    projection = VisionEgg.Core.PerspectiveProjection(temp.left,
-                                                      temp.right,
-                                                      temp.bottom,
-                                                      temp.top,
-                                                      temp.near,
-                                                      temp.far)
-    perspective_viewport = VisionEgg.Core.Viewport(screen=screen, projection=projection)
+    perspective_viewport = VisionEgg.Core.Viewport(screen=screen)
     overlay2D_viewport = VisionEgg.Core.Viewport(screen=screen)
     p = VisionEgg.FlowControl.Presentation(viewports=[perspective_viewport, overlay2D_viewport]) # 2D overlay on top
     #print 'main Presentation',p
@@ -73,10 +97,6 @@ def start_server( server_modules, server_class=RTEPhysServer ):
 
     overlay2D_viewport.parameters.stimuli = [wait_text]
     p.between_presentations() # draw wait_text
-
-    # now hand over control of projection to ScreenPositionMetaController
-    projection_controller = ScreenPositionMetaController(p,projection)
-    pyro_server.connect(projection_controller,"projection_controller")
 
     ephys_server = server_class(p, server_modules)
     pyro_server.connect(ephys_server,"ephys_server")
@@ -110,7 +130,6 @@ def start_server( server_modules, server_class=RTEPhysServer ):
 
         if ephys_server.get_stimkey() == "dropin_server":
             wait_text.parameters.text = "Vision Egg script mode"
-
             p.parameters.enter_go_loop = False
             p.parameters.quit = False
             p.run_forever()
@@ -125,10 +144,9 @@ def start_server( server_modules, server_class=RTEPhysServer ):
 
             # 3) Load a BUILT IN experiment ("loadNewExpr" should be
             # set to True in this event)
-
+            
             if ephys_server.exec_demoscript_flag:
-                dropin_meta_params = stimulus_meta_controller.get_parameters()
-                ephys_server.exec_AST(screen, dropin_meta_params)
+                ephys_server.exec_AST(screen)
 
             if ephys_server.get_stimkey() == "dropin_server":
                 # Either:
