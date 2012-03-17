@@ -22,13 +22,10 @@ class Targets(object):
                 if not self.equal_target(self.targets[i],other.targets[i]):
                     return False
             return True
-                
         def equal_target(self, left, right):
             if isinstance(left, ast.Attribute) and isinstance(right, ast.Attribute):
-                print 'compare' + left.attr + right.attr
                 return self.equal_target(left.value, right.value) and left.attr == right.attr
             if isinstance(left, ast.Name) and isinstance(right, ast.Name):
-                print 'compare' + left.id + right.id
                 return left.id == right.id
             return False
 
