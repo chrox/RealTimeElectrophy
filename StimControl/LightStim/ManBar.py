@@ -132,6 +132,7 @@ class ManBar(ManStimulus):
         
         self.name = 'manbar'
         self.perpend_to_dir = False
+        self.restored_on = self.on
         self.register_controllers()
         self.load_preference(0)
         self.set_parameters(params)
