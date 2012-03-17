@@ -208,7 +208,7 @@ class ManBar(ManStimulus):
                                    'barheightDeg':2.0,
                                    'ori': 0.0}
         try:
-            with open('Manbar_preference.pkl','rb') as pkl_input:
+            with open('stimulus_params.pkl','rb') as pkl_input:
                 preferences_dict = pickle.load(pkl_input)
                 self.defalut_preference.update(preferences_dict[name][index])
                 self.preference = self.defalut_preference
@@ -234,13 +234,13 @@ class ManBar(ManStimulus):
         preferences_dict = {}
         try:
             try:
-                with open('Manbar_preference.pkl','rb') as pkl_input:
+                with open('stimulus_params.pkl','rb') as pkl_input:
                     preferences_dict = pickle.load(pkl_input)
             except:
                 logger.warning('Cannot load previous preferences.'+ ' Use the default preference.')
             if name not in preferences_dict:
                 preferences_dict[name] = [self.defalut_preference] * 2
-            with open('Manbar_preference.pkl','wb') as pkl_output:
+            with open('stimulus_params.pkl','wb') as pkl_output:
                 self.preference['xorigDeg'] = self.xorigDeg
                 self.preference['yorigDeg'] = self.yorigDeg
                 self.preference['widthDeg'] = self.widthDeg

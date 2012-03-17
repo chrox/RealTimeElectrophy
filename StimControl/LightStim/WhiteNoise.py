@@ -223,7 +223,7 @@ class WhiteNoise(Stimulus):
                                    'barheightDeg':1.0,
                                    'ori': 0.0}
         try:
-            with open('Manbar_preference.pkl','rb') as pkl_input:
+            with open('stimulus_params.pkl','rb') as pkl_input:
                 preferences_dict = pickle.load(pkl_input)
                 self.defalut_preference.update(preferences_dict[name][index])
                 self.preference = self.defalut_preference

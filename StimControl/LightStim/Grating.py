@@ -215,7 +215,7 @@ class Grating(Stimulus):
         info = self.name + str(index) + ' in ' + name + ' viewport.'
         logger = logging.getLogger('LightStim.Grating')
         logger.info('Load preference for ' + info)
-        with open('Manbar_preference.pkl','rb') as pkl_input:
+        with open('stimulus_params.pkl','rb') as pkl_input:
             preference = pickle.load(pkl_input)[name][index]
             self.set_parameters(self.parameters, preference)
             
