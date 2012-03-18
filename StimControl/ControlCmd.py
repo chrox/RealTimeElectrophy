@@ -11,14 +11,33 @@ class StimCommand(object):
         self.ephys_server = self.pyro_client.get("ephys_server")
         self.ephys_server.first_connection()
         
-    def run(self, filename, assignments=[]):
+    def run(self, filename, left_params=None, right_params=None, assignments=[]):
+        """
+            Two ways to set stimulus params in runtime.
+            i)  sending parameters for left/right viewport directly to ephys server
+            ii) modifying parameters in script code
+            Note that the second one has higher priority.
+        """
+        if left_params is not None:
+            self.ephys_server.send_stimulus_params('left', left_params)
+        if right_params is not None:
+            self.ephys_server.send_stimulus_params('right', left_params)
+        
+        self.ephys_server.run_demoscript()
         source = open(filename).read()
         self.ephys_server.build_AST(source,assignments)
-        self.ephys_server.run_demoscript()
+        # breaking waiting loop
         self.ephys_server.set_quit_status(True)
+        
+    def get_params(self):
+        return self.ephys_server.get_stimulus_params()
+        
+    def is_running(self):
+        return self.ephys_server.is_running()
         
     def quit_server(self,dummy=None):
         self.ephys_server.set_quit_status(True)
+        self.ephys_server.set_quit_server_status(True)
         self.connected = 0
             
 if __name__ == '__main__':

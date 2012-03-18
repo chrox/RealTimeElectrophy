@@ -3,14 +3,24 @@
 from distutils.version import LooseVersion as V
 import ast
 import Pyro
+import pickle
 import VisionEgg
 import VisionEgg.PyroApps.EPhysServer as server
 from StimControl import LightStim
 from StimControl.LightStim.Core import DefaultScreen
+from StimControl.LightStim.LightData import dictattr
 
 from VisionEgg.PyroHelpers import PyroServer
+from VisionEgg.PyroApps.DropinServer import DropinMetaController
+from VisionEgg.PyroApps.DropinGUI import DropinMetaParameters
 
 server_modules = [VisionEgg.PyroApps.DropinServer]
+
+class MyDropinMetaController(DropinMetaController):
+    def __init__(self,screen,presentation,stimuli):
+        Pyro.core.ObjBase.__init__(self)
+        self.meta_params = DropinMetaParameters()
+        self.p = presentation
 
 class Targets(object):
         def __init__(self, targets_list):
@@ -42,6 +52,13 @@ class RTEPhysServer(server.EPhysServer):
     """
         TODO: exec_AST should be interruptable from client side.
     """
+    def __init__(self, *args,**kwargs):
+        server.EPhysServer.__init__(self,*args,**kwargs)
+        ### hacking here to suppress annoying prints in log ###
+        self.stimdict['dropin_server'] = (MyDropinMetaController, self.stimdict['dropin_server'][1])
+        #######################################################
+        self.really_quit_server = False
+        
     def build_AST(self, source, assignments=[]):
         AST = ast.parse(source)
         for assign in assignments:
@@ -59,7 +76,48 @@ class RTEPhysServer(server.EPhysServer):
         self.exec_demoscript_flag = False
         self.set_quit_status(False)
         
+    def _set_parameters(self, dest_params, source_params):
+        for paramname, paramval in source_params.items():
+            setattr(dest_params, paramname, paramval)
+        
+    def get_stimulus_params(self):
+        left_params = dictattr()
+        right_params = dictattr()
+        with open('stimulus_params.pkl','rb') as pkl_input:
+            params = pickle.load(pkl_input)
+            self._set_parameters(left_params, params['left'][0])
+            self._set_parameters(right_params, params['right'][0])
+        return (left_params, right_params)
+        
+    def send_stimulus_params(self, eye, params):
+        try:
+            with open('stimulus_params.pkl','rb') as pkl_input:
+                preferences_dict = pickle.load(pkl_input)
+            if eye not in preferences_dict:
+                preferences_dict[eye] = [{}] * 2
+            with open('stimulus_params.pkl','wb') as pkl_output:
+                preferences_dict[eye][0].update(params)
+                pickle.dump(preferences_dict, pkl_output)
+        except:
+            raise RuntimeError('Cannot save params for ' + eye + 'viewport.')
+    
+    def is_running(self):
+        return self.exec_demoscript_flag
+        
+    def set_quit_server_status(self, status):
+        self.really_quit_server = status
+        
+    def quit_server_status(self):
+        return self.really_quit_server
+        
+    def quit_presentation(self):
+        pass
+    
 class NewPyroServer(PyroServer):
+    def __init__(self):
+        Pyro.config.PYRO_MULTITHREADED = 1 # multithreading!
+        PyroServer.__init__(self)
+        
     def disconnect(self, _object):
         try:
             VERSION = Pyro.core.constants.VERSION
@@ -108,7 +166,7 @@ def start_server( server_modules, server_class=RTEPhysServer ):
 
     wait_text.parameters.text = "Loading new experiment, please wait."
 
-    while not ephys_server.get_quit_status():
+    while not ephys_server.quit_server_status():
         # this flow control configuration SEEMS to be stable for
         # contiguously loaded scripts more rigorous testing would be
         # appreciated
@@ -128,7 +186,7 @@ def start_server( server_modules, server_class=RTEPhysServer ):
         if ephys_server.get_stimkey() == "dropin_server":
             wait_text.parameters.text = "Vision Egg script mode"
             p.parameters.enter_go_loop = False
-            p.parameters.quit = False
+            #p.parameters.quit = False
             p.run_forever()
 
             # At this point quit signal was sent by client to either:
