@@ -8,7 +8,7 @@ import itertools
 import Pyro.core
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
-from SweepStamp import DT,DTBOARDINSTALLED
+from SweepStamp import DT,DTBOARDINSTALLED,RSTART_EVT
 
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.
@@ -74,6 +74,14 @@ class DTSweepStampController:
         if DTBOARDINSTALLED: 
             DT.postInt16NoDelay(postval)
             DT.clearBitsNoDelay(postval)
+    def set_bits(self,setval):
+        #print 'set bits: %d' %setval
+        if DTBOARDINSTALLED:
+            DT.setBits(setval)
+    def clear_bits(self,clearval):
+        #print 'clear bits: %d' %clearval
+        if DTBOARDINSTALLED:
+            DT.clearBits(clearval)
         
 class DTSweepSequeController(DTSweepStampController, SweepSequeStimulusController):
     """ DTSweepStampController for SweepSeque stimulus
@@ -81,6 +89,28 @@ class DTSweepSequeController(DTSweepStampController, SweepSequeStimulusControlle
     def __init__(self,*args,**kwargs):
         DTSweepStampController.__init__(self)
         SweepSequeStimulusController.__init__(self,*args,**kwargs)
+
+class DTRemoteStartController(DTSweepStampController, VisionEgg.FlowControl.Controller):
+    def __init__(self):
+        DTSweepStampController.__init__(self)
+        VisionEgg.FlowControl.Controller.__init__(self,
+                                           return_type=ve_types.NoneType,
+                                           eval_frequency=VisionEgg.FlowControl.Controller.ONCE)
+    def during_go_eval(self):
+        self.set_bits(RSTART_EVT)
+    def between_go_eval(self):
+        pass
+
+class DTRemoteStopController(DTSweepStampController, VisionEgg.FlowControl.Controller):
+    def __init__(self):
+        DTSweepStampController.__init__(self)
+        VisionEgg.FlowControl.Controller.__init__(self,
+                                           return_type=ve_types.NoneType,
+                                           eval_frequency=VisionEgg.FlowControl.Controller.ONCE)
+    def during_go_eval(self):
+        self.clear_bits(RSTART_EVT)
+    def between_go_eval(self):
+        pass
 
 class SaveParamsController(SweepSequeStimulusController):
     """ Use Every_Frame evaluation controller in case of real time sweep table modification

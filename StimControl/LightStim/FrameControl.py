@@ -10,7 +10,7 @@ import VisionEgg
 from Core import Viewport
 from LightUtil import TimeFormat
 from ManViewport import ManViewport
-from SweepController import SweepController
+from SweepController import SweepController,DTRemoteStartController,DTRemoteStopController
 
 class QuitSweepController(SweepController):
     """ Quit the frame sweep loop if there is no viewports in the screen.
@@ -52,16 +52,6 @@ class EventHandlerController(SweepController):
                 for stimulus in viewport.parameters.stimuli:
                     if hasattr(stimulus,'event_handlers'): # update the viewport event handler only when the viewport is the current viewport.
                         p.handle_event_callbacks += stimulus.event_handlers
-                
-class StimulusControllersController(SweepController):
-    def during_go_eval(self):
-        p = self.framesweep.parameters
-        self.framesweep.controllers = list(self.framesweep.sweep_controllers)
-        for viewport in p.viewports:
-            for stimulus in viewport.parameters.stimuli:
-                if hasattr(stimulus,'controllers'):
-                    for controller in stimulus.controllers:
-                        self.framesweep.controllers.append((None,None,controller))
         
 class FrameSweep(VisionEgg.FlowControl.Presentation):
     """ FrameSweep is a subclass of VisionEgg Presentation.The FrameSweep maintains the relationships among stimulus, viewport
@@ -80,13 +70,11 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.event_handlers = [(pygame.locals.QUIT, self.quit_callback),
                                (pygame.locals.KEYDOWN, self.keydown_callback),
                                (pygame.locals.KEYUP, self.keyup_callback)]
-#        self.sweep_controllers = [(None,None,StimulusControllersController(self)),
-#                                  (None,None,EventHandlerController(self)),
-#                                  (None,None,QuitSweepController(self))]
-        #self.add_controller(None, None, StimulusControllersController(self))
+        
         self.add_controller(None, None, EventHandlerController(self))
         self.add_controller(None, None, RemoveViewportController(self))
         self.add_controller(None, None, QuitSweepController(self))
+        
     def add_stimulus(self, stimulus):
         """ The main maniputate interface of framesweep.
             Update the stimulus in viewport and viewport in framesweep.
@@ -110,7 +98,12 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
             for viewport in p.viewports:
                 if stimulus.viewport.name == viewport.name:
                     viewport.parameters.stimuli.append(stimulus)
-            
+    
+    def remove_stimuli(self):
+        p = self.parameters
+        for viewport in p.viewports:
+            viewport.parameters.stimuli = []
+    
     def add_controllers(self):
         """ Update the controllers in framesweep. The controller of each stimulus should be delayed to add into the sweep.
             In case we have pre stimulus delay.
@@ -133,12 +126,14 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         Viewport.registered_viewports = []
         self.parameters.go_duration = (0,'frames')
 
-    def go(self,prestim=None,poststim=None):
+    def go(self,prestim=0.0,poststim=0.0):
         logger = logging.getLogger('LightStim.FrameControl')
         # pre stimulation go
         if prestim is not None:
+            self.add_controller(None,None,DTRemoteStartController())
             self.parameters.go_duration = (prestim, 'seconds')
             super(FrameSweep, self).go()
+            
         # stimulation go
         self.parameters.go_duration=('forever','')
         self.add_controllers()
@@ -147,9 +142,13 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         super(FrameSweep, self).go()
         sweep_end = VisionEgg.true_time_func()
         sweep_duration = sweep_end - sweep_begin
+        # remove all stimuli
+        self.remove_stimuli()
+        self.remove_controller(None,None,None)
+        
         # post stimulation go
         if poststim is not None:
-            self.remove_controller(None,None,None)
+            self.add_controller(None,None,DTRemoteStopController())
             self.parameters.go_duration = (poststim, 'seconds')
             super(FrameSweep, self).go()
         
@@ -158,5 +157,3 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         else:
             logger.info('Stimulation completes successfully.')
         logger.info('Actual stimulus duration: %s' %str(TimeFormat(sweep_duration)))
-
-        
