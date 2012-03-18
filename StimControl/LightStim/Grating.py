@@ -63,23 +63,26 @@ class TimingStampController(DTSweepSequeController):
         self.logger = logging.getLogger('LightStim.Grating')
     def during_go_eval(self):
         stimulus_on = self.next_param()
+        """ 
+            16-bits stimulus representation code will be posted to DT port
+                 0 1 1 1 0000 0000 0000 
+                 | | | |-------------------stimulus onset
+                 | | |---------------------left viewport
+                 | |---------------------- right viewport
+                 |------------------------ reserved
+        """
+        if self.viewport.get_name() == 'left':
+            viewport_value = 1<<13
+        elif self.viewport.get_name() == 'right':
+            viewport_value = 1<<14
+        else:
+            self.logger.error('Currently TimingStamp can only support left and right viewport.')
+        # lower 12 bits are reserved
+        onset_value = 0
         if stimulus_on:
-            """ 
-                16-bits stimulus representation code will be posted to DT port
-                     0 1 1 000000000000 1 
-                     | | |              |------onset
-                     | | |---------------------left viewport
-                     | |---------------------- right viewport
-                     |------------------------ reserved
-            """
-            if self.viewport.get_name() == 'left':
-                viewport_value = 1<<13
-            elif self.viewport.get_name() == 'right':
-                viewport_value = 1<<14
-            else:
-                self.logger.error('Currently TimingStamp can only support left and right viewport.')
-            post_val = viewport_value + 1
-            self.post_stamp(post_val)
+            onset_value = 1<<12
+        post_val = viewport_value + onset_value
+        self.post_stamp(post_val)
             
 class ParamController(SweepSequeStimulusController):
     def __init__(self,*args,**kwargs):
