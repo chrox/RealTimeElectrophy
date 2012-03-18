@@ -196,7 +196,7 @@ class Grating(Stimulus):
         self.stimuli = (self.background, self.grating)
 
     def get_parameters(self):
-        param_names = ['on','xorigDeg','yorigDeg','widthDeg','heightDeg','ori','mask','maskDiameterDeg','sfreqCycDeg','tfreqCycSec']
+        param_names = ['on','xorigDeg','yorigDeg','widthDeg','gheightDeg','ori','mask','maskDiameterDeg','sfreqCycDeg','tfreqCycSec']
         return dict((paramname,self.parameters[paramname]) for paramname in param_names)
     
     def register_controllers(self):
