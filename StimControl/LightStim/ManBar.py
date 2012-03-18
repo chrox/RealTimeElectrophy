@@ -30,7 +30,7 @@ class ManBarController(StimulusController):
     def during_go_eval(self):
         self.stimulus.tp.on = self.stimulus.on
         width = self.viewport.deg2pix(self.stimulus.widthDeg) # convenience
-        height = self.viewport.deg2pix(self.stimulus.heightDeg)
+        height = self.viewport.deg2pix(self.stimulus.bheightDeg)
         self.cp.position = self.viewport.deg2pix(self.stimulus.xorigDeg) + self.viewport.xorig ,\
                            self.viewport.deg2pix(self.stimulus.yorigDeg) + self.viewport.yorig
         self.cp.on = self.stimulus.on
@@ -52,7 +52,7 @@ class BarInfoController(StimulusController):
     def during_go_eval(self):                     
         self.sptp.text = u'pos : (%5.1f, %5.1f) º  |  size : (%5.1f, %4.1f) º  |  ori : %5.1f º | brightness : %.2f' \
                          % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
-                             self.stimulus.widthDeg, self.stimulus.heightDeg, self.stimulus.ori, self.stimulus.brightness)
+                             self.stimulus.widthDeg, self.stimulus.bheightDeg, self.stimulus.ori, self.stimulus.brightness)
 
 class SizeController(StimulusController):
     # Set bar size 
@@ -61,17 +61,17 @@ class SizeController(StimulusController):
     def during_go_eval(self):
         multiplier = self.stimulus.sizemultiplier
         if self.stimulus.UP:
-            self.stimulus.heightDeg = self.stimulus.heightDeg * multiplier
-            if self.stimulus.squarelock: self.stimulus.widthDeg = self.stimulus.heightDeg
+            self.stimulus.bheightDeg = self.stimulus.bheightDeg * multiplier
+            if self.stimulus.squarelock: self.stimulus.widthDeg = self.stimulus.bheightDeg
         elif self.stimulus.DOWN:
-            self.stimulus.heightDeg = max(self.stimulus.heightDeg / multiplier, 0.1)
-            if self.stimulus.squarelock: self.stimulus.widthDeg = self.stimulus.heightDeg
+            self.stimulus.bheightDeg = max(self.stimulus.bheightDeg / multiplier, 0.1)
+            if self.stimulus.squarelock: self.stimulus.widthDeg = self.stimulus.bheightDeg
         if self.stimulus.RIGHT:
             self.stimulus.widthDeg = self.stimulus.widthDeg * multiplier
-            if self.stimulus.squarelock: self.stimulus.heightDeg = self.stimulus.widthDeg
+            if self.stimulus.squarelock: self.stimulus.bheightDeg = self.stimulus.widthDeg
         elif self.stimulus.LEFT:
             self.stimulus.widthDeg = max(self.stimulus.widthDeg / multiplier, 0.1)
-            if self.stimulus.squarelock: self.stimulus.heightDeg = self.stimulus.widthDeg
+            if self.stimulus.squarelock: self.stimulus.bheightDeg = self.stimulus.widthDeg
 
 class BrightnessController(StimulusController):
     # Set bar orientation
@@ -161,7 +161,7 @@ class ManBar(ManStimulus):
         self.essential_stimuli = (self.background, self.target)
     
     def get_parameters(self):
-        param_names = ['xorigDeg','yorigDeg','widthDeg','heightDeg','ori']
+        param_names = ['xorigDeg','yorigDeg','widthDeg','bheightDeg','ori']
         return dict((paramname,getattr(self,paramname)) for paramname in param_names)
 
     def set_parameters(self,parameters):
@@ -205,7 +205,7 @@ class ManBar(ManStimulus):
         self.defalut_preference = {'xorigDeg':0.0,
                                    'yorigDeg':0.0,
                                    'widthDeg':8.0,
-                                   'barheightDeg':2.0,
+                                   'bheightDeg':2.0,
                                    'ori': 0.0}
         try:
             with open('stimulus_params.pkl','rb') as pkl_input:
@@ -216,11 +216,7 @@ class ManBar(ManStimulus):
             if self.viewport.get_name() != 'control':
                 logger.warning('Cannot load preference for ' + info + ' Use the default preference.')
             self.preference = self.defalut_preference
-        self.xorigDeg = self.preference['xorigDeg']
-        self.yorigDeg = self.preference['yorigDeg']
-        self.widthDeg = self.preference['widthDeg']
-        self.heightDeg = self.preference['barheightDeg']
-        self.ori = self.preference['ori']
+        self.set_parameters(self.preference)
         # changes only after load/save a new preference
         self.x  = int(round(self.viewport.deg2pix(self.xorigDeg) + self.viewport.xorig))
         self.y  = int(round(self.viewport.deg2pix(self.yorigDeg) + self.viewport.yorig))
@@ -241,15 +237,10 @@ class ManBar(ManStimulus):
             if name not in preferences_dict:
                 preferences_dict[name] = [self.defalut_preference] * 2
             with open('stimulus_params.pkl','wb') as pkl_output:
-                self.preference['xorigDeg'] = self.xorigDeg
-                self.preference['yorigDeg'] = self.yorigDeg
-                self.preference['widthDeg'] = self.widthDeg
-                self.preference['barheightDeg'] = self.heightDeg
-                self.preference['ori'] = self.ori
-                preferences_dict[name][index] = self.preference
+                preferences_dict[name][index] = self.get_parameters()
                 pickle.dump(preferences_dict, pkl_output)
         except:
             logger.warning('Cannot save preference ' + info)
         self.fp.position = self.x, self.y
-        self.brightenText = "Manbar" + str(index)  # brighten the text for feedback
+        self.brightenText = "Index" + str(index)  # brighten the text for feedback
         

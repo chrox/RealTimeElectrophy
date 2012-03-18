@@ -64,7 +64,7 @@ class ManGratingController(StimulusController):
             if self.stimulus.mask == 'gaussian':
                 self.stimulus.last_gaussian_mask = self.gp.mask
         else:
-            self.gp.size = self.viewport.deg2pix(self.stimulus.heightDeg), self.viewport.deg2pix(self.stimulus.widthDeg) # convert to pix
+            self.gp.size = self.viewport.deg2pix(self.stimulus.gheightDeg), self.viewport.deg2pix(self.stimulus.widthDeg) # convert to pix
             self.gp.mask = None
         self.gp.spatial_freq = self.viewport.cycDeg2cycPix(self.stimulus.sfreqCycDeg)
         self.gp.temporal_freq_hz = self.stimulus.tfreqCycSec
@@ -74,10 +74,10 @@ class ManGratingController(StimulusController):
         try:
             self.last_heightDeg
         except AttributeError:
-            self.last_heightDeg = self.stimulus.heightDeg
-        delta_height = max((self.stimulus.heightDeg - self.last_heightDeg) / 2, 0)
+            self.last_heightDeg = self.stimulus.gheightDeg
+        delta_height = max((self.stimulus.gheightDeg - self.last_heightDeg) / 2, 0)
         phase_rect = (delta_height / self.stimulus.sfreqCycDeg * 360.0 / self.viewport.refresh_rate ) % 360.0
-        self.last_heightDeg = self.stimulus.heightDeg
+        self.last_heightDeg = self.stimulus.gheightDeg
         deltaphase = self.viewport.cycSec2cycVsync(self.stimulus.tfreqCycSec) * 360
         self.stimulus.phase0 = (self.stimulus.phase0 - phase_rect - deltaphase) % 360.0
         self.gp.phase_at_t0 = self.stimulus.phase0
@@ -95,7 +95,7 @@ class GratingInfoController(StimulusController):
         if not self.stimulus.mask_on:                     
             self.sptp.text = u'pos:(%5.1f,%5.1f)º| size:(%4.1f,%4.1f)º| ori:%5.1fº| tfreq:%.2fcyc/s| sfreq:%.2f cyc/º| contrast:%.2f' \
                             % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
-                                self.stimulus.widthDeg, self.stimulus.heightDeg,
+                                self.stimulus.widthDeg, self.stimulus.gheightDeg,
                                 self.stimulus.ori, self.stimulus.tfreqCycSec, self.stimulus.sfreqCycDeg, self.stimulus.contrast)
         else:
             self.sptp.text = u'pos:(%5.1f,%5.1f)º | diameter:%5.1fº | ori:%5.1fº| tfreq:%.2fcyc/s| sfreq:%.2f cyc/º| contrast:%.2f' \
@@ -143,10 +143,10 @@ class GratingSizeController(SizeController):
             elif self.stimulus.DOWN or self.stimulus.LEFT:
                 self.stimulus.maskDiameterDeg = max(self.stimulus.maskDiameterDeg - self.stimulus.maskSizeStepDeg, 0.1)
                 self.stimulus.widthDeg = self.stimulus.maskDiameterDeg
-            if self.stimulus.widthDeg < self.stimulus.heightDeg: # set smaller value of grating width and height to maskDiameter 
+            if self.stimulus.widthDeg < self.stimulus.gheightDeg: # set smaller value of grating width and height to maskDiameter 
                 self.stimulus.widthDeg = self.stimulus.maskDiameterDeg
             else:
-                self.stimulus.heightDeg = self.stimulus.maskDiameterDeg
+                self.stimulus.gheightDeg = self.stimulus.maskDiameterDeg
         else:
             super(GratingSizeController, self).during_go_eval()
 
@@ -191,7 +191,7 @@ class ManGrating(ManStimulus):
         self.essential_stimuli = (self.background, self.grating)
     
     def get_parameters(self):
-        param_names = ['xorigDeg','yorigDeg','widthDeg','heightDeg','ori','mask','maskDiameterDeg','sfreqCycDeg','tfreqCycSec']
+        param_names = ['xorigDeg','yorigDeg','widthDeg','gheightDeg','ori','mask','maskDiameterDeg','sfreqCycDeg','tfreqCycSec']
         return dict((paramname,getattr(self,paramname)) for paramname in param_names)
 
     def set_parameters(self,parameters):
@@ -261,7 +261,7 @@ class ManGrating(ManStimulus):
         self.defalut_preference = {'xorigDeg':0.0,
                                    'yorigDeg':0.0,
                                    'widthDeg':15.0,
-                                   'heightDeg':15.0,
+                                   'gheightDeg':15.0, # gheightDeg for grating stimulus
                                    'mask':'circle',
                                    'maskDiameterDeg':10.0,
                                    'sfreqCycDeg':0.5,
@@ -276,19 +276,11 @@ class ManGrating(ManStimulus):
             if self.viewport.get_name() != 'control':
                 logger.warning('Cannot load preference for ' + info + ' Use the default preference.')
             self.preference = self.defalut_preference
-        self.xorigDeg = self.preference['xorigDeg']
-        self.yorigDeg = self.preference['yorigDeg']
-        self.widthDeg = self.preference['widthDeg']
-        self.heightDeg = self.preference['widthDeg']
-        
-        self.mask = self.preference['mask']
+            
+        self.set_parameters(self.preference)
         if self.mask:
             self.mask_on = True
-            
-        self.maskDiameterDeg = self.preference['widthDeg'] # in case that
-        self.sfreqCycDeg = self.preference['sfreqCycDeg']
-        self.tfreqCycSec = self.preference['tfreqCycSec']
-        self.ori         = self.preference['ori']
+
         # changes only after load/save a new preference
         self.x  = int(round(self.viewport.deg2pix(self.xorigDeg) + self.viewport.xorig))
         self.y  = int(round(self.viewport.deg2pix(self.yorigDeg) + self.viewport.yorig))
@@ -307,22 +299,14 @@ class ManGrating(ManStimulus):
                     preferences_dict = pickle.load(pkl_input)
             except:
                 logger.warning('Cannot load previous preferences.'+ ' Use the default preference.')
-            if name not in preferences_dict:
-                preferences_dict[name] = [self.defalut_preference] * 2
+                if name not in preferences_dict:
+                    preferences_dict[name] = [self.defalut_preference] * 2
             with open('stimulus_params.pkl','wb') as pkl_output:
-                self.preference['xorigDeg'] = self.xorigDeg
-                self.preference['yorigDeg'] = self.yorigDeg
-                self.preference['widthDeg'] = self.widthDeg
-                #self.preference['heightDeg'] = self.heightDeg
-                self.preference['mask'] = self.mask
-                self.preference['maskDiameterDeg'] = self.maskDiameterDeg
-                self.preference['sfreqCycDeg'] = self.sfreqCycDeg
-                self.preference['tfreqCycSec'] = self.tfreqCycSec
-                self.preference['ori'] = self.ori
-                preferences_dict[name][index] = self.preference
+                preferences_dict[name][index].update(self.get_parameters())
                 pickle.dump(preferences_dict, pkl_output)
         except:
             logger.warning('Cannot save preference ' + info)
+            
         self.fp.position = self.x, self.y
-        self.brightenText = "Manbar" + str(index)  # brighten the text for feedback
+        self.brightenText = "Index" + str(index)  # brighten the text for feedback
         

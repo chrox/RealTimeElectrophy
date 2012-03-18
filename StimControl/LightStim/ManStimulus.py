@@ -69,9 +69,9 @@ class ViewportIndicatorsController(StimulusController):
             else:
                 indicator.on = False
 
-        if self.stimulus.brightenText == 'Manbar0':
+        if self.stimulus.brightenText == 'Index0':
             self.sptp.color = (1.0, 1.0, 0.0, 1.0) # set to yellow
-        elif self.stimulus.brightenText == 'Manbar1':
+        elif self.stimulus.brightenText == 'Index1':
             self.sptp.color = (1.0, 0.0, 0.0, 1.0) # set to red
         else:
             self.stimulus.sptp.color = (0.0, 1.0, 0.0, 1.0) # set it back to green
