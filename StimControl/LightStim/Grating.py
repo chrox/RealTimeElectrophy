@@ -184,7 +184,8 @@ class Grating(Stimulus):
                                     pedestal=self.parameters.ml,
                                     ignore_time=True,
                                     num_samples=nsinsamples,
-                                    max_alpha=1.0)
+                                    max_alpha=1.0,
+                                    on=False)
         self.gp = self.grating.parameters
         
         nmasksamples = 1024
