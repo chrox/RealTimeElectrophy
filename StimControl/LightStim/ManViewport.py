@@ -3,7 +3,7 @@
 # Copyright (C) 2010-2011 Huang Xin
 #
 # See LICENSE.TXT that came with this file.
-
+import time
 import copy
 import itertools
 #import logging
@@ -23,6 +23,8 @@ class ManViewport(Viewport):
         self.mouse_pos = None
         self.copied_stimuli = None
         self.copied_parameters = {}
+        # last_click restore last mouse click in the format of (time, button)
+        self.last_click = (0, -1)
         self.event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback),
                                (pygame.locals.MOUSEBUTTONDOWN, self.mousebuttondown_callback)]
         #self.viewport_event_handlers = [(pygame.locals.KEYDOWN, self.keydown_callback)]
@@ -88,8 +90,36 @@ class ManViewport(Viewport):
         elif key == pygame.locals.K_F4:
             self.__activate_viewport(mods, 'right')
     
-    def mousebuttondown_callback(self,event):
+    def control_request(self):
+        self.set_activity(True)
+        self.set_visibility(True)
+        for viewport in Viewport.registered_viewports:
+            if viewport.get_name() == 'control': # find control viewport
+                # alternate controlled viewport until left viewport is being controlled
+                while not self.is_current():     
+                    viewport.alt_viewport()
+    
+    def doubleclick_callback(self,event):
         button = event.button
+        if button == 1: # double-click left button
+            if self.get_name() == 'left':
+                self.control_request()
+            else:
+                self.set_visibility(False)
+        if button == 3: # double-click right button
+            if self.get_name() == 'right':
+                self.control_request()
+            else:
+                self.set_visibility(False)
+    
+    def mousebuttondown_callback(self,event):
+        now_time = time.time()
+        button = event.button
+        old_time, old_button = self.last_click
+        self.last_click = (now_time, button)
+        if button in [1, 3] and button == old_button and now_time - old_time < 0.5 :
+            self.doubleclick_callback(event)
+            return
         if button == 1 and self.get_name() == 'left':  # left button
             self.set_visibility(not self.is_visible())
         elif button == 3 and self.get_name() == 'right':  # right button
@@ -102,13 +132,12 @@ class ControlViewport(ManViewport):
         super(ControlViewport, self).__init__(**kwargs)
         self.visible = True
         self.current = True
-        
         self.viewport_alted_once = False
     
     def draw(self):
         if not self.viewport_alted_once:
             self.viewport_alted_once = True
-            self.__alt_viewport()
+            self.alt_viewport()
         super(ControlViewport, self).draw()
     
     def update_viewport(self):
@@ -153,7 +182,7 @@ class ControlViewport(ManViewport):
         self.__paste_stimuli(dest_viewport_name)
         self.copied_stimuli = orignal_copied_stimuli
 
-    def __alt_viewport(self):
+    def alt_viewport(self):
         # alternate control viewport stimuli from a cycle of available(active) viewports.
         active_viewports = [viewport for viewport in Viewport.registered_viewports if viewport.is_active()]
         current_active_viewports = [viewport for viewport in active_viewports if viewport.is_current()]
@@ -199,7 +228,7 @@ class ControlViewport(ManViewport):
                 if viewport.is_active():
                     viewport.set_current(True)
         elif key == pygame.locals.K_TAB:
-            self.__alt_viewport()
+            self.alt_viewport()
         elif mods & pygame.locals.KMOD_CTRL and key == pygame.locals.K_c:
             self.__copy_stimparams()
         elif mods & pygame.locals.KMOD_CTRL and key == pygame.locals.K_v:
@@ -208,4 +237,5 @@ class ControlViewport(ManViewport):
     def mousebuttondown_callback(self,event):
         button = event.button
         if button == 2:  # scroll wheel button
-            self.__alt_viewport()
+            self.alt_viewport()
+            

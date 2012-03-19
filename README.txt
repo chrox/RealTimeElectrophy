@@ -75,12 +75,14 @@ Manual stimulus controls:
 In manbar and mangrating stimulation:
     - mouse cursor controls the bar/grating position, mouse scroll wheel changes 
       bar/grating orientation
-    - left and right mouse bottons control stimulus on/off in left and right viewport 
+    - left and right mouse buttons control stimulus on/off in left and right viewport 
       respectively
     - left/right arrow keys control bar/grating width, up/down arrow keys control 
       bar/grating height
     - ENTER/SPACE keys save current stimulus parameters to disk
-    - TAB key alternates currently controlled viewport
+    - TAB key alternates currently controlled viewport in turn
+    - double-clicking left/right buttons changes currently controlled viewport to 
+      the left/right viewport 
     - 'C' sets circular mask for grating
     - 'F' controls stimulus flashing
     - 'G' sets gaussian mask for grating
