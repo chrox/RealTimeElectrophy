@@ -26,6 +26,7 @@ class ManBarController(StimulusController):
         self.bgp = self.stimulus.bgp
         self.tipp = self.stimulus.tipp
         self.cp = self.stimulus.cp
+        self.fp = self.stimulus.fp
 
     def during_go_eval(self):
         self.stimulus.tp.on = self.stimulus.on
@@ -34,6 +35,7 @@ class ManBarController(StimulusController):
         self.cp.position = self.viewport.deg2pix(self.stimulus.xorigDeg) + self.viewport.xorig ,\
                            self.viewport.deg2pix(self.stimulus.yorigDeg) + self.viewport.yorig
         self.cp.on = self.stimulus.on
+        self.fp.on = True
         self.tp.position = self.cp.position
         self.tp.size = width, height # convert to pix
         self.tp.orientation = self.stimulus.ori
@@ -140,22 +142,24 @@ class ManBar(ManStimulus):
     def make_stimuli(self):
         self.target = Target2D(anchor='center',
                                anti_aliasing=self.antialiase,
-                               color=(self.brightness, self.brightness, self.brightness, 1.0))
+                               color=(self.brightness, self.brightness, self.brightness, 1.0),
+                               on=False)
         self.tp = self.target.parameters # synonym
         self.tip = Target2D(size=(5, 1),
                             anchor='center',
                             anti_aliasing=self.antialiase,
-                            color=(1.0, 0.0, 0.0, 1.0))
+                            color=(1.0, 0.0, 0.0, 1.0),
+                            on=False)
         self.tipp = self.tip.parameters
         self.fixationspot = FixationSpot(anchor='center',
                                                  color=(1.0, 0.0, 0.0, 0.0),
                                                  size=(5, 5),
-                                                 on=True)
+                                                 on=False)
         self.fp = self.fixationspot.parameters
         self.centerspot = FixationSpot(anchor='center',
                                                  color=(0.0, 1.0, 0.0, 0.0),
                                                  size=(3, 3),
-                                                 on=True)
+                                                 on=False)
         self.cp = self.centerspot.parameters
         self.complete_stimuli = (self.background, self.target, self.tip, self.fixationspot, self.centerspot) + self.info
         self.essential_stimuli = (self.background, self.target)

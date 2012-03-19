@@ -8,16 +8,19 @@ import itertools
 import Pyro.core
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
+from VisionEgg.FlowControl import ONCE,TRANSITIONS,NOT_DURING_GO,NOT_BETWEEN_GO
 from SweepStamp import DT,DTBOARDINSTALLED,RSTART_EVT
 
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.
         For stimulus in viewport.
     """
-    def __init__(self,stimulus):
+    def __init__(self,stimulus,
+                  return_type=ve_types.NoneType,
+                  eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME):
         VisionEgg.FlowControl.Controller.__init__(self,
-                                           return_type=ve_types.NoneType,
-                                           eval_frequency=VisionEgg.FlowControl.Controller.EVERY_FRAME)
+                                           return_type=return_type,
+                                           eval_frequency=eval_frequency)
         self.stimulus = stimulus
         self.viewport = stimulus.viewport
     def set_viewport(self, viewport):
@@ -31,8 +34,8 @@ class ViewportController(StimulusController):
     """ Dummy class used to show that the controller is viewport sensitive.
         SEE LightStim.ManStimulus
     """
-    def __init__(self,stimulus,viewport=None):
-        super(ViewportController,self).__init__(stimulus)
+    def __init__(self,stimulus,viewport=None,*args,**kwargs):
+        super(ViewportController,self).__init__(stimulus,*args,**kwargs)
         if viewport:
             self.set_viewport(viewport)
 
@@ -95,8 +98,9 @@ class DTRemoteStartController(DTSweepStampController, VisionEgg.FlowControl.Cont
         DTSweepStampController.__init__(self)
         VisionEgg.FlowControl.Controller.__init__(self,
                                            return_type=ve_types.NoneType,
-                                           eval_frequency=VisionEgg.FlowControl.Controller.ONCE)
+                                           eval_frequency=ONCE|TRANSITIONS|NOT_BETWEEN_GO)
     def during_go_eval(self):
+        print 'set bits: %d' %RSTART_EVT
         self.set_bits(RSTART_EVT)
     def between_go_eval(self):
         pass
@@ -106,11 +110,12 @@ class DTRemoteStopController(DTSweepStampController, VisionEgg.FlowControl.Contr
         DTSweepStampController.__init__(self)
         VisionEgg.FlowControl.Controller.__init__(self,
                                            return_type=ve_types.NoneType,
-                                           eval_frequency=VisionEgg.FlowControl.Controller.ONCE)
+                                           eval_frequency=ONCE|TRANSITIONS|NOT_DURING_GO)
     def during_go_eval(self):
-        self.clear_bits(RSTART_EVT)
-    def between_go_eval(self):
         pass
+    def between_go_eval(self):
+        print 'clear bits: %d' %RSTART_EVT
+        self.clear_bits(RSTART_EVT)
 
 class SaveParamsController(SweepSequeStimulusController):
     """ Use Every_Frame evaluation controller in case of real time sweep table modification

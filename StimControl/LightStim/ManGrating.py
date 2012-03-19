@@ -29,12 +29,17 @@ class ManGratingController(StimulusController):
         if self.stimulus.mask:
             self.gmp = self.stimulus.gmp
         self.bgp = self.stimulus.bgp
-        self.cp = self.stimulus.cp 
+        self.cp = self.stimulus.cp
+        self.fp = self.stimulus.fp
     def during_go_eval(self):
+        self.cp.on = self.stimulus.on
         self.cp.position = self.viewport.deg2pix(self.stimulus.xorigDeg) + self.viewport.xorig ,\
                            self.viewport.deg2pix(self.stimulus.yorigDeg) + self.viewport.yorig # update center spot position
-        self.gp.position = self.cp.position
+        
+        self.fp.on = True
         self.gp.on = self.stimulus.on
+        self.gp.position = self.cp.position
+        
         if self.stimulus.mask and self.stimulus.mask_on:
             radius = self.viewport.deg2pix(self.stimulus.maskDiameterDeg) / 2.0
             if self.stimulus.mask == 'gaussian':
@@ -168,7 +173,8 @@ class ManGrating(ManStimulus):
                                     pedestal=self.ml,
                                     ignore_time=True,
                                     num_samples=nsinsamples,
-                                    max_alpha=1.0) # opaque
+                                    max_alpha=1.0,
+                                    on=False) # opaque
         self.gp = self.grating.parameters
         self.nmasksamples = 512
         self.grating_mask = Mask2D(function='circle', num_samples=(self.nmasksamples, self.nmasksamples)) # size of mask texture data (# of texels)
@@ -180,12 +186,12 @@ class ManGrating(ManStimulus):
         self.fixationspot = FixationSpot(anchor='center',
                                                  color=(1.0, 0.0, 0.0, 0.0),
                                                  size=(5, 5),
-                                                 on=True)
+                                                 on=False)
         self.fp = self.fixationspot.parameters
         self.centerspot = FixationSpot(anchor='center',
                                                  color=(0.0, 1.0, 0.0, 0.0),
                                                  size=(3, 3),
-                                                 on=True)
+                                                 on=False)
         self.cp = self.centerspot.parameters
         self.complete_stimuli = (self.background, self.grating, self.fixationspot, self.centerspot) + self.info
         self.essential_stimuli = (self.background, self.grating)

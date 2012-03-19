@@ -8,6 +8,7 @@ from __future__ import division
 import numpy as np
 np.seterr(all='raise')
 import logging
+import VisionEgg
 import pygame
 from pygame.locals import K_UP,K_DOWN,K_RIGHT,K_LEFT,K_EQUALS,K_MINUS,K_RSHIFT,K_LSHIFT,K_SPACE,K_RETURN,K_KP_ENTER,KMOD_CTRL
 from pygame.locals import K_e,K_0,K_KP0,K_1,K_KP1,K_2,K_KP2
@@ -23,7 +24,8 @@ STATUSBARHEIGHT = 15 # height of upper and lower status bars (pix)
 
 class InfoController(ViewportController):
     def __init__(self,*args,**kwargs):
-        super(InfoController, self).__init__(*args,**kwargs)
+        super(InfoController, self).__init__(eval_frequency=VisionEgg.FlowControl.Controller.ONCE,
+                                             *args,**kwargs)
         self.upbp = self.stimulus.upbp # upperbar
         self.lwbp = self.stimulus.lwbp # lowerbar
         self.vitp = self.stimulus.vitp # viewportinfotext
@@ -33,15 +35,20 @@ class InfoController(ViewportController):
         self.sptp = self.stimulus.sptp # stimulusparamtext
     def during_go_eval(self):
         _width_pix, height_pix = self.viewport.parameters.size
+        self.upbp.on = True
         self.upbp.position = (0, height_pix)
         self.upbp.size = (self.viewport.width_pix, STATUSBARHEIGHT)
+        self.lwbp.on = True
         self.lwbp.position = (0, 0)
         self.lwbp.size = (self.viewport.width_pix, STATUSBARHEIGHT)
+        self.vitp.on = True
         self.vitp.lowerleft = (1, height_pix - 12)
         self.vips[0].lowerleft = (200, height_pix - 12)
         self.vips[1].lowerleft = (245, height_pix - 12)
+        #self.stp.on = True
         self.stp.lowerleft = (self.viewport.width_pix-325, height_pix-12)
         self.sltp.lowerleft = (1, height_pix - STATUSBARHEIGHT -12)
+        self.sptp.on = True
         self.sptp.lowerleft = (2, 2)
 
 class ViewportIndicatorsController(StimulusController):
@@ -146,25 +153,25 @@ class ManStimulus(Stimulus):
         
         self.screenstring = 'screen (w, h, d) = (%.1f, %.1f, %.1f) cm' % \
                             (self.viewport.width_cm, self.viewport.height_cm, self.viewport.distance_cm)
-        self.screentext = BitmapText(text=self.screenstring, color=(0.0, 1.0, 1.0, 1.0))
+        self.screentext = BitmapText(text=self.screenstring, color=(0.0, 1.0, 1.0, 1.0), on=False)
         self.stp = self.screentext.parameters
 
         self.squarelocktext = BitmapText(text='SQUARELOCK', color=(0.0, 1.0, 1.0, 1.0), on=False) # leave it off for now
         self.sltp = self.squarelocktext.parameters
-        self.upperbar = Target2D(anchor='upperleft', anti_aliasing=self.antialiase, color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0))
+        self.upperbar = Target2D(anchor='upperleft', anti_aliasing=self.antialiase, color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0), on=False)
         self.upbp = self.upperbar.parameters
-        self.lowerbar = Target2D(anchor='lowerleft', anti_aliasing=self.antialiase, color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0))
+        self.lowerbar = Target2D(anchor='lowerleft', anti_aliasing=self.antialiase, color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0), on=False)
         self.lwbp = self.lowerbar.parameters
         
-        self.stimulusparamtext = BitmapText(color=(0.0, 1.0, 0.0, 1.0))
+        self.stimulusparamtext = BitmapText(color=(0.0, 1.0, 0.0, 1.0), on=False)
         self.sptp = self.stimulusparamtext.parameters
 
-        self.viewportinfotext = BitmapText(text='Viewports in control: ', color=(0.0, 1.0, 1.0, 1.0))
+        self.viewportinfotext = BitmapText(text='Viewports in control: ', color=(0.0, 1.0, 1.0, 1.0), on=False)
         self.vitp = self.viewportinfotext.parameters
 
-        self.lvpindicatortext = BitmapText(text='left')
+        self.lvpindicatortext = BitmapText(text='left', on=False)
 
-        self.rvpindicatortext = BitmapText(text='right')
+        self.rvpindicatortext = BitmapText(text='right', on=False)
         
         self.viewport_indicators = (self.lvpindicatortext.parameters,self.rvpindicatortext.parameters)
 

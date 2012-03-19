@@ -3,7 +3,6 @@
 # Copyright (C) 2010-2011 Huang Xin
 #
 # See LICENSE.TXT that came with this file.
-
 import logging
 import pygame
 import VisionEgg
@@ -22,6 +21,7 @@ class QuitSweepController(SweepController):
 class RemoveViewportController(SweepController):
     """ 
         Check each viewport. If all stimuli complete sweep, delete the viewport.
+        When all viewports are removed QuitSweepController will quit the main loop.
     """
     def during_go_eval(self):
         p = self.framesweep.parameters
@@ -35,7 +35,9 @@ class RemoveViewportController(SweepController):
                 else:
                     pass
             if viewport_cleaned:
-                Viewport.registered_viewports.remove(viewport)
+                for registered_viewport in Viewport.registered_viewports:
+                    if registered_viewport.name == viewport.name:
+                        Viewport.registered_viewports.remove(registered_viewport)
                 self.framesweep.parameters.viewports.remove(viewport)
                 
 class EventHandlerController(SweepController):
@@ -103,7 +105,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         p = self.parameters
         for viewport in p.viewports:
             viewport.parameters.stimuli = []
-    
+        
     def add_controllers(self):
         """ Update the controllers in framesweep. The controller of each stimulus should be delayed to add into the sweep.
             In case we have pre stimulus delay.
@@ -130,10 +132,12 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         logger = logging.getLogger('LightStim.FrameControl')
         # pre stimulation go
         if prestim is not None:
-            self.add_controller(None,None,DTRemoteStartController())
+            remote_start_controller = DTRemoteStartController()
+            self.add_controller(None,None,remote_start_controller)
             self.parameters.go_duration = (prestim, 'seconds')
             super(FrameSweep, self).go()
-            
+            self.remove_controller(None,None,remote_start_controller)
+        
         # stimulation go
         self.parameters.go_duration=('forever','')
         self.add_controllers()
@@ -142,8 +146,9 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         super(FrameSweep, self).go()
         sweep_end = VisionEgg.true_time_func()
         sweep_duration = sweep_end - sweep_begin
-        # remove all stimuli
+        # remove all stimuli so that post presentation will show nothing.
         self.remove_stimuli()
+        # the RemoveViewportController should be moved, otherwise post go will quit directly.
         self.remove_controller(None,None,None)
         
         # post stimulation go
