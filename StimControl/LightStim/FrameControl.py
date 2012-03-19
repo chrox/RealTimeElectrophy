@@ -128,16 +128,16 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         Viewport.registered_viewports = []
         self.parameters.go_duration = (0,'frames')
 
-    def go(self,prestim=None,poststim=None,RSTRAT=False):
+    def go(self,prestim=None,poststim=None,RSTART=False):
         logger = logging.getLogger('LightStim.FrameControl')
         # pre stimulation go
         if prestim is not None:
-            if RSTRAT:
+            if RSTART:
                 remote_start_controller = DTRemoteStartController()
                 self.add_controller(None,None,remote_start_controller)
             self.parameters.go_duration = (prestim, 'seconds')
             super(FrameSweep, self).go()
-            if RSTRAT:
+            if RSTART:
                 self.remove_controller(None,None,remote_start_controller)
         
         # stimulation go
