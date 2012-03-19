@@ -237,7 +237,7 @@ class ManBar(ManStimulus):
             if name not in preferences_dict:
                 preferences_dict[name] = [self.defalut_preference] * 2
             with open('stimulus_params.pkl','wb') as pkl_output:
-                preferences_dict[name][index] = self.get_parameters()
+                preferences_dict[name][index].update(self.get_parameters())
                 pickle.dump(preferences_dict, pkl_output)
         except:
             logger.warning('Cannot save preference ' + info)
