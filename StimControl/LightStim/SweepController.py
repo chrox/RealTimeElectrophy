@@ -100,7 +100,7 @@ class DTRemoteStartController(DTSweepStampController, VisionEgg.FlowControl.Cont
                                            return_type=ve_types.NoneType,
                                            eval_frequency=ONCE|TRANSITIONS|NOT_BETWEEN_GO)
     def during_go_eval(self):
-        print 'set bits: %d' %RSTART_EVT
+        #print 'set bits: %d' %RSTART_EVT
         self.set_bits(RSTART_EVT)
     def between_go_eval(self):
         pass
@@ -114,7 +114,7 @@ class DTRemoteStopController(DTSweepStampController, VisionEgg.FlowControl.Contr
     def during_go_eval(self):
         pass
     def between_go_eval(self):
-        print 'clear bits: %d' %RSTART_EVT
+        #print 'clear bits: %d' %RSTART_EVT
         self.clear_bits(RSTART_EVT)
 
 class SaveParamsController(SweepSequeStimulusController):
