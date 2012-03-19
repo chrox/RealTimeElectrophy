@@ -31,6 +31,8 @@ EVT_DATA_UPDATED_TYPE = wx.NewEventType()
 EVT_DATA_UPDATED = wx.PyEventBinder(EVT_DATA_UPDATED_TYPE, 1)
 EVT_DATA_RESTART_TYPE = wx.NewEventType()
 EVT_DATA_RESTART = wx.PyEventBinder(EVT_DATA_RESTART_TYPE, 1)
+EVT_REMOTE_STOP_TYPE = wx.NewEventType()
+EVT_REMOTE_STOP = wx.PyEventBinder(EVT_REMOTE_STOP_TYPE, 1)
 EVT_UNIT_SELECTED_TYPE = wx.NewEventType()
 EVT_UNIT_SELECTED = wx.PyEventBinder(EVT_UNIT_SELECTED_TYPE, 1)
 EVT_PROG_BAR_HIDE_TYPE = wx.NewEventType()
@@ -80,6 +82,21 @@ class CheckRestart(threading.Thread):
             evt = DataRestartEvent(EVT_DATA_RESTART_TYPE, -1)
             wx.PostEvent(self._parent, evt)
             self._source.set_new_start(False)
+
+class RemoteStopEvent(wx.PyCommandEvent):
+    pass
+
+class CheckRemoteStop(threading.Thread):
+    # send when the second START event is captured 
+    def __init__(self, parent, source):
+        threading.Thread.__init__(self)
+        self._parent = parent
+        self._source = source
+        
+    def run(self):
+        if self._source.get_start_event_num() > 1:
+            evt = RemoteStopEvent(EVT_REMOTE_STOP_TYPE, -1)
+            wx.PostEvent(self._parent, evt)
 
 class UnitSelectedEvent(wx.PyCommandEvent):
     def __init__(self, etype, eid, unit):
@@ -170,8 +187,13 @@ class DataForm(wx.Panel):
         self.SetSizer(sizer)
         sizer.Fit(self)
         
+        self.data = {}
+        
     def clear_data(self):
         self.results.SetValue('')
+        
+    def get_data(self):
+        return self.data
     
     def gen_psth_data(self, channel_unit_data):
         index = max(channel_unit_data, key=lambda k: channel_unit_data[k]['mean'])
@@ -187,6 +209,7 @@ class DataForm(wx.Panel):
         mod_ratio += '\n' + '-'*18 + '\nF1/F0 :\n'
         mod_ratio += '%.2f\n' %ratio
         self.results.AppendText(mod_ratio)
+        self.data['F1/F0'] = ratio
         
     def gen_curve_data(self, x, means, stds, fittings, model, label):
         if label[0] == 'orientation':
@@ -196,19 +219,43 @@ class DataForm(wx.Panel):
             label[0] = 'spf'
         elif label[0] == 'phase':
             label[0] = 'pha'
+        ###########################
+        ##### data
         data = '-'*18 + '\nData:\n' + "\t".join(label) + '\n'
         for line in zip(x,means,stds):
             dataline = '\t'.join('%.2f' %value for value in line)
             data += dataline + '\n'
+        self.data['data'] = data
+        ###########################
+        ###########################
+        ##### extremes
         extremes = ''
         if any(model):
             max_index = model.argmax()
             min_index = model.argmin()
-            extremes += '-'*18 + '\nMax/min '+label[1]+':\n'
-            extremes += 'Max ' + '\t' + label[0] + '\n'
-            extremes += '%.2f\t%.2f\n' %(model[max_index], fittings[max_index])
-            extremes += 'Min ' + '\t' + label[0] + '\n'
-            extremes += '%.2f\t%.2f\n' %(model[min_index], fittings[min_index])
+            max_value = model[max_index]
+            min_value = model[min_index]
+            max_param = fittings[max_index]
+            min_param = fittings[min_index]
+        else:
+            max_index = means.argmax()
+            min_index = means.argmin()
+            max_value = means[max_index]
+            min_value = means[min_index]
+            max_param = x[max_index]
+            min_param = x[min_index]
+        extremes += '-'*18 + '\nMax/min '+label[1]+':\n'
+        extremes += 'Max ' + '\t' + label[0] + '\n'
+        extremes += '%.2f\t%.2f\n' %(max_value, max_param)
+        extremes += 'Min ' + '\t' + label[0] + '\n'
+        extremes += '%.2f\t%.2f\n' %(min_value, min_param)
+        self.data['max_param'] = max_param
+        self.data['max_value'] = max_value
+        self.data['min_param'] = min_param
+        self.data['min_value'] = min_value
+        ###########################
+        ###########################
+        ##### BII/S2N
         BII = ''
         S2N = ''
         if any(model) and label[0] == 'pha':
@@ -218,8 +265,13 @@ class DataForm(wx.Panel):
             s2n_ratio = (max(model)-min(model))/np.mean(stds)
             S2N += '-'*18 + '\nS/N :\n'
             S2N += '%.2f\n' %s2n_ratio
+            self.data['BII'] = bii_ratio
+            self.data['S/N'] = s2n_ratio
+        ############################
+        
         form = data + extremes + BII + S2N
         self.results.SetValue(form)
+        
         
     def gen_img_data(self,img,stim_type):
         dims = img.shape

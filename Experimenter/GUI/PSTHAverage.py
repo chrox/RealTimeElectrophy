@@ -16,7 +16,8 @@ from matplotlib import pylab
 
 from ..DataProcessing.Fitting import GaussFit,SinusoidFit,GaborFit
 from ..SpikeData import TimeHistogram
-from Base import UpdateDataThread,UpdateFileDataThread,RestartDataThread,CheckRestart
+from Base import UpdateDataThread,UpdateFileDataThread,RestartDataThread,CheckRestart,CheckRemoteStop
+from Base import EVT_REMOTE_STOP
 from Base import MainFrame,DataForm,adjust_spines
 
 class PSTHPanel(wx.Panel):
@@ -394,4 +395,33 @@ class PSTHFrame(MainFrame):
             self.chart_panel.show_errbar(False)
             self.flash_status_message("Stoped showing error bar")
         self.chart_panel.update_chart()
+        
+class RCPSTHPanel(PSTHPanel):
+    """
+        Remote controlled PSTH panel
+    """
+    def on_update_data_timer(self, event):
+        if self.collecting_data and self.connected_to_server:
+            self.update_data_thread = UpdateDataThread(self, self.psth)
+            self.update_data_thread.start()
+            check_remote_stop_thread = CheckRemoteStop(self, self.psth)
+            check_remote_stop_thread.start()
+            
+    def remote_stop(self, callback):
+        data = self.data_form.get_data()
+        callback(data)
+
+class RCPSTHFrame(PSTHFrame):
+    """
+        Remote controlled PSTH frame
+    """
+    def __init__(self, psth_type, callback):
+        super(RCPSTHFrame, self).__init__()
+        self.callback = callback
+        self.Bind(EVT_REMOTE_STOP, self.on_remote_stop)
+    def create_chart_panel(self):
+        self.chart_panel = RCPSTHPanel(self.panel, 'PSTH Chart')
+    def on_remote_stop(self):
+        self.chart_panel.remote_stop(self.callback)
+        self.flash_status_message("Get remote STOP signal.")
         
