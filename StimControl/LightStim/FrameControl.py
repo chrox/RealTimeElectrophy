@@ -155,7 +155,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         
         # post stimulation go
         if poststim is not None:
-            if RSTRAT:
+            if RSTART:
                 self.add_controller(None,None,DTRemoteStopController())
             self.parameters.go_duration = (poststim, 'seconds')
             super(FrameSweep, self).go()
