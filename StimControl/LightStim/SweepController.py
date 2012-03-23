@@ -9,7 +9,7 @@ import Pyro.core
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
 from VisionEgg.FlowControl import ONCE,TRANSITIONS,NOT_DURING_GO,NOT_BETWEEN_GO
-from SweepStamp import DT,DTBOARDINSTALLED,RSTART_EVT
+from SweepStamp import DT,DTBOARDINSTALLED,START_REC,STOP_REC
 
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.
@@ -101,7 +101,7 @@ class DTRemoteStartController(DTSweepStampController, VisionEgg.FlowControl.Cont
                                            eval_frequency=ONCE|TRANSITIONS|NOT_BETWEEN_GO)
     def during_go_eval(self):
         #print 'set bits: %d' %RSTART_EVT
-        self.set_bits(RSTART_EVT)
+        self.post_stamp(START_REC)
     def between_go_eval(self):
         pass
 
@@ -115,7 +115,7 @@ class DTRemoteStopController(DTSweepStampController, VisionEgg.FlowControl.Contr
         pass
     def between_go_eval(self):
         #print 'clear bits: %d' %RSTART_EVT
-        self.clear_bits(RSTART_EVT)
+        self.post_stamp(STOP_REC)
 
 class SaveParamsController(SweepSequeStimulusController):
     """ Use Every_Frame evaluation controller in case of real time sweep table modification
