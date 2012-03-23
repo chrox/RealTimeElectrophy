@@ -6,6 +6,8 @@
 
 from __future__ import division
 import wx
+import threading
+import Pyro.core
 import numpy as np
 import matplotlib
 matplotlib.use('WXAgg')
@@ -16,8 +18,7 @@ from matplotlib import pylab
 
 from ..DataProcessing.Fitting import GaussFit,SinusoidFit,GaborFit
 from ..SpikeData import TimeHistogram
-from Base import UpdateDataThread,UpdateFileDataThread,RestartDataThread,CheckRestart,CheckRemoteStop
-from Base import EVT_REMOTE_STOP
+from Base import UpdateDataThread,UpdateFileDataThread,RestartDataThread
 from Base import MainFrame,DataForm,adjust_spines
 
 class PSTHPanel(wx.Panel):
@@ -183,9 +184,12 @@ class PSTHPanel(wx.Panel):
                 self.stds = self.stds[:len(self.x)]
                 adjust_spines(self.curve_axes,spines=['left','bottom','right'],spine_outward=['left','right','bottom'],xoutward=10,youtward=30,\
                               xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5,xminor_auto_loc=2,yminor_auto_loc=2,xmajor_loc=[0.1,0.5,1.0,2.0])
-            if self.parameter == 'phase':
+            if self.parameter in ('disparity','phase'):
                 self.x = np.linspace(0.0, 360.0, 17)
-                self.curve_axes.set_title('Disparity Tuning Curve',fontsize=12)
+                if self.parameter == 'disparity':
+                    self.curve_axes.set_title('Disparity Tuning Curve',fontsize=12)
+                if self.parameter == 'phase':
+                    self.curve_axes.set_title('Phase Tuning Curve',fontsize=12)
                 if zeroth_psth_data is not None:
                     for rect,h in zip(self.hist_patches[-1],zeroth_psth_data):
                         rect.set_height(h)
@@ -239,8 +243,6 @@ class PSTHPanel(wx.Panel):
         if self.collecting_data and self.connected_to_server:
             self.update_data_thread = UpdateDataThread(self, self.psth)
             self.update_data_thread.start()
-            check_restart_thread = CheckRestart(self, self.psth)
-            check_restart_thread.start()
         
     def start_data(self):
         if self.psth is None:
@@ -396,32 +398,43 @@ class PSTHFrame(MainFrame):
             self.flash_status_message("Stoped showing error bar")
         self.chart_panel.update_chart()
         
-class RCPSTHPanel(PSTHPanel):
+class RCPSTHPanel(PSTHPanel, Pyro.core.ObjBase):
     """
         Remote controlled PSTH panel
     """
-    def on_update_data_timer(self, event):
-        if self.collecting_data and self.connected_to_server:
-            self.update_data_thread = UpdateDataThread(self, self.psth)
-            self.update_data_thread.start()
-            check_remote_stop_thread = CheckRemoteStop(self, self.psth)
-            check_remote_stop_thread.start()
+    def __init__(self, *args,**kwargs):
+        PSTHPanel.__init__(self,*args,**kwargs)
+        Pyro.core.ObjBase.__init__(self)
+    
+    def __del__(self):
+        PSTHPanel.__del__(self)
+        Pyro.core.ObjBase.__del__(self)
             
-    def remote_stop(self, callback):
-        data = self.data_form.get_data()
-        callback(data)
-
-class RCPSTHFrame(PSTHFrame):
+    def get_data(self):
+        return self.data_form.get_data()
+    
+    def check_gaussfitter(self):
+        wx.FindWindowByName('main_frame').on_check_gaussfitter(-1)
+        
+class PyroPSTHFrame(PSTHFrame):
     """
         Remote controlled PSTH frame
     """
-    def __init__(self, psth_type, callback):
-        super(RCPSTHFrame, self).__init__()
-        self.callback = callback
-        self.Bind(EVT_REMOTE_STOP, self.on_remote_stop)
     def create_chart_panel(self):
         self.chart_panel = RCPSTHPanel(self.panel, 'PSTH Chart')
-    def on_remote_stop(self):
-        self.chart_panel.remote_stop(self.callback)
-        self.flash_status_message("Get remote STOP signal.")
+        threading.Thread(target=self.create_pyro_server).start()
+        
+    def create_pyro_server(self):
+        Pyro.config.PYRO_MULTITHREADED = 1
+        Pyro.core.initServer()
+        self.pyro_daemon = Pyro.core.Daemon(port=6743)
+        self.URI = self.pyro_daemon.connect(self.chart_panel, 'psth_server')
+        print self.URI
+        self.pyro_daemon.requestLoop()
+    
+    def on_exit(self, event):
+        self.pyro_daemon.disconnect(self.chart_panel)
+        self.pyro_daemon.shutdown()
+        super(PyroPSTHFrame, self).on_exit(event)
+        
         
