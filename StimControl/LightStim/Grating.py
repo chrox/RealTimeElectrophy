@@ -65,22 +65,24 @@ class TimingStampController(DTSweepSequeController):
         stimulus_on = self.next_param()
         """ 
             16-bits stimulus representation code will be posted to DT port
-                 0 1 1 1 0000 0000 0000 
-                 | | | |-------------------stimulus onset
-                 | | |---------------------left viewport
-                 | |---------------------- right viewport
-                 |------------------------ reserved
+            00 1 1 0000 0000 0000 
+            |  | |
+            |  | |---------------------stimulus onset
+            |  |-----------------------stimulus viewport
+            |--------------------------reserved
         """
         if self.viewport.get_name() == 'left':
             viewport_value = 1<<13
         elif self.viewport.get_name() == 'right':
-            viewport_value = 1<<14
+            viewport_value = 0
         else:
             self.logger.error('Currently TimingStamp can only support left and right viewport.')
-        # lower 12 bits are reserved
-        onset_value = 0
+        # lower 12 bits and upper 2 bits are reserved
         if stimulus_on:
             onset_value = 1<<12
+        else:
+            onset_value = 0
+        
         post_val = viewport_value + onset_value
         self.post_stamp(post_val)
             
@@ -115,7 +117,13 @@ class ParamStampController(DTSweepSequeController):
         self.indexed_sfq = IndexedParam('spatial_freq')
         self.indexed_pha = IndexedParam('phase_at_t0')
         self.logger = logging.getLogger('LightStim.Grating')
+        
     def during_go_eval(self):
+        post_val = self.get_post_val()
+        if self.stimulus.trigger and post_val is not None:
+            self.post_stamp(post_val)
+            
+    def get_post_val(self):
         next_param = self.next_param()
         if next_param is not None and not any(num != num for num in next_param):
             orientation, spatial_freq, phase_at_t0 = next_param
@@ -131,21 +139,20 @@ class ParamStampController(DTSweepSequeController):
             #else: self.logger.error('Cannot post param index for phase parameter: %s' %str(phase_at_t0))
             """ 
             16-bits stimulus representation code will be posted to DT port
-            00 1  1 0101 0001 0011 
-               |  |   |    |    |------------orientation index (0.0, 180.0, 16)/(0.0, 360.0, 16)
-               |  |   |    |-----------------spatial_freq index (0.05, 1.0, 16)
-               |  |   |----------------------phase_at_t0 index (0.0, 360.0, 16)
-               |  |--------------------------stimulus onset
-               |-----------------------------stimulus offset
+            00 0  1 0101 0001 0011 
+            |  |  |   |    |    |------------orientation index (0.0, 180.0, 16)/(0.0, 360.0, 16)
+            |  |  |   |    |-----------------spatial_freq index (0.05, 1.0, 16)
+            |  |  |   |----------------------phase_at_t0 index (0.0, 360.0, 16)
+            |  |  |--------------------------stimulus onset
+            |  |-----------------------------stimulus type (reserved)
+            |--------------------------------reserved
             """
             onset = 1
             post_val = ori_index + (spf_index<<4) + (pha_index<<8) + (onset<<12)
-            #print ori_index,spf_index,pha_index,post_val
+            return post_val
         else:
-            offset = 1
-            post_val = offset<<13
-        if self.stimulus.trigger:
-            self.post_stamp(post_val)
+            post_val = None
+            return post_val
             
 class ParamMappingStamp(ParamStampController):
     def __init__(self,*args,**kwargs):
@@ -154,6 +161,14 @@ class ParamMappingStamp(ParamStampController):
         self.indexed_sfq = IndexedParam('spatial_freq')
         self.indexed_pha = IndexedParam('phase_at_t0')
         self.logger = logging.getLogger('LightStim.Grating')
+        
+class PhaTunStamp(ParamStampController):
+    def get_post_val(self):
+        post_val = super(PhaTunStamp, self).get_post_val()
+        if post_val is not None:
+            pha_tun_type = 1
+            post_val += pha_tun_type << 13
+        return post_val
         
 class Grating(Stimulus):
     def __init__(self, params, sweepseq, trigger=True, **kwargs):
@@ -249,5 +264,5 @@ class PhaseGrating(Grating):
         super(PhaseGrating, self).register_controllers()
         self.logger.info('Register ParamController.')
         self.controllers.append(ParamController(self))
-        self.controllers.append(ParamStampController(self))
+        self.controllers.append(PhaTunStamp(self))
         
