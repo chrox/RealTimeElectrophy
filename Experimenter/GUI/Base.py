@@ -29,10 +29,6 @@ class IndexedParam(list):
 
 EVT_DATA_UPDATED_TYPE = wx.NewEventType()
 EVT_DATA_UPDATED = wx.PyEventBinder(EVT_DATA_UPDATED_TYPE, 1)
-EVT_DATA_RESTART_TYPE = wx.NewEventType()
-EVT_DATA_RESTART = wx.PyEventBinder(EVT_DATA_RESTART_TYPE, 1)
-EVT_REMOTE_STOP_TYPE = wx.NewEventType()
-EVT_REMOTE_STOP = wx.PyEventBinder(EVT_REMOTE_STOP_TYPE, 1)
 EVT_UNIT_SELECTED_TYPE = wx.NewEventType()
 EVT_UNIT_SELECTED = wx.PyEventBinder(EVT_UNIT_SELECTED_TYPE, 1)
 EVT_PROG_BAR_HIDE_TYPE = wx.NewEventType()
@@ -67,36 +63,6 @@ class UpdateFileDataThread(UpdateDataThread):
         updated_data = self._source.get_data(self._callback)
         evt = DataUpdatedEvent(EVT_DATA_UPDATED_TYPE, -1, updated_data)
         wx.PostEvent(self._parent, evt)
-            
-class DataRestartEvent(wx.PyCommandEvent):
-    pass
-
-class CheckRestart(threading.Thread):
-    def __init__(self, parent, source):
-        threading.Thread.__init__(self)
-        self._parent = parent
-        self._source = source
-
-    def run(self):
-        if self._source.is_new_start():
-            evt = DataRestartEvent(EVT_DATA_RESTART_TYPE, -1)
-            wx.PostEvent(self._parent, evt)
-            self._source.set_new_start(False)
-
-class RemoteStopEvent(wx.PyCommandEvent):
-    pass
-
-class CheckRemoteStop(threading.Thread):
-    # send when the second START event is captured 
-    def __init__(self, parent, source):
-        threading.Thread.__init__(self)
-        self._parent = parent
-        self._source = source
-        
-    def run(self):
-        if self._source.get_start_event_num() > 1:
-            evt = RemoteStopEvent(EVT_REMOTE_STOP_TYPE, -1)
-            wx.PostEvent(self._parent, evt)
 
 class UnitSelectedEvent(wx.PyCommandEvent):
     def __init__(self, etype, eid, unit):
@@ -219,6 +185,8 @@ class DataForm(wx.Panel):
             label[0] = 'spf'
         elif label[0] == 'phase':
             label[0] = 'pha'
+            
+        self.data['param'] = label[0]
         ###########################
         ##### data
         data = '-'*18 + '\nData:\n' + "\t".join(label) + '\n'
@@ -305,7 +273,6 @@ class MainFrame(wx.Frame):
         self.create_main_panel()
 
         self.Bind(EVT_DATA_UPDATED, self.on_data_updated)
-        self.Bind(EVT_DATA_RESTART, self.on_restart_data)
         self.Bind(EVT_UNIT_SELECTED, self.on_select_unit)
         
     def create_menu(self):
@@ -487,7 +454,7 @@ class MainFrame(wx.Frame):
     
     def on_exit(self, event):
         self.Destroy()
-
+        
     def on_data_updated(self, event):
         pass
 

@@ -14,7 +14,7 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 
 from ..DataProcessing.Fitting import GaussFit,GaborFit
 from ..SpikeData import RevCorr
-from Base import UpdateDataThread,UpdateFileDataThread,RestartDataThread,CheckRestart
+from Base import UpdateDataThread,UpdateFileDataThread,RestartDataThread
 from Base import MainFrame,DataForm,adjust_spines
 
 EVT_TIME_UPDATED_TYPE = wx.NewEventType()
@@ -175,8 +175,6 @@ class STAPanel(wx.Panel):
         if self.collecting_data and self.connected_to_server:
             self.update_data_thread = UpdateDataThread(self, self.sta_data)
             self.update_data_thread.start()
-            check_restart_thread = CheckRestart(self, self.sta_data)
-            check_restart_thread.start()
     
     def on_update_time_slider(self, event):
         self.time = event.get_time()
