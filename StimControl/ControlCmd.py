@@ -1,5 +1,5 @@
 # Commandline control of visual stimulation.
-
+import logging
 import VisionEgg.PyroClient
 
 class StimCommand(object):
@@ -18,13 +18,21 @@ class StimCommand(object):
             ii) modifying parameters in script code
             Note that the second one has higher priority.
         """
+        logger = logging.getLogger('StimControl.ControlCmd')
         if left_params is not None:
+            logger.info('Send stimulation parameter to left viewport.')
             self.ephys_server.send_stimulus_params('left', left_params)
         if right_params is not None:
-            self.ephys_server.send_stimulus_params('right', left_params)
+            logger.info('Send stimulation parameter to right viewport.')
+            self.ephys_server.send_stimulus_params('right', right_params)
+        try:
+            with open(filename) as source_file:
+                source = source_file.read()
+        except:
+            logger.error('Cannot read stimulation source code.')
+            return
         
         self.ephys_server.run_demoscript()
-        source = open(filename).read()
         self.ephys_server.build_AST(source,assignments)
         # breaking waiting loop
         self.ephys_server.set_quit_status(True)
