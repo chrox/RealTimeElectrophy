@@ -27,6 +27,10 @@ if __name__ == "__main__":
             start_events = pu.GetExtEvents(data, event='start')
             for timestamp in start_events:
                 print "PlexControl started at t=%f" % timestamp
+                
+            stop_events = pu.GetExtEvents(data, event='stop')
+            for timestamp in stop_events:
+                print "PlexControl stopped at t=%f" % timestamp
             
             bit_2_events = pu.GetExtEvents(data, event='unstrobed_bit', bit=2)
             bit_3_events = pu.GetExtEvents(data, event='unstrobed_bit', bit=3)
