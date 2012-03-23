@@ -22,8 +22,8 @@ class SinusoidFit(object):
         fixed=[False,False,True,False]
         limitedmin=[True,True,True,True]
         limitedmax=[True,True,True,True]
-        minpars=[data.min(),0.8*amplitude,0.8*frequency,0]
-        maxpars=[data.max(),1.2*amplitude,1.2*frequency,360]
+        minpars=[data.min(),0.8*amplitude,0.8*frequency,-180]
+        maxpars=[data.max(),1.2*amplitude,1.2*frequency,540]
         params,_model,errs,chi2 = onedsinusoidfit(xax,data,params=params,fixed=fixed,\
                                                   limitedmin=limitedmin,limitedmax=limitedmax,\
                                                   minpars=minpars,maxpars=maxpars,**kwargs)
