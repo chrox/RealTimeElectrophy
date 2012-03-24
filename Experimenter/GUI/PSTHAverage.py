@@ -19,6 +19,7 @@ from matplotlib import pylab
 from ..DataProcessing.Fitting import GaussFit,SinusoidFit,GaborFit
 from ..SpikeData import TimeHistogram
 from Base import UpdateDataThread,UpdateFileDataThread,RestartDataThread
+from Base import EVT_DATA_START_TYPE,EVT_DATA_STOP_TYPE,EVT_DATA_RESTART_TYPE
 from Base import MainFrame,DataForm,adjust_spines
 
 class PSTHPanel(wx.Panel):
@@ -63,7 +64,7 @@ class PSTHPanel(wx.Panel):
         self.SetSizer(sizer)
         sizer.Fit(self)
 
-        self.update_data_timer = wx.Timer(self)
+        self.update_data_timer = wx.Timer(self, wx.NewId())
         self.Bind(wx.EVT_TIMER, self.on_update_data_timer, self.update_data_timer)
         self.update_data_timer.Start(1000)
 
@@ -136,7 +137,7 @@ class PSTHPanel(wx.Panel):
             zeroth_psth_data = None
             if channel not in data or unit not in data[channel]:
                 return
-            polar_dict = {'orientation':True, 'spatial_frequency':False, 'phase':False}
+            polar_dict = {'orientation':True, 'spatial_frequency':False, 'phase':False, 'disparity':False}
             self.parameter = self.psth.parameter
             if self.parameter in polar_dict:
                 polar_chart = polar_dict[self.parameter]
@@ -195,6 +196,8 @@ class PSTHPanel(wx.Panel):
                         rect.set_height(h)
                 self.means[-1] = self.means[0]
                 self.stds[-1] = self.stds[0]
+                adjust_spines(self.curve_axes,spines=['left','bottom','right'],spine_outward=['left','right','bottom'],xoutward=10,youtward=30,\
+                              xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5,xminor_auto_loc=2,yminor_auto_loc=2)
             
             if self.append_data_curve:
                 self.curve_axes.plot(self.x, self.means, self.data_point_styles[self.data_curves-1])
@@ -333,13 +336,13 @@ class PSTHFrame(MainFrame):
                                    self.m_sinfitter.GetId():self.uncheck_sinfitter,\
                                    self.m_gaborfitter.GetId():self.uncheck_gaborfitter}
         
-        menu_view = wx.Menu()
-        self.m_errbar = menu_view.AppendCheckItem(-1, "&Errorbar\tCtrl-E", "Display errorbar")
-        menu_view.Check(self.m_errbar.GetId(), False)
+        self.menu_view = wx.Menu()
+        self.m_errbar = self.menu_view.AppendCheckItem(-1, "&Errorbar\tCtrl-E", "Display errorbar")
+        self.menu_view.Check(self.m_errbar.GetId(), False)
         self.Bind(wx.EVT_MENU, self.on_check_errbar, self.m_errbar)
         
         self.menubar.Append(self.menu_fitting, "&Fitting")
-        self.menubar.Append(menu_view, "&View")
+        self.menubar.Append(self.menu_view, "&View")
         self.SetMenuBar(self.menubar)
         
     def create_chart_panel(self):
@@ -389,6 +392,12 @@ class PSTHFrame(MainFrame):
     def uncheck_gaborfitter(self):
         self.chart_panel.gaborfit(False)
         
+    def uncheck_fitting(self):
+        for item in self.menu_fitting.GetMenuItems():
+            self.menu_fitting.Check(item.GetId(), False)
+            self.menu_uncheck_binds[item.GetId()]()
+        self.chart_panel.update_chart()
+        
     def on_check_errbar(self, event):
         if self.m_errbar.IsChecked():
             self.chart_panel.show_errbar(True)
@@ -397,7 +406,10 @@ class PSTHFrame(MainFrame):
             self.chart_panel.show_errbar(False)
             self.flash_status_message("Stoped showing error bar")
         self.chart_panel.update_chart()
-        
+
+class DataRestartEvent(wx.PyCommandEvent):
+    pass        
+
 class RCPSTHPanel(PSTHPanel, Pyro.core.ObjBase):
     """
         Remote controlled PSTH panel
@@ -405,16 +417,116 @@ class RCPSTHPanel(PSTHPanel, Pyro.core.ObjBase):
     def __init__(self, *args,**kwargs):
         PSTHPanel.__init__(self,*args,**kwargs)
         Pyro.core.ObjBase.__init__(self)
+        
+        # handle request from pyro client
+        self.export_path = None
+        self.start_request = False
+        self.stop_request = False
+        self.restart_request = False
+        self.fitting_request = None
+        self.unfitting_request = False
+        self.errbar_request = None
+        self.check_request_timer = wx.Timer(self, wx.NewId())
+        self.Bind(wx.EVT_TIMER, self._on_check_request, self.check_request_timer)
+        self.check_request_timer.Start(500)
     
     def __del__(self):
         PSTHPanel.__del__(self)
         Pyro.core.ObjBase.__del__(self)
+        
+    def _on_check_request(self, event):
+        self._check_export_chart()
+        self._check_start_request()
+        self._check_stop_request()
+        self._check_restart_request()
+        self._check_fitting_request()
+        self._check_unfitting_request()
+        self._check_errbar_request()
+    
+    def _check_export_chart(self):
+        if self.export_path is not None:
+            self.save_chart(self.export_path)
+            self.export_path = None
+    
+    def _check_start_request(self):
+        if self.start_request is not False:
+            parent = wx.FindWindowByName('main_frame')
+            evt = wx.CommandEvent(EVT_DATA_START_TYPE)
+            wx.PostEvent(parent, evt)
+            self.start_request = False
             
+    def _check_stop_request(self):
+        if self.stop_request is not False:
+            parent = wx.FindWindowByName('main_frame')
+            evt = wx.CommandEvent(EVT_DATA_STOP_TYPE)
+            wx.PostEvent(parent, evt)
+            self.stop_request = False
+    
+    def _check_restart_request(self):
+        if self.restart_request is not False:
+            parent = wx.FindWindowByName('main_frame')
+            #evt = DataRestartEvent(EVT_DATA_RESTART_TYPE, -1)
+            evt = wx.CommandEvent(EVT_DATA_RESTART_TYPE)
+            wx.PostEvent(parent, evt)
+            self.restart_request = False
+            
+    def _check_fitting_request(self):
+        if self.fitting_request is not None:
+            evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
+            parent = wx.FindWindowByName('main_frame')
+            if self.fitting_request == 'gauss':
+                parent.menu_fitting.Check(parent.m_gaussfitter.GetId(), True)
+                evt.SetId(parent.m_gaussfitter.GetId())
+                wx.PostEvent(parent, evt)
+            if self.fitting_request == 'sin':
+                parent.menu_fitting.Check(parent.m_sinfitter.GetId(), True)
+                evt.SetId(parent.m_sinfitter.GetId()) 
+                wx.PostEvent(parent, evt)
+            if self.fitting_request == 'gabor':
+                parent.menu_fitting.Check(parent.m_gaborfitter.GetId(), True)
+                evt.SetId(parent.m_gaborfitter.GetId()) 
+                wx.PostEvent(parent, evt)
+            self.fitting_request = None
+        
+    def _check_unfitting_request(self):
+        if self.unfitting_request is not False:
+            parent = wx.FindWindowByName('main_frame')
+            parent.uncheck_fitting()
+            self.unfitting_request = False
+            
+    def _check_errbar_request(self):
+        if self.errbar_request is not None:
+            evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
+            parent = wx.FindWindowByName('main_frame')
+            parent.menu_view.Check(parent.m_errbar.GetId(), self.errbar_request)
+            evt.SetId(parent.m_errbar.GetId())
+            wx.PostEvent(parent, evt)
+            self.errbar_request = None
+    
     def get_data(self):
         return self.data_form.get_data()
     
-    def check_gaussfitter(self):
-        wx.FindWindowByName('main_frame').on_check_gaussfitter(-1)
+    def export_chart(self, path):
+        self.export_path = path
+        
+    def start_psth(self):
+        self.start_request = True
+        
+    def stop_psth(self):
+        self.stop_request = True
+        
+    def restart_psth(self):
+        self.restart_request = True
+        
+    def check_fitting(self, fitting):
+        # fitting in ('gauss','sin','gabor')
+        self.fitting_request = fitting
+    
+    def uncheck_fitting(self):
+        self.unfitting_request = True
+        
+    def check_errbar(self, checked):
+        self.errbar_request = checked
         
 class PyroPSTHFrame(PSTHFrame):
     """
@@ -428,8 +540,8 @@ class PyroPSTHFrame(PSTHFrame):
         Pyro.config.PYRO_MULTITHREADED = 1
         Pyro.core.initServer()
         self.pyro_daemon = Pyro.core.Daemon(port=6743)
-        self.URI = self.pyro_daemon.connect(self.chart_panel, 'psth_server')
-        print self.URI
+        self.PYRO_URI = self.pyro_daemon.connect(self.chart_panel, 'psth_server')
+        print self.PYRO_URI
         self.pyro_daemon.requestLoop()
     
     def on_exit(self, event):

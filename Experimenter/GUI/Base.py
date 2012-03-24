@@ -29,6 +29,12 @@ class IndexedParam(list):
 
 EVT_DATA_UPDATED_TYPE = wx.NewEventType()
 EVT_DATA_UPDATED = wx.PyEventBinder(EVT_DATA_UPDATED_TYPE, 1)
+EVT_DATA_START_TYPE = wx.NewEventType()
+EVT_DATA_START = wx.PyEventBinder(EVT_DATA_START_TYPE, 1)
+EVT_DATA_STOP_TYPE = wx.NewEventType()
+EVT_DATA_STOP = wx.PyEventBinder(EVT_DATA_STOP_TYPE, 1)
+EVT_DATA_RESTART_TYPE = wx.NewEventType()
+EVT_DATA_RESTART = wx.PyEventBinder(EVT_DATA_RESTART_TYPE, 1)
 EVT_UNIT_SELECTED_TYPE = wx.NewEventType()
 EVT_UNIT_SELECTED = wx.PyEventBinder(EVT_UNIT_SELECTED_TYPE, 1)
 EVT_PROG_BAR_HIDE_TYPE = wx.NewEventType()
@@ -273,6 +279,9 @@ class MainFrame(wx.Frame):
         self.create_main_panel()
 
         self.Bind(EVT_DATA_UPDATED, self.on_data_updated)
+        self.Bind(EVT_DATA_START, self.on_start_data)
+        self.Bind(EVT_DATA_STOP, self.on_stop_data)
+        self.Bind(EVT_DATA_RESTART, self.on_restart_data)
         self.Bind(EVT_UNIT_SELECTED, self.on_select_unit)
         
     def create_menu(self):
