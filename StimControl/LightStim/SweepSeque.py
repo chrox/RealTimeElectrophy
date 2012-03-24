@@ -24,28 +24,27 @@ class TimingSeque(SweepSeque):
         self.block = block
         self.cycle = self.block.cycle
         
-        pre_sweep_counts = np.round((self.cycle.pre + self.cycle.stimulus - self.cycle.stimulus) / self.sweep_duration)
-        stim_sweep_counts = np.round((self.cycle.stimulus + self.cycle.pre - self.cycle.pre) / self.sweep_duration)
+        pre_sweep_counts = np.round(self.cycle.pre / self.sweep_duration)
+        stim_sweep_counts = np.round(self.cycle.stimulus / self.sweep_duration)
         post_sweep_counts = np.round(self.cycle.duration / self.sweep_duration) - pre_sweep_counts - stim_sweep_counts
         
         logger.info( "Actual sweep duration(sec) :\npre-stimulus :  %s\nstimulus :      %s\npost-stimulus : %s" \
-                     %('\t'.join(['%.4f' %(count*self.sweep_duration) for count in pre_sweep_counts]),
-                       '\t'.join(['%.4f' %(count*self.sweep_duration) for count in stim_sweep_counts]),
-                       '\t'.join(['%.4f' %(count*self.sweep_duration) for count in post_sweep_counts])))
+                     %('\t%.4f' %(pre_sweep_counts*self.sweep_duration),
+                       '\t%.4f' %(stim_sweep_counts*self.sweep_duration),
+                       '\t%.4f' %(post_sweep_counts*self.sweep_duration)))
         if np.any(post_sweep_counts < 0):
             raise RuntimeError('Wrong settings of sweep timing. It seems that sweep duration is too short.')
-        pre_sweep_counts_rational = (self.cycle.pre + self.cycle.stimulus - self.cycle.stimulus) / self.sweep_duration
-        warned_sweep = np.abs(pre_sweep_counts - pre_sweep_counts_rational) > 0.25
-        if np.any(warned_sweep):
-            warned_duration = (self.cycle.pre + self.cycle.stimulus - self.cycle.stimulus)[warned_sweep]
-            actual_duration = (pre_sweep_counts * self.sweep_duration)[warned_sweep]
-            logger.warning("Sweep delays(sec) %s are not supported by current monitor refresh rate. "
-                           "They will be set to nearest supported values: %s." \
-                           %(' '.join(['%.4f' %duration for duration in warned_duration]),
-                             ' '.join(['%.4f' %duration for duration in actual_duration])))
+        pre_sweep_counts_rational = self.cycle.pre / self.sweep_duration
+        warned_sweep = (pre_sweep_counts - pre_sweep_counts_rational) > 0.25
+        if warned_sweep:
+            warned_duration = self.cycle.pre
+            actual_duration = pre_sweep_counts * self.sweep_duration
+            logger.warning("Sweep delays(sec) %s is not supported by current monitor refresh rate. "
+                           "They will be set to nearest supported value: %s." \
+                           %(' %.4f' %warned_duration, ' %.4f' %actual_duration))
         
         interval = [0]*int(self.block.interval // self.sweep_duration)
-        cycles = [[0]*pre_sweep_counts[i]+[1]*stim_sweep_counts[i]+[0]*post_sweep_counts[i] for i in range(len(stim_sweep_counts))] * repeat
+        cycles = [[0]*pre_sweep_counts+[1]*stim_sweep_counts+[0]*post_sweep_counts] * repeat
         random.shuffle(cycles)
         self.sequence_list = [cycle * self.block.repeat + interval for cycle in cycles]
         #self.sequence = itertools.chain.from_iterable(self.sequence_list)
