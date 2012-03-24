@@ -428,7 +428,7 @@ class RCPSTHPanel(PSTHPanel, Pyro.core.ObjBase):
         self.errbar_request = None
         self.check_request_timer = wx.Timer(self, wx.NewId())
         self.Bind(wx.EVT_TIMER, self._on_check_request, self.check_request_timer)
-        self.check_request_timer.Start(500)
+        self.check_request_timer.Start(1000)
     
     def __del__(self):
         PSTHPanel.__del__(self)
@@ -537,11 +537,14 @@ class PyroPSTHFrame(PSTHFrame):
         threading.Thread(target=self.create_pyro_server).start()
         
     def create_pyro_server(self):
-        Pyro.config.PYRO_MULTITHREADED = 1
+        Pyro.config.PYRO_MULTITHREADED = 0
         Pyro.core.initServer()
-        self.pyro_daemon = Pyro.core.Daemon(port=6743)
+        pyro_port = 6743
+        self.pyro_daemon = Pyro.core.Daemon(port=pyro_port)
         self.PYRO_URI = self.pyro_daemon.connect(self.chart_panel, 'psth_server')
-        print self.PYRO_URI
+        if str(self.PYRO_URI).find(':%d' %pyro_port) < 0:
+            raise RuntimeError("Pyro daemon cannot run on port %d. " %pyro_port +
+                               "Probably the port has already been taken up by another pyro daemon.")
         self.pyro_daemon.requestLoop()
     
     def on_exit(self, event):
