@@ -23,7 +23,6 @@ p.phase0 = 0
 p.contrast = 1
 # for runtime modification
 p.ori = 0.0
-#p.
 
 phase_at_t0 = IndexedParam('phase_at_t0')
 param = ParamSeque(repeat=4, phase_at_t0=phase_at_t0, frame_duration=1.0, blank_duration=1.0)
@@ -31,4 +30,4 @@ grating = PhaseGrating(viewport=eye, params=p, sweepseq=param)
 
 sweep = FrameSweep()
 sweep.add_stimulus(grating)
-sweep.go()
+sweep.go(prestim=5.0,poststim=5.0,RSTART=True)
