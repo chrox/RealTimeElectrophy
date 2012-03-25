@@ -30,6 +30,7 @@ class PSTHPanel(wx.Panel):
         
         self.show_errbar_changed = False
         self.showing_errbar = False
+        self.log_fitting = False
         self.fitting_gaussian = False
         self.fitting_sinusoid = False
         self.fitting_gabor = False
@@ -170,6 +171,7 @@ class PSTHPanel(wx.Panel):
             self.curve_axes.set_xscale('linear')
             
             if self.parameter == 'orientation':
+                self.log_fitting = False
                 self.x = np.linspace(0.0, 360.0, 17)/180*np.pi
                 self.curve_axes.set_title('Orientation Tuning Curve',fontsize=12)
                 if zeroth_psth_data is not None:
@@ -178,6 +180,7 @@ class PSTHPanel(wx.Panel):
                 self.means[-1] = self.means[0]
                 self.stds[-1] = self.stds[0]
             if self.parameter == 'spatial_frequency':
+                self.log_fitting = True
                 self.x = np.logspace(-1.0,0.5,16)
                 self.curve_axes.set_title('Spatial Frequency Tuning Curve',fontsize=12)
                 self.curve_axes.set_xscale('log')
@@ -186,6 +189,7 @@ class PSTHPanel(wx.Panel):
                 adjust_spines(self.curve_axes,spines=['left','bottom','right'],spine_outward=['left','right','bottom'],xoutward=10,youtward=30,\
                               xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5,xminor_auto_loc=2,yminor_auto_loc=2,xmajor_loc=[0.1,0.5,1.0,2.0])
             if self.parameter in ('disparity','phase'):
+                self.log_fitting = False
                 self.x = np.linspace(0.0, 360.0, 17)
                 if self.parameter == 'disparity':
                     self.curve_axes.set_title('Disparity Tuning Curve',fontsize=12)
@@ -206,11 +210,20 @@ class PSTHPanel(wx.Panel):
                 self.curve_data.set_ydata(self.means)
             if self.errbars is not None:
                 self._update_errbars(self.errbars,self.x,self.means,self.stds)
-                
-            self.fitting_x = np.linspace(self.x[0], self.x[-1], self.fitting_x.size, endpoint=True)
+            
+            ##################################################################
+            ##### Curve Fitting
+            ##################################################################
+            if self.log_fitting:
+                self.fitting_x = np.logspace(np.log10(self.x[0]), np.log10(self.x[-1]), self.fitting_x.size, endpoint=True)
+            else:
+                self.fitting_x = np.linspace(self.x[0], self.x[-1], self.fitting_x.size, endpoint=True)
             model = np.zeros(self.fitting_x.size)
             if self.fitting_gaussian:
-                model = self.gauss_fitter.gaussfit1d(self.x, self.means, self.fitting_x)
+                if self.log_fitting:
+                    model = self.gauss_fitter.loggaussfit1d(self.x, self.means, self.fitting_x)
+                else:
+                    model = self.gauss_fitter.gaussfit1d(self.x, self.means, self.fitting_x)
             elif self.fitting_sinusoid:
                 model = self.sinusoid_fitter.sinusoid1d(self.x, self.means, self.fitting_x)
             elif self.fitting_gabor:

@@ -19,7 +19,7 @@ class IndexedParam(list):
         elif parameter == 'orientation_180':
             super(IndexedParam, self).__init__(np.linspace(0.0, 180.0, 16, endpoint=False))
         elif parameter == 'spatial_freq':
-            super(IndexedParam, self).__init__(np.linspace(0.05, 1.0, 16))
+            super(IndexedParam, self).__init__(np.logspace(-1.0,0.5,16))
         elif parameter == 'phase_at_t0':
             super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 16, endpoint=False))
         elif parameter is None:

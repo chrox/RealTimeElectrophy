@@ -8,7 +8,7 @@ from __future__ import division
 import math
 import numpy as np
 from sinusoidfitter import onedsinusoidfit,onedsinusoid
-from gaussfitter import gaussfit,onedgaussfit,onedgaussian
+from gaussfitter import gaussfit,onedgaussfit,onedgaussian,onedloggaussfit,onedloggaussian
 from gaborfitter import gaborfit,onedgaborfit,onedgabor
 
 class SinusoidFit(object):
@@ -44,23 +44,49 @@ class GaussFit(object):
             1d gaussian params: (height, amplitude, shift, width) 
         """
         width = xax.max()-xax.min()
-        params=[(data.max()+data.min())/2,(data.max()-data.min())/2,width*0.5,width*0.2]
+        lower_bound = np.sort(data)[:3].mean()
+        params=[0,(data.max()-data.min())*0.5,0,width*0.2]
         fixed=[False,False,False,False]
-        limitedmin=[True,False,True,True]
-        limitedmax=[True,False,True,True]
-        minpars=[data.min(),0,xax.min()-3*width,width*0.05]
-        maxpars=[data.max(),0,xax.max()+3*width,width*3.0]
+        limitedmin=[False,True,True,True]
+        limitedmax=[True,True,True,True]
+        minpars=[0,(data.max()-data.min())*0.5,xax.min()-width,width*0.05]
+        maxpars=[lower_bound*1.5,data.max()-data.min(),xax.max(),width*3.0]
         params,_model,errs,chi2 = onedgaussfit(xax,data,params=params,fixed=fixed,\
                                                limitedmin=limitedmin,limitedmax=limitedmax,\
                                                minpars=minpars,maxpars=maxpars,**kwargs)
         if modelx == None:
             modelx = xax
         model = onedgaussian(modelx,*params)
+        print params
         if return_all:
             return params,model,errs,chi2
         elif returnfitcurve:
             return model
 
+    def loggaussfit1d(self,xax,data,modelx=None,returnfitcurve=True,return_all=False,**kwargs):
+        """
+            1d gaussian params: (height, amplitude, shift, width) 
+        """
+        width = xax.max()-xax.min()
+        lower_bound = np.sort(data)[:3].mean()
+        params=[0,(data.max()-data.min())*0.5,0,width*0.2]
+        fixed=[False,False,False,False]
+        limitedmin=[False,True,True,True]
+        limitedmax=[True,True,True,True]
+        minpars=[0,(data.max()-data.min())*0.5,xax.min()-width,width*0.05]
+        maxpars=[lower_bound*1.5,data.max()-data.min(),xax.max(),width*3.0]
+        params,_model,errs,chi2 = onedloggaussfit(xax,data,params=params,fixed=fixed,\
+                                                  limitedmin=limitedmin,limitedmax=limitedmax,\
+                                                  minpars=minpars,maxpars=maxpars,**kwargs)
+        if modelx == None:
+            modelx = xax
+        model = onedloggaussian(modelx,*params)
+        print params
+        if return_all:
+            return params,model,errs,chi2
+        elif returnfitcurve:
+            return model
+    
     def gaussfit2d(self,img,returnfitimage=True,return_all=False,**kwargs):
         """ 
             2d gaussian params: (height, amplitude, center_x, center_y, width_x, width_y, theta) 
