@@ -34,15 +34,19 @@ class ExperimentConfig(object):
         if new_cell:
             self.find_new_cell_index()
             self.make_new_cell_dir()
+        else:
+            self.find_current_cell_index()
+            self.make_current_cell_dir()
             
-            ############# Logging #############
-            logfile = ExperimentConfig.CELLDIR+ os.path.sep + ExperimentConfig.CELLPREFIX + '.log'
-            logger = logging.getLogger('Experimenter.Experiments')
-            logger.setLevel( logging.INFO )
-            log_formatter = logging.Formatter('%(asctime)s (%(process)d) %(levelname)s: %(message)s')
-            log_handler_logfile = logging.FileHandler(logfile)
-            log_handler_logfile.setFormatter(log_formatter)
-            logger.addHandler(log_handler_logfile)
+        ############# Logging #############
+        logfile = ExperimentConfig.CELLDIR+ os.path.sep + ExperimentConfig.CELLPREFIX + '.log'
+        logger = logging.getLogger('Experimenter.Experiments')
+        logger.setLevel( logging.INFO )
+        log_formatter = logging.Formatter('%(asctime)s (%(process)d) %(levelname)s: %(message)s')
+        log_handler_logfile = logging.FileHandler(logfile)
+        log_handler_logfile.setFormatter(log_formatter)
+        logger.addHandler(log_handler_logfile)
+            
     
     def find_new_cell_index(self):
         cell_indices = [self.get_index_from_name(name) for name in os.listdir(ExperimentConfig.DATABASEDIR) \
@@ -52,12 +56,27 @@ class ExperimentConfig(object):
         else:
             ExperimentConfig.CELLINDEX = 0
             
+    def find_current_cell_index(self):
+        cell_indices = [self.get_index_from_name(name) for name in os.listdir(ExperimentConfig.DATABASEDIR) \
+                        if os.path.isdir(ExperimentConfig.DATABASEDIR + os.path.sep + name)]
+        if cell_indices:
+            ExperimentConfig.CELLINDEX = max(cell_indices)
+        else:
+            ExperimentConfig.CELLINDEX = 0
+            
     def make_new_cell_dir(self):
         ExperimentConfig.CELLPREFIX = 'c' + str(ExperimentConfig.CELLINDEX).zfill(2)
         ExperimentConfig.CELLDIR = ExperimentConfig.DATABASEDIR + os.path.sep + ExperimentConfig.CELLPREFIX
                                   
         assert not os.path.exists(ExperimentConfig.CELLDIR)
         os.makedirs(ExperimentConfig.CELLDIR)
+        
+    def make_current_cell_dir(self):
+        ExperimentConfig.CELLPREFIX = 'c' + str(ExperimentConfig.CELLINDEX).zfill(2)
+        ExperimentConfig.CELLDIR = ExperimentConfig.DATABASEDIR + os.path.sep + ExperimentConfig.CELLPREFIX
+                                  
+        if not os.path.exists(ExperimentConfig.CELLDIR):
+            os.makedirs(ExperimentConfig.CELLDIR)
         
     def get_index_from_name(self, name):
         # one cell will have a file like cx (x is the index of this cell).
@@ -85,7 +104,7 @@ class Experiment(object):
         self.logger.info('Experiment name is: ' + self.exp_name)
         self.logger.info('Experiment time is: ' + time.strftime('%Y/%m/%d %H:%M:%S', time.localtime()))
         self.stimulus.run(exp_file,left_params,right_params,assignments)
-        time.sleep(2.0)
+        time.sleep(1.0)
         
     def wait_for_stim(self):
         self.logger.info('Waiting for stimulus...')
@@ -98,16 +117,54 @@ class Experiment(object):
             self.psth_setup(psth_server)
             self.wait_for_stim()
             data = psth_server.get_data()
+            self.log_data(data)
             results = self.extract_results(data)
             chart_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.png'
             self.logger.info('Exporting chart to: ' + chart_file)
             psth_server.export_chart(chart_file)
             self.logger.info('Restarting psth data.')
             psth_server.restart_psth()
-        except:
-            self.logger.error('Failed to invoke some psth methods.')
+        except Exception,e:
+            self.logger.error('Failed to invoke some psth methods. ' + str(e))
         else:
             return results
+        
+    def log_psth_data(self, data):
+        data_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.csv'
+        param = self.exp_param
+        with open(data_file,'w') as data_output:
+            if 'param' in data:
+                data_output.write('param,'+data['param'])
+            if 'x' in data:
+                data_output.write('%s,' %param + ','.join(data['x']))
+            if 'means' in data:
+                data_output.write('means,'+','.join(data['means']))
+            if 'stds' in data:
+                data_output.write('stds,'+','.join(data['stds']))
+            if 'max_param' in data:
+                data_output.write('opt %s,' %param + data['max_param'])
+            if 'max_value' in data:
+                data_output.write('opt rate,' + data['max_value'])
+            if 'min_param' in data:
+                data_output.write('nul %s,' %param + data['min_param'])
+            if 'max_value' in data:
+                data_output.write('nul rate,' + data['min_value'])
+            if 'F1/F0' in data:
+                data_output.write('F1/F0,' + data['F1/F0'])
+            if 'BII' in data:
+                data_output.write('BII,' + data['BII'])
+            if 'S/N' in data:
+                data_output.write('S/N,' + data['S/N'])
+        
+    def do_no_analysis(self):
+        try:
+            psth_server = self.get_psth_server()
+            self.psth_setup(psth_server)
+            self.wait_for_stim()
+            self.logger.info('Restarting psth data.')
+            psth_server.restart_psth()
+        except Exception,e:
+            self.logger.error('Failed to invoke some psth methods. ' + str(e))
         
     def get_psth_server(self):
         self.logger.info('Fetching psth server.')
@@ -162,6 +219,7 @@ class ORITunExp(Experiment):
         super(ORITunExp, self).__init__(*args,**kwargs)
         self.source = 'orientation_tuning.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-ori-tun-' + eye
+        self.exp_param = 'ori'
         self.eye = eye
         self.params = params
         self.assignments = ["eye = '%s'" %eye]
@@ -191,6 +249,7 @@ class SPFTunExp(Experiment):
         super(SPFTunExp, self).__init__(*args,**kwargs)
         self.source = 'spatial_freq_tuning.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-spf-tun-' + eye
+        self.exp_param = 'spf'
         self.eye = eye
         self.params = params
         self.assignments = ["eye = '%s'" %eye]
@@ -220,6 +279,7 @@ class PHATunExp(Experiment):
         super(PHATunExp, self).__init__(*args,**kwargs)
         self.source = 'phase_tuning.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-pha-tun-' + eye
+        self.exp_param = 'pha'
         self.eye = eye
         self.params = params
         self.assignments = ["eye = '%s'" %eye]
@@ -234,7 +294,7 @@ class PHATunExp(Experiment):
         return pha
     
     def psth_setup(self, psth_server):
-        self.logger.info('Choose Gabor curve fitting.')
+        self.logger.info('Uncheck curve fitting.')
         psth_server.uncheck_fitting()
         
     def extract_results(self, data):
@@ -249,11 +309,12 @@ class DSPTunExp(Experiment):
         super(DSPTunExp, self).__init__(*args,**kwargs)
         self.source = 'disparity_tuning.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-dsp-tun-' + postfix
+        self.exp_param = 'dsp'
         self.eye = ['left','right']
         self.left_params = left_params
         self.right_params = right_params
         self.repeats = repeats
-        self.assignments = ['repeats = %f' %repeats]
+        self.assignments = ['repeats = %d' %repeats]
         
     def run(self):
         super(DSPTunExp, self).run()
@@ -267,9 +328,9 @@ class DSPTunExp(Experiment):
         
     def extract_results(self, data):
         if 'max_param' not in data:
-            self.logger.error('Failed to get optimal parameter from %s experiment.' %self.name)
+            self.logger.error('Failed to get optimal parameter from %s experiment.' %self.exp_name)
         else:
-            self.logger.info('Get optimal parameter from %s experiment: %f' %(self.name, data['max_param']))
+            self.logger.info('Get optimal parameter from %s experiment: %f' %(self.exp_name, data['max_param']))
             return data['max_param']
 
 class StimTimingExp(Experiment):
@@ -282,26 +343,28 @@ class StimTimingExp(Experiment):
                             'stim_interval = %f' %interval, 'repeats = %d' %(duration*1600//3.55)]
         
     def run(self):
-        super(DSPTunExp, self).run()
-        self.run_stimulus(assignments=self.assignment)
-        self.wait_for_stim()
+        super(StimTimingExp, self).run()
+        self.run_stimulus(assignments=self.assignments)
+        self.do_no_analysis()
 
 class RestingExp(Experiment):
     def __init__(self,duration,postfix,*args,**kwargs):
         super(RestingExp, self).__init__(*args,**kwargs)
         self.source = 'resting.py'
-        self.exp_name = ExperimentConfig.CELLPREFIX + 'resting' + postfix
+        self.exp_name = ExperimentConfig.CELLPREFIX + '-resting-' + postfix
         self.eye = ['left','right']
         self.assignments = ['duration = %f' %(duration*60.0)]
         
     def run(self):
-        super(DSPTunExp, self).run()
-        self.run_stimulus(assignments=self.assignment)
-        self.wait_for_stim()
+        super(RestingExp, self).run()
+        self.run_stimulus(assignments=self.assignments)
+        self.do_no_analysis()
 
 if __name__ == '__main__':
     ExperimentConfig(data_base_dir='data',exp_base_dir='.',stim_server_host='192.168.1.105',new_cell=True)
     p_left, p_right = Experiment().get_params()
-    ori = ORITunExp(eye='left', params=None).run()
-    print ori
+    p_left.phase0 = 25.5
+    p_right.phase0 = 135.5
+    exp_postfix = 'm24-opt'
+    RestingExp(duration=5.0, postfix=exp_postfix).run()
     
