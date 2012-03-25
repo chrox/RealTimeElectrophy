@@ -72,7 +72,7 @@ else:
 
 setup(
     name = "RealTimeElectrophy",
-    version = "0.7.5",
+    version = "0.7.6",
     author = "Huang Xin",
     author_email = "hwangxin@hsc.pku.edu.cn",
     url = "http://vislab.hsc.pku.edu.cn/code/RealTimeElectrophy",
