@@ -234,9 +234,24 @@ class Grating(Stimulus):
         info = self.name + str(index) + ' in ' + name + ' viewport.'
         logger = logging.getLogger('LightStim.Grating')
         logger.info('Load preference for ' + info)
+        self.defalut_preference = {'xorigDeg':0.0,
+                                   'yorigDeg':0.0,
+                                   'widthDeg':15.0,
+                                   'gheightDeg':15.0, # gheightDeg for grating stimulus
+                                   'mask':'circle',
+                                   'maskDiameterDeg':10.0,
+                                   'sfreqCycDeg':0.5,
+                                   'tfreqCycSec':2.0,
+                                   'ori': 0.0}
         with open('stimulus_params.pkl','rb') as pkl_input:
-            preference = pickle.load(pkl_input)[name][index]
-            self.set_parameters(self.parameters, preference)
+            preferences_dict = pickle.load(pkl_input)[name][index]
+            for key in preferences_dict:
+                if key in self.defalut_preference and \
+                          type(preferences_dict[key]) != type(self.defalut_preference[key]):
+                    preferences_dict[key] = self.defalut_preference[key]
+                    logger.error("Found corrupted parameter '%s' for " %key + info + 'You should update your parameter file.')
+                    raise RuntimeError("Found corrupted parameter '%s' for " %key + info)
+            self.set_parameters(self.parameters, preferences_dict)
             
 class TimingSetGrating(Grating):
     def register_controllers(self):

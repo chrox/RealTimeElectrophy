@@ -275,8 +275,14 @@ class ManGrating(ManStimulus):
                                    'ori': 0.0}
         try:
             with open('stimulus_params.pkl','rb') as pkl_input:
-                preferences_dict = pickle.load(pkl_input)
-                self.defalut_preference.update(preferences_dict[name][index])
+                preferences_dict = pickle.load(pkl_input)[name][index]
+                for key in preferences_dict:
+                    if key in self.defalut_preference and \
+                              type(preferences_dict[key]) != type(self.defalut_preference[key]):
+                        preferences_dict[key] = self.defalut_preference[key]
+                        logger.warning("Found corrupted parameter '%s' for " %key + info + 
+                                       ' Use the default value %s.'%str(self.defalut_preference[key]))
+                self.defalut_preference.update(preferences_dict)
                 self.preference = self.defalut_preference
         except:
             if self.viewport.get_name() != 'control':
