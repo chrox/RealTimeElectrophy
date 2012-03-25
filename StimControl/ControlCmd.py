@@ -1,4 +1,5 @@
 # Commandline control of visual stimulation.
+import time
 import logging
 import VisionEgg.PyroClient
 
@@ -9,7 +10,6 @@ class StimCommand(object):
 
         self.pyro_client = VisionEgg.PyroClient.PyroClient(self.server_hostname,self.server_port)
         self.ephys_server = self.pyro_client.get("ephys_server")
-        self.ephys_server.first_connection()
         
     def run(self, filename, left_params=None, right_params=None, assignments=[]):
         """
@@ -33,7 +33,10 @@ class StimCommand(object):
             return
         
         self.ephys_server.run_demoscript()
+        self.ephys_server.set_AST_tree_to_build()
         self.ephys_server.build_AST(source,assignments)
+        while not self.ephys_server.is_AST_tree_completed():
+            time.sleep(0.5)
         # breaking waiting loop
         self.ephys_server.set_quit_status(True)
         
