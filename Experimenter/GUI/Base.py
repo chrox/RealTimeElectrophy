@@ -200,6 +200,9 @@ class DataForm(wx.Panel):
             dataline = '\t'.join('%.2f' %value for value in line)
             data += dataline + '\n'
         self.data['data'] = data
+        self.data['x'] = x
+        self.data['means'] = means
+        self.data['stds'] = stds
         ###########################
         ###########################
         ##### extremes
