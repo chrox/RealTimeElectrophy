@@ -68,8 +68,8 @@ class Stimulus(VisionEgg.Core.Stimulus):
 
 class Dummy_Stimulus(Stimulus):
     """ To keep the framesweep running """
-    def __init__(self, viewport='control', sweepseq=None, **kwargs):
-        super(Dummy_Stimulus, self).__init__(viewport,sweepseq,**kwargs)
+    def __init__(self, viewport='left', **kwargs):
+        super(Dummy_Stimulus, self).__init__(viewport,**kwargs)
     def draw(self):
         pass
 
