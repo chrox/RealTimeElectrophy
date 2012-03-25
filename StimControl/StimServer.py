@@ -58,19 +58,24 @@ class RTEPhysServer(server.EPhysServer):
         self.stimdict['dropin_server'] = (MyDropinMetaController, self.stimdict['dropin_server'][1])
         #######################################################
         self.really_quit_server = False
+        self.AST_tree_completed = False
         
     def build_AST(self, source, assignments=[]):
         AST = ast.parse(source)
         for assign in assignments:
             AST = ModAssignments(assign).visit(AST)
         self.AST = AST
+        self.AST_tree_completed = True
+        
     def exec_AST(self, screen):
         code_module = compile(self.AST, '', 'exec')
         exec code_module in locals()
-        if isinstance(locals()['p'], VisionEgg.FlowControl.Presentation):
+        if 'p' in locals() and isinstance(locals()['p'], VisionEgg.FlowControl.Presentation):
             presentation = locals()['p']
-        elif isinstance(locals()['sweep'], VisionEgg.FlowControl.Presentation):
+        elif 'sweep' in locals() and isinstance(locals()['sweep'], VisionEgg.FlowControl.Presentation):
             presentation = locals()['sweep']
+        else:
+            raise RuntimeError('Cannot find presentation instance in locals().')
         self.script_dropped_frames = presentation.were_frames_dropped_in_last_go_loop()
         self.presentation.last_go_loop_start_time_absolute_sec = presentation.last_go_loop_start_time_absolute_sec # evil hack...
         self.exec_demoscript_flag = False
@@ -79,6 +84,12 @@ class RTEPhysServer(server.EPhysServer):
     def _set_parameters(self, dest_params, source_params):
         for paramname, paramval in source_params.items():
             setattr(dest_params, paramname, paramval)
+        
+    def is_AST_tree_completed(self):
+        return self.AST_tree_completed
+    
+    def set_AST_tree_to_build(self):
+        self.AST_tree_completed = False
         
     def get_stimulus_params(self):
         left_params = dictattr()
@@ -131,7 +142,6 @@ class NewPyroServer(PyroServer):
             _object.setDaemon(None)
         
 def start_server( server_modules, server_class=RTEPhysServer ):
-    loadNewExpr = True
     pyro_server = NewPyroServer()
     #pyro_server = VisionEgg.PyroHelpers.PyroServer()
     default_viewports = ['control','left','right']
@@ -174,74 +184,17 @@ def start_server( server_modules, server_class=RTEPhysServer ):
             DefaultScreen.screen.close()
             DefaultScreen(default_viewports)
             screen = DefaultScreen.screen
-        if loadNewExpr:
-            wait_text.parameters.text = "Loading new experiment, please wait."
-            perspective_viewport.parameters.stimuli = []
-            overlay2D_viewport.parameters.stimuli = [wait_text]
-            p.between_presentations() # draw wait_text
-            pyro_name, meta_controller_class, stimulus_list = ephys_server.get_next_stimulus_meta_controller()
-            stimulus_meta_controller = meta_controller_class(screen, p, stimulus_list) # instantiate meta_controller
-            pyro_server.connect(stimulus_meta_controller, pyro_name)
 
         if ephys_server.get_stimkey() == "dropin_server":
             wait_text.parameters.text = "Vision Egg script mode"
             p.parameters.enter_go_loop = False
-            #p.parameters.quit = False
+            # wait for client side quit status
             p.run_forever()
-
-            # At this point quit signal was sent by client to either:
-
-            # 1) Execute the script (ie. "exec_demoscript_flag" has
-            # been set)
-
-            # 2) Load a DIFFERENT script ("loadNewExpr" should be set
-            # to False in this event)
-
-            # 3) Load a BUILT IN experiment ("loadNewExpr" should be
-            # set to True in this event)
+            if ephys_server.quit_server_status():
+                break
             
             if ephys_server.exec_demoscript_flag:
                 ephys_server.exec_AST(screen)
-
-            if ephys_server.get_stimkey() == "dropin_server":
-                # Either:
-                # 1) Same script (just finished executing)
-                # 2) Loading a new script
-                loadNewExpr = False
-            else:
-                # 3) load a BUILT IN experiment
-                pyro_server.disconnect(stimulus_meta_controller)
-                del stimulus_meta_controller # we have to do this explicitly because Pyro keeps a copy of the reference
-                loadNewExpr = True
-        else:
-            overlay2D_viewport.parameters.stimuli = [] # clear wait_text
-            for stim in stimulus_list:
-                if stim[0] == '3d_perspective':
-                    perspective_viewport.parameters.stimuli.append(stim[1])
-                elif stim[0] == '3d_perspective_with_set_viewport_callback':
-                    _key, stimulus, callback_function = stim
-                    callback_function(perspective_viewport)
-                    perspective_viewport.parameters.stimuli.append(stimulus)
-                elif stim[0] == '2d_overlay':
-                    overlay2D_viewport.parameters.stimuli.append(stim[1])
-                else:
-                    raise RuntimeError("Unknown viewport id %s"%stim[0])
-
-            # enter loop
-            p.parameters.enter_go_loop = False
-            p.parameters.quit = False
-            p.run_forever()
-
-            # At this point quit signal was sent by client to either:
-
-            # 1) Load a script ("loadNewExpr" should be set to 1 in
-            # this event)
-
-            # 2) Load a BUILT IN experiment ("loadNewExpr" should be
-            # set to 1 in this event)
-
-            pyro_server.disconnect(stimulus_meta_controller)
-            del stimulus_meta_controller # we have to do this explicitly because Pyro keeps a copy of the reference
 
 if __name__ == '__main__':
     start_server(server_modules, server_class=RTEPhysServer)
