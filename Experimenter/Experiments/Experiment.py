@@ -115,19 +115,42 @@ class Experiment(object):
         try:
             psth_server = self.get_psth_server()
             self.psth_setup(psth_server)
+        except Exception,e:
+            self.logger.error('Failed to setup psth app. ' + str(e))
+            
             self.wait_for_stim()
+        try:
             data = psth_server.get_data()
-            self.log_data(data)
+        except Exception,e:
+            self.logger.error('Failed to get data from psth. ' + str(e))
+        
+        try:
+            self.log_psth_data(data)
+        except Exception,e:
+            self.logger.error('Failed to log psth data. ' + str(e))
+        
+        try:
             results = self.extract_results(data)
+        except Exception,e:
+            self.logger.error('Failed to extract psth data. ' + str(e))
+        
+        try:
             chart_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.png'
             self.logger.info('Exporting chart to: ' + chart_file)
             psth_server.export_chart(chart_file)
+        except Exception,e:
+            self.logger.error('Failed to export psth chart. ' + str(e))
+        
+        try:
             self.logger.info('Restarting psth data.')
             psth_server.restart_psth()
         except Exception,e:
-            self.logger.error('Failed to invoke some psth methods. ' + str(e))
-        else:
+            self.logger.error('Failed to restart psth data. ' + str(e))
+            
+        try:
             return results
+        except Exception,e:
+            self.logger.error('Failed to return psth result. ' + str(e))
         
     def log_psth_data(self, data):
         data_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.csv'
