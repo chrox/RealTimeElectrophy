@@ -88,7 +88,7 @@ class PSTHAverage(PlexSpikeData):
                 if index not in range(16):
                     logger.warning('Bad stimulation trigger: stimulus parameter index exceeded defined range [0,16].')
                 if on_end > on_begin and index in range(16):
-                    logger.info('Processing psth data for %s index: %d' %(self.parameter,index))
+                    #logger.info('Processing psth data for %s index: %d' %(self.parameter,index))
                     self._process_psth_data(on_begin, on_end, index) # psth processing of on segment
                 self.param_indices = self.param_indices[off_begin[0][0]:] # remove processed on segment
                 self.timestamps = self.timestamps[off_begin[0][0]:]
