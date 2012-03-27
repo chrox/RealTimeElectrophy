@@ -9,11 +9,10 @@ import numpy as np
 import scipy.ndimage as nd
 from PlexSpikeData import PlexSpikeData
 
-ONSET_BIT = 12
-OFFSET_BIT = 13
 ORI_MASK = 0xF<<0
 SPF_MASK = 0xF<<4
 PHA_MASK = 0xF<<8
+ONSET_MASK = 1<<12
 PHA_TUN_TYPE = 1<<13
 
 class PSTHAverage(PlexSpikeData):
@@ -50,7 +49,7 @@ class PSTHAverage(PlexSpikeData):
         elif np.any(pha_index) and not np.any(pha_type):
             self.parameter = 'disparity'
         param_indices = ori_index + spf_index + pha_index
-        offset_trigger = (trigger_values & 1<<OFFSET_BIT) > 0
+        offset_trigger = (trigger_values & ONSET_MASK) == 0
         param_indices[offset_trigger] = -1
         # param_index_que typically has values in the range of [-1,15]. That's enough to describe the stimuli, isn't it?
         self.param_indices = np.append(self.param_indices, param_indices)
@@ -89,14 +88,15 @@ class PSTHAverage(PlexSpikeData):
                 if index not in range(16):
                     logger.warning('Bad stimulation trigger: stimulus parameter index exceeded defined range [0,16].')
                 if on_end > on_begin and index in range(16):
+                    logger.info('Processing psth data for %s index: %d' %(self.parameter,index))
                     self._process_psth_data(on_begin, on_end, index) # psth processing of on segment
                 self.param_indices = self.param_indices[off_begin[0][0]:] # remove processed on segment
                 self.timestamps = self.timestamps[off_begin[0][0]:]
             off_begin = np.nonzero(self.param_indices < 0)
                 
     def _process_psth_data(self,begin,end,param_index):
-        duration = 1.0
-        binsize = 0.01 #binsize 10 ms
+        duration = 2.0
+        binsize = 0.02 #binsize 10 ms
         bins = np.arange(0.,duration,binsize)
         for channel,channel_trains in self.spike_trains.iteritems():
             if channel not in self.histogram_data:
