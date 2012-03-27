@@ -16,7 +16,7 @@ DefaultScreen(['left'])
 p = dictattr()
 p.ml = 0.5
 p.tfreqCycSec = 2.0
-p.bgbrightness = 0.0
+p.bgbrightness = 0.5
 p.phase0 = 0
 p.contrast = 1
 
