@@ -96,7 +96,7 @@ class Experiment(object):
         return self.stimulus.get_params()
     
     def run(self):
-        pass
+        self.logger.info('='*18)
         
     def run_stimulus(self, left_params=None, right_params=None, assignments=[]):
         exp_file = ExperimentConfig.EXPBASEDIR + os.path.sep + self.source 
@@ -118,7 +118,11 @@ class Experiment(object):
         except Exception,e:
             self.logger.error('Failed to setup psth app. ' + str(e))
             
+        try:
             self.wait_for_stim()
+        except Exception,e:
+            self.logger.error('Failed to wait for stimulation. ' + str(e))
+            
         try:
             data = psth_server.get_data()
         except Exception,e:
