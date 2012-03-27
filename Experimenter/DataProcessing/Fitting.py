@@ -12,7 +12,7 @@ from gaussfitter import gaussfit,onedgaussfit,onedgaussian,onedloggaussfit,onedl
 from gaborfitter import gaborfit,onedgaborfit,onedgabor
 
 class SinusoidFit(object):
-    def sinusoid1d(self,xax,data,modelx=None,returnfitcurve=True,return_all=False,**kwargs):
+    def sinusoid1d(self,xax,data,modelx=None,return_models=True,return_all=False,**kwargs):
         """
             1d sinusoidal params: (height, amplitude, frequency, phase)
         """
@@ -29,17 +29,18 @@ class SinusoidFit(object):
                                                   minpars=minpars,maxpars=maxpars,**kwargs)
         if modelx == None:
             modelx = xax
-        model = onedsinusoid(modelx,*params)
+        model_xdata = onedsinusoid(xax,*params)
+        model_fitting = onedsinusoid(modelx,*params)
         if return_all:
-            return params,model,errs,chi2
-        elif returnfitcurve:
-            return model
+            return params,model_xdata,model_fitting,errs,chi2
+        elif return_models:
+            return (model_xdata, model_fitting)
 
 class GaussFit(object):
     def __init__(self):
         self.params = []
     
-    def gaussfit1d(self,xax,data,modelx=None,returnfitcurve=True,return_all=False,**kwargs):
+    def gaussfit1d(self,xax,data,modelx=None,return_models=True,return_all=False,**kwargs):
         """
             1d gaussian params: (height, amplitude, shift, width) 
         """
@@ -56,14 +57,14 @@ class GaussFit(object):
                                                minpars=minpars,maxpars=maxpars,**kwargs)
         if modelx == None:
             modelx = xax
-        model = onedgaussian(modelx,*params)
-        print params
+        model_xdata = onedgaussian(xax,*params)
+        model_fitting = onedgaussian(modelx,*params)
         if return_all:
-            return params,model,errs,chi2
-        elif returnfitcurve:
-            return model
+            return params,model_xdata,model_fitting,errs,chi2
+        elif return_models:
+            return (model_xdata, model_fitting)
 
-    def loggaussfit1d(self,xax,data,modelx=None,returnfitcurve=True,return_all=False,**kwargs):
+    def loggaussfit1d(self,xax,data,modelx=None,return_models=True,return_all=False,**kwargs):
         """
             1d gaussian params: (height, amplitude, shift, width) 
         """
@@ -80,12 +81,12 @@ class GaussFit(object):
                                                   minpars=minpars,maxpars=maxpars,**kwargs)
         if modelx == None:
             modelx = xax
-        model = onedloggaussian(modelx,*params)
-        print params
+        model_xdata = onedloggaussian(xax,*params)
+        model_fitting = onedloggaussian(modelx,*params)
         if return_all:
-            return params,model,errs,chi2
-        elif returnfitcurve:
-            return model
+            return params,model_xdata,model_fitting,errs,chi2
+        elif return_models:
+            return (model_xdata, model_fitting)
     
     def gaussfit2d(self,img,returnfitimage=True,return_all=False,**kwargs):
         """ 
@@ -113,7 +114,7 @@ class GaborFit(object):
     def __init__(self):
         self.params = []
         
-    def gaborfit1d(self,xax,data,modelx=None,returnfitcurve=True,return_all=False,**kwargs):
+    def gaborfit1d(self,xax,data,modelx=None,return_models=True,return_all=False,**kwargs):
         """
             1d gabor params: (height,amplitude,shift,width,wavelength,phase)
         """
@@ -130,11 +131,12 @@ class GaborFit(object):
                                                minpars=minpars,maxpars=maxpars,**kwargs)
         if modelx == None:
             modelx = xax
-        model = onedgabor(modelx,*params)
+        model_xdata = onedgabor(xax,*params)
+        model_fitting = onedgabor(modelx,*params)
         if return_all:
-            return params,model,errs,chi2
-        elif returnfitcurve:
-            return model
+            return params,model_xdata,model_fitting,errs,chi2
+        elif return_models:
+            return (model_xdata, model_fitting)
         
     def gaborfit2d(self,img,returnfitimage=True,return_all=False,**kwargs):
         """ 

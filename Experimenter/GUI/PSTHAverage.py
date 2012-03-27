@@ -218,23 +218,24 @@ class PSTHPanel(wx.Panel):
                 self.fitting_x = np.logspace(np.log10(self.x[0]), np.log10(self.x[-1]), self.fitting_x.size, endpoint=True)
             else:
                 self.fitting_x = np.linspace(self.x[0], self.x[-1], self.fitting_x.size, endpoint=True)
-            model = np.zeros(self.fitting_x.size)
+            model_fitting = np.zeros(self.fitting_x.size)
+            model_xdata = np.zeros(self.x.size)
             if self.fitting_gaussian:
                 if self.log_fitting:
-                    model = self.gauss_fitter.loggaussfit1d(self.x, self.means, self.fitting_x)
+                    model_xdata,model_fitting = self.gauss_fitter.loggaussfit1d(self.x, self.means, self.fitting_x)
                 else:
-                    model = self.gauss_fitter.gaussfit1d(self.x, self.means, self.fitting_x)
+                    model_xdata,model_fitting = self.gauss_fitter.gaussfit1d(self.x, self.means, self.fitting_x)
             elif self.fitting_sinusoid:
-                model = self.sinusoid_fitter.sinusoid1d(self.x, self.means, self.fitting_x)
+                model_xdata,model_fitting = self.sinusoid_fitter.sinusoid1d(self.x, self.means, self.fitting_x)
             elif self.fitting_gabor:
-                model = self.gabor_fitter.gaborfit1d(self.x, self.means, self.fitting_x)
+                model_xdata,model_fitting = self.gabor_fitter.gaborfit1d(self.x, self.means, self.fitting_x)
             if self.append_data_curve:
-                self.curve_axes.plot(self.fitting_x, model, self.fitting_curve_styles[self.data_curves-1])
+                self.curve_axes.plot(self.fitting_x, model_fitting, self.fitting_curve_styles[self.data_curves-1])
             else:
                 self.fitting_data.set_xdata(self.fitting_x)
-                self.fitting_data.set_ydata(model)
+                self.fitting_data.set_ydata(model_fitting)
             label = [self.parameter, 'rate', 'std']
-            self.data_form.gen_curve_data(self.x, self.means, self.stds, self.fitting_x, model, label)
+            self.data_form.gen_curve_data(self.x, self.means, self.stds, self.fitting_x, model_fitting, model_xdata, label)
             if self.parameter == 'orientation':
                 self.data_form.gen_psth_data(data[channel][unit])
             self.curve_axes.set_xlim(min(self.x),max(self.x))

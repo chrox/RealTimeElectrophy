@@ -183,7 +183,7 @@ class DataForm(wx.Panel):
         self.results.AppendText(mod_ratio)
         self.data['F1/F0'] = ratio
         
-    def gen_curve_data(self, x, means, stds, fittings, model, label):
+    def gen_curve_data(self, x, means, stds, fittings, model_fitting, model_xdata, label):
         if label[0] == 'orientation':
             label[0] = 'ori'
             x = x*180/np.pi
@@ -191,6 +191,8 @@ class DataForm(wx.Panel):
             label[0] = 'spf'
         elif label[0] == 'phase':
             label[0] = 'pha'
+        elif label[0] == 'disparity':
+            label[0] = 'dsp'
             
         self.data['param'] = label[0]
         ###########################
@@ -207,11 +209,11 @@ class DataForm(wx.Panel):
         ###########################
         ##### extremes
         extremes = ''
-        if any(model):
-            max_index = model.argmax()
-            min_index = model.argmin()
-            max_value = model[max_index]
-            min_value = model[min_index]
+        if any(model_fitting):
+            max_index = model_fitting.argmax()
+            min_index = model_fitting.argmin()
+            max_value = model_fitting[max_index]
+            min_value = model_fitting[min_index]
             max_param = fittings[max_index]
             min_param = fittings[min_index]
         else:
@@ -235,11 +237,12 @@ class DataForm(wx.Panel):
         ##### BII/S2N
         BII = ''
         S2N = ''
-        if any(model) and label[0] == 'pha':
-            bii_ratio = 2.0*(max(model)-min(model))/(max(model)+min(model))
+        if any(model_fitting) and label[0] == 'dsp':
+            bii_ratio = 2.0*(max(model_fitting)-min(model_fitting))/(max(model_fitting)+min(model_fitting))
             BII += '-'*18 + '\nBII :\n'
             BII += '%.2f\n' %bii_ratio
-            s2n_ratio = (max(model)-min(model))/np.mean(stds)
+            noise = np.sqrt(np.sum((model_xdata-means)**2)/means.size)
+            s2n_ratio = (max(model_fitting)-min(model_fitting))/noise
             S2N += '-'*18 + '\nS/N :\n'
             S2N += '%.2f\n' %s2n_ratio
             self.data['BII'] = bii_ratio
