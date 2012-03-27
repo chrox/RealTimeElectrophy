@@ -12,6 +12,7 @@ import time
 import Pyro
 import threading
 import logging
+import pkg_resources
 from StimControl.ControlCmd import StimCommand
 from Experimenter.GUI.PSTHAverage import PyroPSTHFrame
 
@@ -46,7 +47,13 @@ class ExperimentConfig(object):
         log_handler_logfile = logging.FileHandler(logfile)
         log_handler_logfile.setFormatter(log_formatter)
         logger.addHandler(log_handler_logfile)
-            
+        
+        # log version of RealTimeElectrophy
+        try:
+            version = pkg_resources.get_distribution("RealTimeElectrophy").version
+            logger.info("Experiments performed with RealTimeElectrophy version: " + version)
+        except:
+            logger.warning("Experiments performed with unkown RealTimeElectrophy version.")
     
     def find_new_cell_index(self):
         cell_indices = [self.get_index_from_name(name) for name in os.listdir(ExperimentConfig.DATABASEDIR) \
@@ -116,6 +123,7 @@ class Experiment(object):
     def psth_analysis(self, psth_type=None):
         try:
             self.psth_server = self.get_psth_server()
+            self.psth_server.start_psth()
             self.psth_setup()
         except Exception,e:
             self.logger.error('Failed to setup psth app. ' + str(e))
@@ -188,6 +196,7 @@ class Experiment(object):
     def do_no_analysis(self):
         try:
             self.psth_server = self.get_psth_server()
+            self.psth_server.stop_psth()
             self.psth_setup()
             self.wait_for_stim()
             self.logger.info('Restarting psth data.')
@@ -367,13 +376,14 @@ class DSPTunExp(Experiment):
             return data['max_param']
 
 class StimTimingExp(Experiment):
-    def __init__(self,left_phase,right_phase,interval,duration,postfix,*args,**kwargs):
+    def __init__(self,left_phase,right_phase,interval,duration,postfix,rand_phase=False,*args,**kwargs):
         super(StimTimingExp, self).__init__(*args,**kwargs)
         self.source = 'timesetgrating.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-stim-timing-' + postfix
         self.eye = ['left','right']
         self.assignments = ['p_left.phase0 = %f' %left_phase, 'p_right.phase0 = %f' %right_phase, 
-                            'stim_interval = %f' %interval, 'repeats = %d' %(duration*1600//3.55)]
+                            'stim_interval = %f' %interval, 'repeats = %d' %(duration*1600//3.55),
+                            'rand_phase = %r' %rand_phase]
         
     def run(self):
         super(StimTimingExp, self).run()
