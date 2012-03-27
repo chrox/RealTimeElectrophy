@@ -14,7 +14,7 @@ from StimControl.LightStim.Core import DefaultScreen
 
 eye = 'left'
 
-DefaultScreen([eye])
+DefaultScreen(['left','right'])
 
 p = dictattr()
 

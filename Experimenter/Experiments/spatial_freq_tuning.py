@@ -14,7 +14,7 @@ from StimControl.LightStim.LightData import IndexedParam
 
 eye = 'left'
 
-DefaultScreen([eye])
+DefaultScreen(['left','right'])
 
 p = dictattr()
 p.ml = 0.5
