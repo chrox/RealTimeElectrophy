@@ -12,7 +12,6 @@ import time
 import Pyro
 import threading
 import logging
-import pkg_resources
 from StimControl.ControlCmd import StimCommand
 from Experimenter.GUI.PSTHAverage import PyroPSTHFrame
 
@@ -50,6 +49,7 @@ class ExperimentConfig(object):
         
         # log version of RealTimeElectrophy
         try:
+            import pkg_resources
             version = pkg_resources.get_distribution("RealTimeElectrophy").version
             logger.info("Experiments performed with RealTimeElectrophy version: " + version)
         except:

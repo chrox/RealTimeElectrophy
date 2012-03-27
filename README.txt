@@ -32,6 +32,7 @@ First, download and install these dependencies:
 	- matplotlib (version >= 1.01)
 	- wxPython (version >= 2.8)
 	- VisionEgg (version == 1.2.1)
+	- setuptools (version >= 0.6, this package is optional)
 
 To install RealTimeElectrophy from source, download the latest source code packages,
 and extract the files into your home directory. Type this from a command line from 
