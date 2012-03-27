@@ -6,7 +6,7 @@
 import numpy as np
 #from StimControl.LightStim.LightData import dictattr
 from Experiments.Experiment import ExperimentConfig,Experiment
-from Experiments.Experiment import ORITunExp,SPFTunExp,PHATunExp,DSPTunExp,StimTimingExp,RestingExp
+from Experiments.Experiment import ORITunExp,SPFTunExp,DSPTunExp,StimTimingExp,RestingExp
 
 ExperimentConfig(data_base_dir='data',exp_base_dir='Experiments',stim_server_host='192.168.1.105',new_cell=True)
 
@@ -29,23 +29,15 @@ for eye in np.random.permutation(['left','right']):
     if eye == 'right':
         p_right.sfreqCycDeg = SPFTunExp(eye='right', params=p_right).run()
 
-
-# phase tuning experiments find the optimal phase for each eye
-for eye in np.random.permutation(['left','right']):
-    if eye == 'left':
-        p_left.phase0 = PHATunExp(eye='left', params=p_left).run()
-    if eye == 'right':
-        p_right.phase0 = PHATunExp(eye='right', params=p_right).run()
-
 """
     Induction and binocular tests
 """
-intervals = [-0.024, -0.016, -0.008, 0.0, 0.008, 0.016, 0.024]
+intervals = [-0.040, -0.016, -0.008, 0.0, 0.008, 0.016, 0.040]
 dsp_index = 1
 for interval in np.random.permutation(intervals):
     # interval string like m16ms(-0.016) or 24ms(0.024)
     interval_str = 'm'+str(int(interval*1000))+'ms' if interval < 0 else str(int(interval*1000))+'ms'
-    phase_str = 'opt'
+    phase_str = 'rand'
     # disparity tuning experiment before induction
     exp_postfix = interval_str + '-' + phase_str + '-pre'
     pre_dsp = DSPTunExp(left_params=p_left,right_params=p_right,
@@ -55,7 +47,7 @@ for interval in np.random.permutation(intervals):
         # conditioning stimulus
         exp_postfix = interval_str + '-' + phase_str + '-' + str(times+1)
         StimTimingExp(left_phase=p_left.phase0, right_phase=p_right.phase0,
-                      interval=interval, duration=3.0, postfix=exp_postfix).run()
+                      interval=interval, duration=3.0, postfix=exp_postfix, rand_phase=True).run()
         # short dsp tuning experiment
         if times < 2:
             exp_postfix = interval_str + '-' + phase_str + '-induction-' + str(times+1)

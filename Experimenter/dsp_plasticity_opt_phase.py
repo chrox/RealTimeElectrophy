@@ -11,8 +11,6 @@ from Experiments.Experiment import ORITunExp,SPFTunExp,PHATunExp,DSPTunExp,StimT
 ExperimentConfig(data_base_dir='data',exp_base_dir='Experiments',stim_server_host='192.168.1.105',new_cell=True)
 
 p_left, p_right = Experiment().get_params()
-print 'p_left: ',p_left
-print 'p_right: ',p_right
 
 """
     Monocular tests
@@ -20,36 +18,24 @@ print 'p_right: ',p_right
 # orientation tuning experiments find the optimal orientation for each eye
 for eye in np.random.permutation(['left','right']):
     if eye == 'left':
-        ORITunExp(eye='left', params=None).run()
-        p_left.ori = 135.0
-        #p_left.ori = ORITunExp(eye='left', params=None).run()
+        p_left.ori = ORITunExp(eye='left', params=None).run()
     if eye == 'right':
-        ORITunExp(eye='right', params=None).run()
-        p_right.ori = 135.0
-        #p_right.ori = ORITunExp(eye='right', params=None).run()
+        p_right.ori = ORITunExp(eye='right', params=None).run()
         
 # spatial frequency tuning experiments find the optimal spatial frequency
 for eye in np.random.permutation(['left','right']):
     if eye == 'left':
-        SPFTunExp(eye='left', params=p_left).run()
-        p_left.sfreqCycDeg = 0.35
-        #p_left.sfreqCycDeg = SPFTunExp(eye='left', params=p_left).run()
+        p_left.sfreqCycDeg = SPFTunExp(eye='left', params=p_left).run()
     if eye == 'right':
-        SPFTunExp(eye='right', params=p_right).run()
-        p_right.sfreqCycDeg = 0.35
-        #p_right.sfreqCycDeg = SPFTunExp(eye='right', params=p_right).run()
+        p_right.sfreqCycDeg = SPFTunExp(eye='right', params=p_right).run()
 
 
 # phase tuning experiments find the optimal phase for each eye
 for eye in np.random.permutation(['left','right']):
     if eye == 'left':
-        PHATunExp(eye='left', params=p_left).run()
-        p_left.phase0 = 25.5
-        #p_left.phase0 = PHATunExp(eye='left', params=p_left).run()
+        p_left.phase0 = PHATunExp(eye='left', params=p_left).run()
     if eye == 'right':
-        PHATunExp(eye='right', params=p_right).run()
-        p_right.phase0 = 135.5
-        #p_right.phase0 = PHATunExp(eye='right', params=p_right).run()
+        p_right.phase0 = PHATunExp(eye='right', params=p_right).run()
 
 """
     Induction and binocular tests
@@ -58,7 +44,7 @@ intervals = [-0.040, -0.016, -0.008, 0.0, 0.008, 0.016, 0.040]
 dsp_index = 1
 for interval in np.random.permutation(intervals):
     # interval string like m16ms(-0.016) or 24ms(0.024)
-    interval_str = 'm'+str(int(abs(interval)*1000))+'ms' if interval < 0 else str(int(interval*1000))+'ms'
+    interval_str = 'm'+str(int(interval*1000))+'ms' if interval < 0 else str(int(interval*1000))+'ms'
     phase_str = 'opt'
     # disparity tuning experiment before induction
     exp_postfix = interval_str + '-' + phase_str + '-pre'
@@ -69,7 +55,7 @@ for interval in np.random.permutation(intervals):
         # conditioning stimulus
         exp_postfix = interval_str + '-' + phase_str + '-' + str(times+1)
         StimTimingExp(left_phase=p_left.phase0, right_phase=p_right.phase0,
-                      interval=interval, duration=3.0, postfix=exp_postfix).run()
+                      interval=interval, duration=3.0, postfix=exp_postfix, rand_phase=False).run()
         # short dsp tuning experiment
         if times < 2:
             exp_postfix = interval_str + '-' + phase_str + '-induction-' + str(times+1)

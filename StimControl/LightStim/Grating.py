@@ -8,6 +8,7 @@
 from __future__ import division
 import numpy as np
 np.seterr(all='raise')
+import random
 import pickle
 import logging
 
@@ -56,34 +57,48 @@ class TimingController(SweepSequeStimulusController):
             self.gp.on = True
         else:
             self.gp.on = False
+            
+class RandPhaseController(SweepSequeStimulusController):
+    def __init__(self,*args,**kwargs):
+        super(RandPhaseController, self).__init__(*args,**kwargs)
+        self.gp = self.stimulus.gp
+        self.phase = IndexedParam('phase_at_t0')
+    def during_go_eval(self):
+        self.gp.phase_at_t0 = random.choice(self.phase)
 
 class TimingStampController(DTSweepSequeController):
     def __init__(self,*args,**kwargs):
         super(TimingStampController, self).__init__(*args,**kwargs)
+        self.gp = self.stimulus.gp
+        self.indexed_pha = IndexedParam('phase_at_t0')
         self.logger = logging.getLogger('LightStim.Grating')
     def during_go_eval(self):
         stimulus_on = self.next_param()
         """ 
             16-bits stimulus representation code will be posted to DT port
             00 1 1 0000 0000 0000 
-            |  | |
+            |  | |   |-----------------phase_at_t0 index (0.0, 360.0, 16)
             |  | |---------------------stimulus onset
             |  |-----------------------stimulus viewport
             |--------------------------reserved
         """
         if self.viewport.get_name() == 'left':
-            viewport_value = 1<<13
+            viewport = 1
         elif self.viewport.get_name() == 'right':
-            viewport_value = 0
+            viewport = 0
         else:
             self.logger.error('Currently TimingStamp can only support left and right viewport.')
         # lower 12 bits and upper 2 bits are reserved
         if stimulus_on:
-            onset_value = 1<<12
+            onset = 1
         else:
-            onset_value = 0
-        
-        post_val = viewport_value + onset_value
+            onset = 0
+        phase = self.gp.phase_at_t0
+        if phase in self.indexed_pha:
+            pha_index = self.indexed_pha.index(phase)
+        else:
+            pha_index = 0
+        post_val = (viewport << 13) + (onset << 12) + (pha_index << 8)
         self.post_stamp(post_val)
             
 class ParamController(SweepSequeStimulusController):
@@ -258,6 +273,14 @@ class TimingSetGrating(Grating):
         super(TimingSetGrating, self).register_controllers()
         self.logger.info('Register TimingController.')
         self.controllers.append(TimingController(self))
+        self.controllers.append(TimingStampController(self))
+        
+class RandPhaseTimingSetGrating(Grating):
+    def register_controllers(self):
+        super(RandPhaseTimingSetGrating, self).register_controllers()
+        self.logger.info('Register TimingController.')
+        self.controllers.append(TimingController(self))
+        self.controllers.append(RandPhaseController(self))
         self.controllers.append(TimingStampController(self))
 
 class ParamMapGrating(Grating):
