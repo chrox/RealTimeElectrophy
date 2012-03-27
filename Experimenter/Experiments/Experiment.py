@@ -96,6 +96,8 @@ class Experiment(object):
         return self.stimulus.get_params()
     
     def run(self):
+        # sleep for 5 seconds
+        time.sleep(5.0)
         self.logger.info('='*18)
         
     def run_stimulus(self, left_params=None, right_params=None, assignments=[]):
@@ -113,8 +115,8 @@ class Experiment(object):
             
     def psth_analysis(self, psth_type=None):
         try:
-            psth_server = self.get_psth_server()
-            self.psth_setup(psth_server)
+            self.psth_server = self.get_psth_server()
+            self.psth_setup()
         except Exception,e:
             self.logger.error('Failed to setup psth app. ' + str(e))
             
@@ -124,7 +126,7 @@ class Experiment(object):
             self.logger.error('Failed to wait for stimulation. ' + str(e))
             
         try:
-            data = psth_server.get_data()
+            data = self.psth_server.get_data()
         except Exception,e:
             self.logger.error('Failed to get data from psth. ' + str(e))
         
@@ -141,13 +143,13 @@ class Experiment(object):
         try:
             chart_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.png'
             self.logger.info('Exporting chart to: ' + chart_file)
-            psth_server.export_chart(chart_file)
+            self.psth_server.export_chart(chart_file)
         except Exception,e:
             self.logger.error('Failed to export psth chart. ' + str(e))
         
         try:
             self.logger.info('Restarting psth data.')
-            psth_server.restart_psth()
+            self.psth_server.restart_psth()
         except Exception,e:
             self.logger.error('Failed to restart psth data. ' + str(e))
             
@@ -185,11 +187,11 @@ class Experiment(object):
         
     def do_no_analysis(self):
         try:
-            psth_server = self.get_psth_server()
-            self.psth_setup(psth_server)
+            self.psth_server = self.get_psth_server()
+            self.psth_setup()
             self.wait_for_stim()
             self.logger.info('Restarting psth data.')
-            psth_server.restart_psth()
+            self.psth_server.restart_psth()
         except Exception,e:
             self.logger.error('Failed to invoke some psth methods. ' + str(e))
         
@@ -214,8 +216,8 @@ class Experiment(object):
         app.SetTopWindow(frame)
         app.MainLoop()
         
-    def psth_setup(self, psth_server):
-        pass
+    def psth_setup(self):
+        self.psth_server.set_psth_title(self.exp_name)
     
 class ManbarExp(Experiment):
     def __init__(self,left_params,right_params,*args,**kwargs):
@@ -260,9 +262,10 @@ class ORITunExp(Experiment):
         ori = self.psth_analysis()
         return ori
     
-    def psth_setup(self, psth_server):
+    def psth_setup(self):
+        super(ORITunExp, self).psth_setup()
         self.logger.info('Uncheck curve fitting for this experiment.')
-        psth_server.uncheck_fitting()
+        self.psth_server.uncheck_fitting()
         
     def extract_results(self, data):
         if 'max_param' not in data:
@@ -290,9 +293,10 @@ class SPFTunExp(Experiment):
         spf = self.psth_analysis()
         return spf
     
-    def psth_setup(self, psth_server):
+    def psth_setup(self):
+        super(SPFTunExp, self).psth_setup()
         self.logger.info('Choose Gaussian curve fitting.')
-        psth_server.check_fitting('gauss')
+        self.psth_server.check_fitting('gauss')
         
     def extract_results(self, data):
         if 'max_param' not in data:
@@ -320,9 +324,10 @@ class PHATunExp(Experiment):
         pha = self.psth_analysis()
         return pha
     
-    def psth_setup(self, psth_server):
+    def psth_setup(self):
+        super(PHATunExp, self).psth_setup()
         self.logger.info('Uncheck curve fitting.')
-        psth_server.uncheck_fitting()
+        self.psth_server.uncheck_fitting()
         
     def extract_results(self, data):
         if 'max_param' not in data:
@@ -349,9 +354,10 @@ class DSPTunExp(Experiment):
         pha = self.psth_analysis()
         return pha
     
-    def psth_setup(self, psth_server):
+    def psth_setup(self):
+        super(DSPTunExp, self).psth_setup()
         self.logger.info('Choose Sinusoid curve fitting.')
-        psth_server.check_fitting('sin')
+        self.psth_server.check_fitting('sin')
         
     def extract_results(self, data):
         if 'max_param' not in data:

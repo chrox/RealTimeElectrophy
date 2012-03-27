@@ -433,6 +433,7 @@ class RCPSTHPanel(PSTHPanel, Pyro.core.ObjBase):
         Pyro.core.ObjBase.__init__(self)
         
         # handle request from pyro client
+        self.title_request = None
         self.export_path = None
         self.start_request = False
         self.stop_request = False
@@ -449,6 +450,7 @@ class RCPSTHPanel(PSTHPanel, Pyro.core.ObjBase):
         Pyro.core.ObjBase.__del__(self)
         
     def _on_check_request(self, event):
+        self._check_set_title()
         self._check_export_chart()
         self._check_start_request()
         self._check_stop_request()
@@ -457,6 +459,12 @@ class RCPSTHPanel(PSTHPanel, Pyro.core.ObjBase):
         self._check_unfitting_request()
         self._check_errbar_request()
     
+    def _check_set_title(self):
+        if self.title_request is not None:
+            parent = wx.FindWindowByName('main_frame')
+            parent.SetTitle(parent.title + ' - ' + self.title_request)
+            self.title_request = None
+            
     def _check_export_chart(self):
         if self.export_path is not None:
             self.save_chart(self.export_path)
@@ -516,6 +524,9 @@ class RCPSTHPanel(PSTHPanel, Pyro.core.ObjBase):
             evt.SetId(parent.m_errbar.GetId())
             wx.PostEvent(parent, evt)
             self.errbar_request = None
+    
+    def set_psth_title(self, title):
+        self.title_request = title
     
     def get_data(self):
         return self.data_form.get_data()
