@@ -5,10 +5,10 @@
 # See LICENSE.TXT that came with this file.
 import numpy as np
 #from StimControl.LightStim.LightData import dictattr
-from Experiments.Experiment import ExperimentConfig,Experiment
-from Experiments.Experiment import ORITunExp,SPFTunExp,DSPTunExp,StimTimingExp,RestingExp
+from Experimenter.Experiments.Experiment import ExperimentConfig,Experiment
+from Experimenter.Experiments.Experiment import ORITunExp,SPFTunExp,DSPTunExp,StimTimingExp,RestingExp
 
-ExperimentConfig(data_base_dir='data',exp_base_dir='Experiments',stim_server_host='192.168.1.105',new_cell=True)
+ExperimentConfig(data_base_dir='data',exp_base_dir='experiments',stim_server_host='192.168.1.105',new_cell=False)
 
 p_left, p_right = Experiment().get_params()
 
@@ -46,7 +46,7 @@ for interval in np.random.permutation(intervals):
     for times in range(3):
         # conditioning stimulus
         exp_postfix = interval_str + '-' + phase_str + '-' + str(times+1)
-        StimTimingExp(left_phase=p_left.phase0, right_phase=p_right.phase0,
+        StimTimingExp(left_phase=0, right_phase=0,
                       interval=interval, duration=3.0, postfix=exp_postfix, rand_phase=True).run()
         # short dsp tuning experiment
         if times < 2:

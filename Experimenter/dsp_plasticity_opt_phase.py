@@ -5,10 +5,10 @@
 # See LICENSE.TXT that came with this file.
 import numpy as np
 #from StimControl.LightStim.LightData import dictattr
-from Experiments.Experiment import ExperimentConfig,Experiment
-from Experiments.Experiment import ORITunExp,SPFTunExp,PHATunExp,DSPTunExp,StimTimingExp,RestingExp
+from Experimenter.Experiments.Experiment import ExperimentConfig,Experiment
+from Experimenter.Experiments.Experiment import ORITunExp,SPFTunExp,PHATunExp,DSPTunExp,StimTimingExp,RestingExp
 
-ExperimentConfig(data_base_dir='data',exp_base_dir='Experiments',stim_server_host='192.168.1.105',new_cell=True)
+ExperimentConfig(data_base_dir='data',exp_base_dir='experiments',stim_server_host='192.168.1.105',new_cell=False)
 
 p_left, p_right = Experiment().get_params()
 

@@ -5,10 +5,10 @@
 # See LICENSE.TXT that came with this file.
 import numpy as np
 #from StimControl.LightStim.LightData import dictattr
-from Experiments.Experiment import ExperimentConfig,Experiment
-from Experiments.Experiment import ORITunExp,SPFTunExp,DSPTunExp,StimTimingExp,RestingExp
+from Experimenter.Experiments.Experiment import ExperimentConfig,Experiment
+from Experimenter.Experiments.Experiment import ORITunExp,SPFTunExp,DSPTunExp,StimTimingExp,RestingExp
 
-ExperimentConfig(data_base_dir='data',exp_base_dir='Experiments',stim_server_host='192.168.1.105',new_cell=True)
+ExperimentConfig(data_base_dir='data_test',exp_base_dir='Experiments',stim_server_host='192.168.1.105',new_cell=False)
 
 p_left, p_right = Experiment().get_params()
 
@@ -18,24 +18,16 @@ p_left, p_right = Experiment().get_params()
 # orientation tuning experiments find the optimal orientation for each eye
 for eye in np.random.permutation(['left','right']):
     if eye == 'left':
-        ORITunExp(eye='left', params=None).run()
-        p_left.ori = 135.0
-        #p_left.ori = ORITunExp(eye='left', params=None).run()
+        p_left.ori = ORITunExp(eye='left', params=None).run()
     if eye == 'right':
-        ORITunExp(eye='right', params=None).run()
-        p_right.ori = 135.0
-        #p_right.ori = ORITunExp(eye='right', params=None).run()
+        p_right.ori = ORITunExp(eye='right', params=None).run()
         
 # spatial frequency tuning experiments find the optimal spatial frequency
 for eye in np.random.permutation(['left','right']):
     if eye == 'left':
-        SPFTunExp(eye='left', params=p_left).run()
-        p_left.sfreqCycDeg = 0.35
-        #p_left.sfreqCycDeg = SPFTunExp(eye='left', params=p_left).run()
+        p_left.sfreqCycDeg = SPFTunExp(eye='left', params=p_left).run()
     if eye == 'right':
-        SPFTunExp(eye='right', params=p_right).run()
-        p_right.sfreqCycDeg = 0.35
-        #p_right.sfreqCycDeg = SPFTunExp(eye='right', params=p_right).run()
+        p_right.sfreqCycDeg = SPFTunExp(eye='right', params=p_right).run()
 
 """
     Induction and binocular tests
@@ -54,7 +46,7 @@ for interval in np.random.permutation(intervals):
     for times in range(3):
         # conditioning stimulus
         exp_postfix = interval_str + '-' + phase_str + '-' + str(times+1)
-        StimTimingExp(left_phase=p_left.phase0, right_phase=p_right.phase0,
+        StimTimingExp(left_phase=0, right_phase=0,
                       interval=interval, duration=3.0, postfix=exp_postfix, rand_phase=True).run()
         # short dsp tuning experiment
         if times < 2:
@@ -81,5 +73,3 @@ for interval in np.random.permutation(intervals):
     exp_postfix = interval_str + '-' + phase_str + '-rest'
     rest_dsp = DSPTunExp(left_params=p_left, right_params=p_right, 
                          repeats=4, postfix=exp_postfix).run()
-    
-    
