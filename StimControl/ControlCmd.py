@@ -11,7 +11,7 @@ class StimCommand(object):
         self.pyro_client = VisionEgg.PyroClient.PyroClient(self.server_hostname,self.server_port)
         self.ephys_server = self.pyro_client.get("ephys_server")
         
-    def run(self, filename, left_params=None, right_params=None, assignments=[]):
+    def run(self, exp_name, filename, left_params=None, right_params=None, assignments=[]):
         """
             Two ways to set stimulus params in runtime.
             i)  sending parameters for left/right viewport directly to ephys server
@@ -19,6 +19,7 @@ class StimCommand(object):
             Note that the second one has higher priority.
         """
         logger = logging.getLogger('StimControl.ControlCmd')
+        self.ephys_server.log_stimulus(exp_name)
         if left_params is not None:
             logger.info('Send stimulation parameter to left viewport.')
             self.ephys_server.send_stimulus_params('left', left_params)
@@ -39,6 +40,9 @@ class StimCommand(object):
             time.sleep(0.5)
         # breaking waiting loop
         self.ephys_server.set_quit_status(True)
+
+    def get_stimulus_log(self, exp_name):
+        return self.ephys_server.get_stimulus_log(exp_name)
         
     def get_params(self):
         return self.ephys_server.get_stimulus_params()

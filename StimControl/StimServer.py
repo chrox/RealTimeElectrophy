@@ -1,9 +1,11 @@
 # Stimulation server extended from VisionEgg.PyroApps.EPhysServer
 
 from distutils.version import LooseVersion as V
+import os
 import ast
 import Pyro
 import pickle
+import logging
 import VisionEgg
 import VisionEgg.PyroApps.EPhysServer as server
 from StimControl import LightStim
@@ -60,6 +62,10 @@ class RTEPhysServer(server.EPhysServer):
         self.really_quit_server = False
         self.AST_tree_completed = False
         
+        self.logpath = 'stimlog'
+        if not os.path.exists(self.logpath):
+            os.makedirs(self.logpath)
+        
     def build_AST(self, source, assignments=[]):
         AST = ast.parse(source)
         for assign in assignments:
@@ -112,6 +118,30 @@ class RTEPhysServer(server.EPhysServer):
         except:
             raise RuntimeError('Cannot save params for ' + eye + 'viewport.')
     
+    def log_stimulus(self, exp_name):
+        # logging stimulus
+        logfile = self.logpath + os.path.sep + exp_name + '.log'
+        log_formatter = logging.Formatter('%(asctime)s (%(process)d) %(levelname)s: %(message)s')
+        log_handler_logfile = logging.FileHandler(logfile)
+        log_handler_logfile.setFormatter(log_formatter)
+        
+        lightstim_logger = logging.getLogger('VisionEgg')
+        lightstim_logger.setLevel( logging.INFO )
+        lightstim_logger.addHandler(log_handler_logfile)
+        
+        lightstim_logger = logging.getLogger('LightStim')
+        lightstim_logger.setLevel( logging.INFO )
+        lightstim_logger.addHandler(log_handler_logfile)
+        
+        stimcontrol_logger = logging.getLogger('StimControl')
+        stimcontrol_logger.setLevel( logging.INFO )
+        stimcontrol_logger.addHandler(log_handler_logfile)
+    
+    def get_stimulus_log(self, exp_name):
+        logfile = self.logpath + os.path.sep + exp_name + '.log'
+        with open(logfile) as log:
+            return log.readlines()
+    
     def is_running(self):
         return self.exec_demoscript_flag
         
@@ -145,6 +175,7 @@ def start_server( server_modules, server_class=RTEPhysServer ):
     pyro_server = NewPyroServer()
     #pyro_server = VisionEgg.PyroHelpers.PyroServer()
     default_viewports = ['control','left','right']
+    #default_viewports = ['left','right']
     DefaultScreen(default_viewports)
     screen = DefaultScreen.screen
     
@@ -177,14 +208,6 @@ def start_server( server_modules, server_class=RTEPhysServer ):
     wait_text.parameters.text = "Loading new experiment, please wait."
 
     while not ephys_server.quit_server_status():
-        # this flow control configuration SEEMS to be stable for
-        # contiguously loaded scripts more rigorous testing would be
-        # appreciated
-        if not DefaultScreen.viewports == default_viewports:
-            DefaultScreen.screen.close()
-            DefaultScreen(default_viewports)
-            screen = DefaultScreen.screen
-
         if ephys_server.get_stimkey() == "dropin_server":
             wait_text.parameters.text = "Vision Egg script mode"
             p.parameters.enter_go_loop = False
@@ -195,6 +218,10 @@ def start_server( server_modules, server_class=RTEPhysServer ):
             
             if ephys_server.exec_demoscript_flag:
                 ephys_server.exec_AST(screen)
-
+        
+        DefaultScreen.screen.close()
+        DefaultScreen(default_viewports)
+        screen = DefaultScreen.screen
+        
 if __name__ == '__main__':
     start_server(server_modules, server_class=RTEPhysServer)
