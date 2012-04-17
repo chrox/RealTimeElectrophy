@@ -13,7 +13,7 @@ ORI_MASK = 0xF<<0
 SPF_MASK = 0xF<<4
 PHA_MASK = 0xF<<8
 ONSET_MASK = 1<<12
-PHA_TUN_TYPE = 1<<13
+#PHA_TUN_TYPE = 1<<13
 
 class PSTHAverage(PlexSpikeData):
     def renew_data(self):
@@ -37,16 +37,17 @@ class PSTHAverage(PlexSpikeData):
         ori_index = trigger_values & ORI_MASK
         spf_index = (trigger_values & SPF_MASK)>>4
         pha_index = (trigger_values & PHA_MASK)>>8
-        pha_type  = (trigger_values & PHA_TUN_TYPE)>>13
+        #pha_type  = (trigger_values & PHA_TUN_TYPE)>>13
         # only one of the three parameters was used in the stimuli. 
         #assert np.any(ori_index) + np.any(spf_index) + np.any(pha_index) < 2
         if np.any(ori_index):
             self.parameter = 'orientation'
         elif np.any(spf_index):
             self.parameter = 'spatial_frequency'
-        elif np.any(pha_index) and np.any(pha_type):
-            self.parameter = 'phase'
-        elif np.any(pha_index) and not np.any(pha_type):
+        #elif np.any(pha_index) and np.any(pha_type):
+            #self.parameter = 'phase'
+        #elif np.any(pha_index) and not np.any(pha_type):
+        elif np.any(pha_index):
             self.parameter = 'disparity'
         param_indices = ori_index + spf_index + pha_index
         offset_trigger = (trigger_values & ONSET_MASK) == 0
