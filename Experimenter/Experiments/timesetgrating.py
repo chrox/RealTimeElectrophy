@@ -29,7 +29,7 @@ p_right.phase0 = 0
 
 stim_interval = 0.0
 
-pre_left = 0.0 if stim_interval > 0 else stim_interval
+pre_left = 0.0 if stim_interval > 0 else abs(stim_interval)
 pre_right = 0.0 if stim_interval <= 0 else stim_interval
 
 repeats = 1600
