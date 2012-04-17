@@ -40,11 +40,17 @@ class ExperimentConfig(object):
             
         ############# Logging #############
         logfile = ExperimentConfig.CELLDIR+ os.path.sep + ExperimentConfig.CELLPREFIX + '.log'
-        logger = logging.getLogger('Experimenter.Experiments')
-        logger.setLevel( logging.INFO )
         log_formatter = logging.Formatter('%(asctime)s (%(process)d) %(levelname)s: %(message)s')
         log_handler_logfile = logging.FileHandler(logfile)
         log_handler_logfile.setFormatter(log_formatter)
+        # logging Experimenter
+        logger = logging.getLogger('Experimenter')
+        logger.setLevel( logging.INFO )
+        logger.addHandler(log_handler_logfile)
+
+        # logging StimControl
+        stimcontrol_logger = logging.getLogger('StimControl')
+        stimcontrol_logger.setLevel( logging.INFO )
         logger.addHandler(log_handler_logfile)
         
         # log version of RealTimeElectrophy
@@ -112,13 +118,19 @@ class Experiment(object):
         self.logger.info('Running script: ' + exp_file)
         self.logger.info('Experiment name is: ' + self.exp_name)
         self.logger.info('Experiment time is: ' + time.strftime('%Y/%m/%d %H:%M:%S', time.localtime()))
-        self.stimulus.run(exp_file,left_params,right_params,assignments)
+        self.stimulus.run(self.exp_name,exp_file,left_params,right_params,assignments)
         time.sleep(1.0)
         
     def wait_for_stim(self):
         self.logger.info('Waiting for stimulus...')
         while self.stimulus.is_running():
             time.sleep(1.0)
+        self.logger.info('Writing stimulus log...')
+        
+        log_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.log'
+        with open(log_file, 'w') as log:
+            loglines = self.stimulus.get_stimulus_log(self.exp_name)
+            log.writelines(loglines)
             
     def psth_analysis(self, psth_type=None):
         try:
@@ -171,27 +183,27 @@ class Experiment(object):
         param = self.exp_param
         with open(data_file,'w') as data_output:
             if 'param' in data:
-                data_output.write('param,'+data['param'])
+                data_output.writelines('param,%s\n' %data['param'])
             if 'x' in data:
-                data_output.write('%s,' %param + ','.join(data['x']))
+                data_output.writelines('%s,%s\n' %(param , ','.join([str(x) for x in data['x']])))
             if 'means' in data:
-                data_output.write('means,'+','.join(data['means']))
+                data_output.writelines('means,%s\n' % ','.join([str(mean) for mean in data['means']]))
             if 'stds' in data:
-                data_output.write('stds,'+','.join(data['stds']))
+                data_output.writelines('stds,%s\n' % ','.join([str(std) for std in data['stds']]))
             if 'max_param' in data:
-                data_output.write('opt %s,' %param + data['max_param'])
+                data_output.writelines('opt %s,%s\n' %(param , str(data['max_param'])))
             if 'max_value' in data:
-                data_output.write('opt rate,' + data['max_value'])
+                data_output.writelines('opt rate,%s\n' % str(data['max_value']))
             if 'min_param' in data:
-                data_output.write('nul %s,' %param + data['min_param'])
+                data_output.writelines('nul %s,%s\n' %(param , str(data['min_param'])))
             if 'max_value' in data:
-                data_output.write('nul rate,' + data['min_value'])
+                data_output.writelines('nul rate,%s\n' % str(data['min_value']))
             if 'F1/F0' in data:
-                data_output.write('F1/F0,' + data['F1/F0'])
+                data_output.writelines('F1/F0,%s\n' % str(data['F1/F0']))
             if 'BII' in data:
-                data_output.write('BII,' + data['BII'])
+                data_output.writelines('BII,%s\n' % str(data['BII']))
             if 'S/N' in data:
-                data_output.write('S/N,' + data['S/N'])
+                data_output.writelines('S/N,%s\n' % str(data['S/N']))
         
     def do_no_analysis(self):
         try:
@@ -281,7 +293,7 @@ class ORITunExp(Experiment):
             self.logger.error('Failed to get optimal parameter from %s experiment.' %self.exp_name)
         else:
             self.logger.info('Get optimal parameter from %s experiment: %f' %(self.exp_name, data['max_param']))
-            return data['max_param']
+            return float(data['max_param'])
     
 class SPFTunExp(Experiment):
     def __init__(self,eye,params,*args,**kwargs):
@@ -312,7 +324,7 @@ class SPFTunExp(Experiment):
             self.logger.error('Failed to get optimal parameter from %s experiment.' %self.exp_name)
         else:
             self.logger.info('Get optimal parameter from %s experiment: %f' %(self.exp_name, data['max_param']))
-            return data['max_param']
+            return float(data['max_param'])
     
 class PHATunExp(Experiment):
     def __init__(self,eye,params,*args,**kwargs):
@@ -343,7 +355,7 @@ class PHATunExp(Experiment):
             self.logger.error('Failed to get optimal parameter from %s experiment.' %self.exp_name)
         else:
             self.logger.info('Get optimal parameter from %s experiment: %f' %(self.exp_name, data['max_param']))
-            return data['max_param']
+            return float(data['max_param'])
     
 class DSPTunExp(Experiment):
     def __init__(self,left_params,right_params,repeats,postfix,*args,**kwargs):
@@ -373,7 +385,7 @@ class DSPTunExp(Experiment):
             self.logger.error('Failed to get optimal parameter from %s experiment.' %self.exp_name)
         else:
             self.logger.info('Get optimal parameter from %s experiment: %f' %(self.exp_name, data['max_param']))
-            return data['max_param']
+            return float(data['max_param'])
 
 class StimTimingExp(Experiment):
     def __init__(self,left_phase,right_phase,interval,duration,postfix,rand_phase=False,*args,**kwargs):
