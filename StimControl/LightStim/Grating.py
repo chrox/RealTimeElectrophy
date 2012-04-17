@@ -159,14 +159,15 @@ class ParamStampController(DTSweepSequeController):
             |  |  |   |    |-----------------spatial_freq index (0.05, 1.0, 16)
             |  |  |   |----------------------phase_at_t0 index (0.0, 360.0, 16)
             |  |  |--------------------------stimulus onset
-            |  |-----------------------------stimulus type (reserved)
+            |  |-----------------------------stimulus offset
             |--------------------------------reserved
             """
             onset = 1
             post_val = ori_index + (spf_index<<4) + (pha_index<<8) + (onset<<12)
             return post_val
         else:
-            post_val = None
+            offset = 1
+            post_val = offset<<13
             return post_val
             
 class ParamMappingStamp(ParamStampController):
