@@ -290,6 +290,7 @@ class ManGrating(ManStimulus):
             self.preference = self.defalut_preference
             
         self.set_parameters(self.preference)
+        self.maskDiameterDeg = self.preference['widthDeg']
         if self.mask:
             self.mask_on = True
 
