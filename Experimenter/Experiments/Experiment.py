@@ -23,12 +23,10 @@ class ExperimentConfig(object):
     CELLINDEX = None
     CELLPREFIX = None
     
-    def __init__(self,data_base_dir='.',exp_base_dir='.',
-                  stim_server_host='localhost',stim_server_port=7766,new_cell=True):
+    def __init__(self,data_base_dir='.',stim_server_host='localhost',stim_server_port=7766,new_cell=True):
         ExperimentConfig.STIM_SERVER_HOST = stim_server_host
         ExperimentConfig.STIM_SERVER_PORT = stim_server_port
         ExperimentConfig.DATABASEDIR = data_base_dir
-        ExperimentConfig.EXPBASEDIR = exp_base_dir
         if not os.path.exists(data_base_dir):
             os.makedirs(data_base_dir)
         if new_cell:
@@ -115,7 +113,6 @@ class Experiment(object):
         
     def run_stimulus(self, left_params=None, right_params=None, assignments=[]):
         exp_file = os.path.dirname(__file__) + os.path.sep + 'script' + os.path.sep + self.source
-        #exp_file = ExperimentConfig.EXPBASEDIR + os.path.sep + self.source 
         self.logger.info('Running script: ' + exp_file)
         self.logger.info('Experiment name is: ' + self.exp_name)
         self.logger.info('Experiment time is: ' + time.strftime('%Y/%m/%d %H:%M:%S', time.localtime()))

@@ -6,7 +6,7 @@
 
 from Experiments.Experiment import ExperimentConfig,ManbarExp,MangratingExp
 
-ExperimentConfig(data_base_dir='data',exp_base_dir='Experiments',new_cell=True)
+ExperimentConfig(data_base_dir='data',new_cell=True)
 
 # When a neuron is isolated in Plexon PlexControl software. The experimenter should choose proper
 # bar to estimate the size and position of the receptive field of that neuron.

@@ -8,7 +8,7 @@ import numpy as np
 from Experimenter.Experiments.Experiment import ExperimentConfig,Experiment
 from Experimenter.Experiments.Experiment import ORITunExp,SPFTunExp,DSPTunExp,StimTimingExp,RestingExp
 
-ExperimentConfig(data_base_dir='data_test',exp_base_dir='Experiments',stim_server_host='192.168.1.105',new_cell=False)
+ExperimentConfig(data_base_dir='data_test',stim_server_host='192.168.1.105',new_cell=False)
 
 p_left, p_right = Experiment().get_params()
 
@@ -19,15 +19,19 @@ p_left, p_right = Experiment().get_params()
 for eye in np.random.permutation(['left','right']):
     if eye == 'left':
         p_left.ori = ORITunExp(eye='left', params=None).run()
+        p_left.ori = 45.0
     if eye == 'right':
         p_right.ori = ORITunExp(eye='right', params=None).run()
+        p_right.ori = 45.0
         
 # spatial frequency tuning experiments find the optimal spatial frequency
 for eye in np.random.permutation(['left','right']):
     if eye == 'left':
         p_left.sfreqCycDeg = SPFTunExp(eye='left', params=p_left).run()
+        p_left.sfreqCycDeg = 0.55
     if eye == 'right':
         p_right.sfreqCycDeg = SPFTunExp(eye='right', params=p_right).run()
+        p_right.sfreqCycDeg = 0.55
 
 """
     Induction and binocular tests

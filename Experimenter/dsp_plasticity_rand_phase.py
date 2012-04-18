@@ -8,7 +8,7 @@ import numpy as np
 from Experimenter.Experiments.Experiment import ExperimentConfig,Experiment
 from Experimenter.Experiments.Experiment import ORITunExp,SPFTunExp,DSPTunExp,StimTimingExp,RestingExp
 
-ExperimentConfig(data_base_dir='data',exp_base_dir='experiments',stim_server_host='192.168.1.105',new_cell=False)
+ExperimentConfig(data_base_dir='data',stim_server_host='192.168.1.105',new_cell=False)
 
 p_left, p_right = Experiment().get_params()
 
