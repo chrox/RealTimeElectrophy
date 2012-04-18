@@ -316,6 +316,7 @@ class ManGrating(ManStimulus):
             with open('stimulus_params.pkl','wb') as pkl_output:
                 preferences_dict[name][index].update(self.get_parameters())
                 pickle.dump(preferences_dict, pkl_output)
+            logger.info('Saved parameters:\n' + str(self.get_parameters()))
         except:
             logger.warning('Cannot save preference ' + info)
             
