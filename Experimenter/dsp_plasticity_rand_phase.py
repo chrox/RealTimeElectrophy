@@ -36,7 +36,7 @@ intervals = [-0.040, -0.016, -0.008, 0.0, 0.008, 0.016, 0.040]
 dsp_index = 1
 for interval in np.random.permutation(intervals):
     # interval string like m16ms(-0.016) or 24ms(0.024)
-    interval_str = 'm'+str(int(interval*1000))+'ms' if interval < 0 else str(int(interval*1000))+'ms'
+    interval_str = 'm'+str(int(abs(interval)*1000))+'ms' if interval < 0 else str(int(interval*1000))+'ms'
     phase_str = 'rand'
     # disparity tuning experiment before induction
     exp_postfix = interval_str + '-' + phase_str + '-pre'
