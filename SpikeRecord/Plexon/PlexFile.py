@@ -14,6 +14,7 @@ import mmap
 logger = logging.getLogger('SpikeRecord.Plexon')
 import ctypes
 from ctypes import Structure
+from datetime import datetime
 
 #######################################/
 # Plexon .plx File Structure Definitions
@@ -146,7 +147,7 @@ class PlexFile(object):
         self.file = open(filename, 'rb')
         if not self.file:
             logger.error("Could not open file " + filename)
-        self.file_header = self.get_header(PL_FileHeader)
+        self.file_header = self._get_header(PL_FileHeader)
         if self.file_header.Version not in TESTED_PLX_VERSIONS:
             raise RuntimeError("PLX file version other than %s is not supported. "
                                "The version of this file is %d." \
@@ -165,20 +166,29 @@ class PlexFile(object):
                            
     def __enter__(self):
         return self
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, _type, value, traceback):
         if self.file:
             self.file.close()
             
-    def get_header(self,Header):
+    def _get_header(self,Header):
         header = Header()
         self.file.readinto(header)
         return header
     
+    def get_datetime(self):
+        year = self.file_header.Year
+        month = self.file_header.Month
+        day = self.file_header.Day
+        hour = self.file_header.Hour
+        minute = self.file_header.Minute
+        second = self.file_header.Second
+        return datetime(year,month,day,hour,minute,second)
+    
     def read_data_header(self):
         self.file.seek(self.data_header_offset)
-        self.chan_headers = [self.get_header(PL_ChanHeader) for _i in range(self.file_header.NumDSPChannels)]
-        self.event_headers = [self.get_header(PL_EventHeader) for _i in range(self.file_header.NumEventChannels)]
-        self.slow_headers = [self.get_header(PL_SlowChannelHeader) for _i in range(self.file_header.NumSlowChannels)]
+        self.chan_headers = [self._get_header(PL_ChanHeader) for _i in range(self.file_header.NumDSPChannels)]
+        self.event_headers = [self._get_header(PL_EventHeader) for _i in range(self.file_header.NumEventChannels)]
+        self.slow_headers = [self._get_header(PL_SlowChannelHeader) for _i in range(self.file_header.NumSlowChannels)]
     
     def read_timestamps(self, callback):
         evtcounts = self.single_wf_counts + self.ext_event_counts
