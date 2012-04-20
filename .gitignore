@@ -2,3 +2,7 @@
 /build
 /dist
 /data
+/.gitignore
+/.project
+/.pydevproject
+/.settings
