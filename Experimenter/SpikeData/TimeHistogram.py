@@ -97,7 +97,7 @@ class PSTHAverage(PlexSpikeData):
                 
     def _process_psth_data(self,begin,end,param_index):
         duration = 2.0
-        binsize = 0.02 #binsize 10 ms
+        binsize = 0.01 #binsize 10 ms
         bins = np.arange(0.,duration,binsize)
         for channel,channel_trains in self.spike_trains.iteritems():
             if channel not in self.histogram_data:
