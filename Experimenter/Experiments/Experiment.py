@@ -139,11 +139,21 @@ class Experiment(object):
     def psth_analysis(self, psth_type=None):
         try:
             self.psth_server = self.get_psth_server()
-            self.psth_server.start_psth()
+        except Exception,e:
+            self.logger.error('Failed to get psth app. ' + str(e))
+        
+        try:
+            self.logger.info('Restarting psth data.')
+            self.psth_server.restart_psth()
+        except Exception,e:
+            self.logger.error('Failed to restart psth app. ' + str(e))
+        
+        try:
+            self.logger.info('Setting up psth app.')
             self.psth_setup()
         except Exception,e:
             self.logger.error('Failed to setup psth app. ' + str(e))
-            
+        
         try:
             self.wait_for_stim()
         except Exception,e:
@@ -170,12 +180,6 @@ class Experiment(object):
             self.psth_server.export_chart(chart_file)
         except Exception,e:
             self.logger.error('Failed to export psth chart. ' + str(e))
-        
-        try:
-            self.logger.info('Restarting psth data.')
-            self.psth_server.restart_psth()
-        except Exception,e:
-            self.logger.error('Failed to restart psth data. ' + str(e))
             
         try:
             return results
@@ -212,11 +216,11 @@ class Experiment(object):
     def do_no_analysis(self):
         try:
             self.psth_server = self.get_psth_server()
+            self.logger.info('Restarting psth data.')
+            self.psth_server.restart_psth()
             self.psth_server.stop_psth()
             self.psth_setup()
             self.wait_for_stim()
-            self.logger.info('Restarting psth data.')
-            self.psth_server.restart_psth()
         except Exception,e:
             self.logger.error('Failed to invoke some psth methods. ' + str(e))
         
