@@ -11,7 +11,7 @@ import logging
 import VisionEgg
 import pygame
 from pygame.locals import K_UP,K_DOWN,K_RIGHT,K_LEFT,K_EQUALS,K_MINUS,K_RSHIFT,K_LSHIFT,K_SPACE,K_RETURN,K_KP_ENTER,KMOD_CTRL
-from pygame.locals import K_e,K_0,K_KP0,K_1,K_KP1,K_2,K_KP2
+from pygame.locals import K_e,K_0,K_KP0,K_1,K_KP1,K_2,K_KP2, K_t, K_u
 from VisionEgg.MoreStimuli import Target2D
 from InfoText import BitmapText
 from SweepController import StimulusController
@@ -130,6 +130,8 @@ class ManStimulus(Stimulus):
         self.UP, self.DOWN, self.LEFT, self.RIGHT = False, False, False, False
         self.PLUS, self.MINUS = False, False
         self.LEFTBUTTON, self.RIGHTBUTTON, self.SCROLL_UP, self.SCROLL_DOWN = False, False, False, False
+        self.orthogonalize_ori = False
+        self.reverse_direction = False
 
         self.make_screen_info()
         self.info = (self.upperbar, self.squarelocktext, self.viewportinfotext, self.screentext,
@@ -233,6 +235,10 @@ class ManStimulus(Stimulus):
             self.load_preference(0) # load Manbar state 0
         elif not mods & KMOD_CTRL and key in [K_2, K_KP2]:
             self.load_preference(1) # load Manbar state 1
+        elif key == K_t: # add 90 degrees to orientation
+            self.orthogonalize_ori = True
+        elif key == K_u: # add 180 degrees to orientation
+            self.reverse_direction = True
             
     def keyup_callback(self,event):
         mods = pygame.key.get_mods()

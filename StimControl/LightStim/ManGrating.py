@@ -155,6 +155,15 @@ class GratingSizeController(SizeController):
         else:
             super(GratingSizeController, self).during_go_eval()
 
+class GratingOriController(OrientationController):
+    def __init__(self,*args,**kwargs):
+        super(GratingOriController, self).__init__(*args,**kwargs)
+    def during_go_eval(self):
+        super(GratingOriController, self).during_go_eval()
+        self.stimulus.ori += self.stimulus.reverse_direction * 180.0
+        self.stimulus.reverse_direction = False
+        self.stimulus.ori = self.stimulus.ori % 360 # keep it in [0, 360)
+
 class ManGrating(ManStimulus):
     def __init__(self, params, **kwargs):
         super(ManGrating, self).__init__(params=params, **kwargs)
@@ -208,7 +217,7 @@ class ManGrating(ManStimulus):
         self.controllers.append(GratingSizeController(self))
         self.controllers.append(SpatialFrequencyController(self))
         self.controllers.append(TemporalFrequencyController(self))
-        self.controllers.append(OrientationController(self))
+        self.controllers.append(GratingOriController(self))
         self.controllers.append(ContrastController(self))
         self.controllers.append(FlashController(self))
         self.controllers.append(ManGratingController(self))

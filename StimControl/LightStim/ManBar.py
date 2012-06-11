@@ -97,6 +97,8 @@ class OrientationController(StimulusController):
         if mod == 0:
             mod = self.stimulus.snapDeg
         self.stimulus.ori -= self.stimulus.SCROLL_DOWN * mod  
+        self.stimulus.ori += self.stimulus.orthogonalize_ori * 90.0
+        self.stimulus.orthogonalize_ori = False
         self.stimulus.SCROLL_UP = False
         self.stimulus.SCROLL_DOWN = False
         self.stimulus.ori = self.stimulus.ori % 360 # keep it in [0, 360)

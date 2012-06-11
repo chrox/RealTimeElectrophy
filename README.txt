@@ -90,6 +90,8 @@ In manbar and mangrating stimulation:
     - 'H' controls stimulus on/off on all viewports
     - 'I' inverts the bar and background brightness levels
     - 'O' sets the bar orientation orthogonal to motion
+    - 'T' add 90 degrees to the bar/grating orientation
+    - 'U' reverse the drifting direction of gratings
     - '-'/'+' adjust brightness of bar and contrast of grating
     - '['/']' adjust grating temporal frequency
     - '<'/'>' adjust grating spatial frequency (','/'.' do the same thing)
