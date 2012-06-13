@@ -50,28 +50,39 @@ def collect_log_timestamp(log_dir):
     return sorted(log_timestamps, key=lambda tup: tup[2])
 
 if __name__ == '__main__':
-    plx_timestamps = collect_plx_timestamp(sys.argv[1])
-    log_timestamps = collect_log_timestamp(sys.argv[2])
+    update_file = False
+    argv = list(sys.argv)
+    if '-u' in argv:
+        update_file = True
+        argv.remove('-u')
+        
+    plx_timestamps = collect_plx_timestamp(argv[1])
+    log_timestamps = collect_log_timestamp(argv[2])
+    
     print 'Found %d PLX files and %d Experiments entries.' %(len(plx_timestamps),len(log_timestamps))
     for timestamp in plx_timestamps:
         try:
-            oldest_log = log_timestamps[0]
             while True:
+                oldest_log = log_timestamps[0]
                 elapse = (timestamp[1] - oldest_log[2]).total_seconds()
-                print 'Elapse %f' %elapse
-                if elapse >= 10.0:
-                    oldest_log = log_timestamps.pop(0)
+                print 'Elapse %f for experiment %s' %(elapse, oldest_log[1])
+                if elapse >= 10.0: # skip experiments of ten secs ago
                     print 'Skip experiment %s' %(oldest_log[1])
+                    log_timestamps.pop(0)
+                elif elapse <= 0:
+                    print "Skip PLX file %s" %timestamp[0]
+                    break
                 else:
+                    log_timestamps.pop(0)
+                    src_file = timestamp[0]
+                    dst_file = os.path.join(oldest_log[0],oldest_log[1]+'.plx')
+                    if update_file and os.path.exists(dst_file):
+                        print "File %s exists" %dst_file
+                    else:
+                        shutil.copyfile(src_file, dst_file)
+                        print "Created file %s" %dst_file
                     break
         except IndexError,e:
             print "No more entry in log file. " + str(e)
             break
-        if elapse > 0 and elapse < 10.0:
-            src_file = timestamp[0]
-            dst_file = os.path.join(oldest_log[0],oldest_log[1]+'.plx')
-            shutil.copyfile(src_file, dst_file)
-            print "Created file " + dst_file
-        else:
-            print "Skip PLX file %s" %timestamp[0]
-            
+         
