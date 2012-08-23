@@ -18,7 +18,7 @@ from matplotlib import pylab
 
 from ..DataProcessing.Fitting import GaussFit,SinusoidFit,GaborFit
 from ..SpikeData import TimeHistogram
-from Base import UpdateDataThread,UpdateFileDataThread,RestartDataThread
+from Base import UpdateDataThread,UpdateFileDataThread,RenewDataThread
 from Base import EVT_DATA_START_TYPE,EVT_DATA_STOP_TYPE,EVT_DATA_RESTART_TYPE
 from Base import MainFrame,DataForm,adjust_spines
 
@@ -269,14 +269,13 @@ class PSTHPanel(wx.Panel):
     
     def stop_data(self):
         self.collecting_data = False
-        
-    def restart_data(self):
-        self.collecting_data = False
         self.clear_data()
         if hasattr(self, 'update_data_thread') and self.psth is not None:
-            restart_data_thread = RestartDataThread(self, self.psth, self.update_data_thread)
-            restart_data_thread.start()
-        self.collecting_data = True
+            RenewDataThread(self, self.psth, self.update_data_thread).start()
+        
+    def restart_data(self):
+        self.stop_data()
+        self.start_data()
     
     def gaussianfit(self, checked):
         self.gauss_fitter = GaussFit()
