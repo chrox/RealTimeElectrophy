@@ -421,8 +421,8 @@ class PSTHFrame(MainFrame):
             self.flash_status_message("Stoped showing error bar")
         self.chart_panel.update_chart()
 
-class DataRestartEvent(wx.PyCommandEvent):
-    pass        
+#class DataRestartEvent(wx.PyCommandEvent):
+    #pass        
 
 class RCPSTHPanel(PSTHPanel, Pyro.core.ObjBase):
     """
@@ -557,6 +557,10 @@ class PyroPSTHFrame(PSTHFrame):
     """
         Remote controlled PSTH frame
     """
+    def __init__(self, pyro_port):
+        self.pyro_port = pyro_port
+        super(PyroPSTHFrame, self).__init__()
+        
     def create_chart_panel(self):
         self.chart_panel = RCPSTHPanel(self.panel, 'PSTH Chart')
         threading.Thread(target=self.create_pyro_server).start()
@@ -564,10 +568,10 @@ class PyroPSTHFrame(PSTHFrame):
     def create_pyro_server(self):
         Pyro.config.PYRO_MULTITHREADED = 0
         Pyro.core.initServer()
-        pyro_port = 6743
+        pyro_port = self.pyro_port
         self.pyro_daemon = Pyro.core.Daemon(port=pyro_port)
         self.PYRO_URI = self.pyro_daemon.connect(self.chart_panel, 'psth_server')
-        if str(self.PYRO_URI).find(':%d' %pyro_port) < 0:
+        if self.pyro_daemon.port is not pyro_port:
             raise RuntimeError("Pyro daemon cannot run on port %d. " %pyro_port +
                                "Probably the port has already been taken up by another pyro daemon.")
         self.pyro_daemon.requestLoop()
