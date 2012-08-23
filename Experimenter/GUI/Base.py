@@ -77,7 +77,7 @@ class UnitSelectedEvent(wx.PyCommandEvent):
     def get_unit(self):
         return self._unit
 
-class RestartDataThread(threading.Thread):
+class RenewDataThread(threading.Thread):
     def __init__(self, parent, source, update_data_thread):
         threading.Thread.__init__(self)
         self._parent = parent
