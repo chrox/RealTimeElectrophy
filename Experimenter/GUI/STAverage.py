@@ -6,16 +6,19 @@
 
 from __future__ import division
 import wx
+import threading
+import Pyro.core
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
+matplotlib.use('WXAgg')
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 
-from ..DataProcessing.Fitting import GaussFit,GaborFit
+from ..DataProcessing.Fitting.Fitters import GaussFit,GaborFit
 from ..SpikeData import RevCorr
-from Base import UpdateDataThread,UpdateFileDataThread,RestartDataThread
-from Base import MainFrame,DataForm,adjust_spines
+from Base import UpdateDataThread,UpdateFileDataThread,RenewDataThread
+from Base import EVT_DATA_START_TYPE,EVT_DATA_STOP_TYPE,EVT_DATA_RESTART_TYPE
+from Base import MainFrame,DataPanel,adjust_spines
 
 EVT_TIME_UPDATED_TYPE = wx.NewEventType()
 EVT_TIME_UPDATED = wx.PyEventBinder(EVT_TIME_UPDATED_TYPE, 1)
@@ -49,6 +52,46 @@ class OptionPanel(wx.Panel):
         time = self.slider.GetValue() / 1000
         evt = TimeUpdatedEvent(EVT_TIME_UPDATED_TYPE, -1, time)
         wx.PostEvent(self.GetParent(), evt)
+        
+class STADataPanel(DataPanel):
+    def gen_img_data(self,params,img,stim_type):
+        class IndexedParam(list):
+            def __init__(self,parameter):
+                if parameter == 'orientation':
+                    super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 16, endpoint=False))
+                elif parameter == 'orientation_180':
+                    super(IndexedParam, self).__init__(np.linspace(0.0, 180.0, 16, endpoint=False))
+                elif parameter == 'spatial_freq':
+                    super(IndexedParam, self).__init__(np.logspace(-1.0,0.5,16))
+                elif parameter == 'phase_at_t0':
+                    super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 16, endpoint=False))
+                elif parameter is None:
+                    super(IndexedParam, self).__init__([None])
+                else:
+                    raise RuntimeError('Cannot understand parameter:%s' %str(parameter))
+        
+        dims = img.shape
+        data = ''
+        extremes = ''
+        if stim_type == 'white_noise':
+            self.data['rf_center'] = (params[2],params[3])
+            data += '-'*18 + '\nRF center:\n'
+            data += 'Center position(x,y):\n'
+            data += '%.2f\t%.2f\n' %(params[2],params[3])
+        elif stim_type == 'param_mapping':
+            ori = IndexedParam('orientation_180')
+            spf = IndexedParam('spatial_freq')
+            x_max,y_max = np.unravel_index(img.argmax(), dims)
+            x_min,y_min = np.unravel_index(img.argmin(), dims)
+            self.data['max_ori'] = ori[x_max]
+            self.data['max_spf'] = ori[y_max]
+            extremes += '\n' + '-'*18 + '\nMax/min values:\n'
+            extremes += 'Max: ' + '\tori' + '\tspf\n'
+            extremes += '\t%.2f\t%.2f\n' %(ori[x_max], spf[y_max])
+            extremes += 'Min: ' + '\tori' + '\tspf\n'
+            extremes += '\t%.2f\t%.2f\n' %(ori[x_min], spf[y_min])
+        form = data + extremes
+        self.results.SetValue(form)
 
 class STAPanel(wx.Panel):
     """ Receptive field plot.
@@ -67,7 +110,7 @@ class STAPanel(wx.Panel):
         self.start_data()
         self.stimulus = None
         # reverse time in ms
-        time_slider = 85
+        time_slider = 65
         self.time = time_slider/1000
         
         self.dpi = 100
@@ -102,11 +145,11 @@ class STAPanel(wx.Panel):
         self.options = OptionPanel(self, 'Options', time=time_slider)
         self.Bind(EVT_TIME_UPDATED, self.on_update_time_slider)
         # results 
-        self.results = DataForm(self, 'Results', text_size=(250,150))
+        self.data_form = STADataPanel(self, 'Results', text_size=(250,150))
         
         vbox = wx.BoxSizer(wx.VERTICAL)
         vbox.Add(self.options,1,wx.TOP|wx.CENTER, 0)
-        vbox.Add(self.results,1,wx.TOP|wx.CENTER, 0)
+        vbox.Add(self.data_form,1,wx.TOP|wx.CENTER, 0)
         
         # canvas 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -128,6 +171,7 @@ class STAPanel(wx.Panel):
         img = np.zeros((64,64,3))
         self.img_dim = img.shape
         self.im = self.axes.imshow(img,interpolation=self.interpolation)
+        self.fig.canvas.draw()
         
     def set_data(self, data):
         self.data = data
@@ -156,10 +200,10 @@ class STAPanel(wx.Panel):
             if self.fitting_gaussian or self.fitting_gabor:
                 float_img = self.sta_data.get_img(data, channel, unit, tau=self.time, format='float')
                 if self.fitting_gaussian:
-                    _params,img = self.gauss_fitter.gaussfit2d(float_img,returnfitimage=True)
+                    params,img = self.gauss_fitter.gaussfit2d(float_img,returnfitimage=True)
                 elif self.fitting_gabor:
-                    _params,img = self.gabor_fitter.gaborfit2d(float_img,returnfitimage=True)
-                self.results.gen_img_data(img, self.stimulus)
+                    params,img = self.gabor_fitter.gaborfit2d(float_img,returnfitimage=True)
+                self.data_form.gen_img_data(params, img, self.stimulus)
                 img = self.sta_data.float_to_rgb(img,cmap='jet')
 
             self.im.set_data(img)
@@ -179,27 +223,23 @@ class STAPanel(wx.Panel):
     def on_update_time_slider(self, event):
         self.time = event.get_time()
         self.update_chart()
-    
+        
     def start_data(self):
         if self.sta_data is None:
             self.sta_data = RevCorr.STAData()
         self.collecting_data = True
-        self.data_started = True
         self.connected_to_server = True
     
     def stop_data(self):
         self.collecting_data = False
-        self.data_started = False
+        self.clear_data()
+        if hasattr(self, 'update_data_thread') and self.sta_data is not None:
+            RenewDataThread(self, self.sta_data, self.update_data_thread).start()
         
     def restart_data(self):
-        self.collecting_data = False
-        self.make_chart()
-        if self.data_started and self.sta_data is not None:
-            restart_data_thread = RestartDataThread(self, self.sta_data, self.update_data_thread)
-            restart_data_thread.start()
-        self.collecting_data = True
-        self.data_started = True
-           
+        self.stop_data()
+        self.start_data()
+    
     def sparse_noise_data(self):
         self.sta_data = RevCorr.STAData()
         self.restart_data()
@@ -252,6 +292,11 @@ class STAPanel(wx.Panel):
         
     def save_chart(self, path):
         self.canvas.print_figure(path, dpi=self.dpi)
+        
+    def clear_data(self):
+        self.make_chart()
+        wx.FindWindowByName('main_frame').unit_choice.clear_unit()
+        self.data_form.clear_data()
 
 class STAFrame(MainFrame):
     """ The main frame of the application
@@ -340,4 +385,157 @@ class STAFrame(MainFrame):
     def on_check_colorbar(self, event):
         self.chart_panel.show_colorbar(self.m_colorbar.IsChecked())
         self.chart_panel.update_chart()
+        
+class RCSTAPanel(STAPanel, Pyro.core.ObjBase):
+    """
+        Remote controlled PSTH panel
+    """
+    def __init__(self, *args,**kwargs):
+        STAPanel.__init__(self,*args,**kwargs)
+        Pyro.core.ObjBase.__init__(self)
+        
+        # handle request from pyro client
+        self.title_request = None
+        self.export_path = None
+        self.start_request = False
+        self.stop_request = False
+        self.restart_request = False
+        self.fitting_request = None
+        self.unfitting_request = False
+        self.colorbar_request = None
+        self.check_request_timer = wx.Timer(self, wx.NewId())
+        self.Bind(wx.EVT_TIMER, self._on_check_request, self.check_request_timer)
+        self.check_request_timer.Start(1000)
+    
+    def __del__(self):
+        STAPanel.__del__(self)
+        Pyro.core.ObjBase.__del__(self)
+        
+    def _on_check_request(self, event):
+        self._check_set_title()
+        self._check_export_chart()
+        self._check_start_request()
+        self._check_stop_request()
+        self._check_restart_request()
+        self._check_fitting_request()
+        self._check_unfitting_request()
+        self._check_colorbar_request()
+    
+    def _check_set_title(self):
+        if self.title_request is not None:
+            parent = wx.FindWindowByName('main_frame')
+            parent.SetTitle(parent.title + ' - ' + self.title_request)
+            self.title_request = None
+            
+    def _check_export_chart(self):
+        if self.export_path is not None:
+            self.save_chart(self.export_path)
+            self.export_path = None
+    
+    def _check_start_request(self):
+        if self.start_request is not False:
+            parent = wx.FindWindowByName('main_frame')
+            evt = wx.CommandEvent(EVT_DATA_START_TYPE)
+            wx.PostEvent(parent, evt)
+            self.start_request = False
+            
+    def _check_stop_request(self):
+        if self.stop_request is not False:
+            parent = wx.FindWindowByName('main_frame')
+            evt = wx.CommandEvent(EVT_DATA_STOP_TYPE)
+            wx.PostEvent(parent, evt)
+            self.stop_request = False
+    
+    def _check_restart_request(self):
+        if self.restart_request is not False:
+            parent = wx.FindWindowByName('main_frame')
+            evt = wx.CommandEvent(EVT_DATA_RESTART_TYPE)
+            wx.PostEvent(parent, evt)
+            self.restart_request = False
+            
+    def _check_fitting_request(self):
+        if self.fitting_request is not None:
+            evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
+            parent = wx.FindWindowByName('main_frame')
+            if self.fitting_request == 'gauss':
+                parent.menu_fitting.Check(parent.m_gaussfitter.GetId(), True)
+                evt.SetId(parent.m_gaussfitter.GetId())
+                wx.PostEvent(parent, evt)
+            if self.fitting_request == 'gabor':
+                parent.menu_fitting.Check(parent.m_gaborfitter.GetId(), True)
+                evt.SetId(parent.m_gaborfitter.GetId()) 
+                wx.PostEvent(parent, evt)
+            self.fitting_request = None
+        
+    def _check_unfitting_request(self):
+        if self.unfitting_request is not False:
+            parent = wx.FindWindowByName('main_frame')
+            parent.uncheck_fitting()
+            self.unfitting_request = False
+            
+    def _check_colorbar_request(self):
+        if self.colorbar_request is not None:
+            evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
+            parent = wx.FindWindowByName('main_frame')
+            parent.menu_view.Check(parent.m_colorbar.GetId(), self.colorbar_request)
+            evt.SetId(parent.m_colorbar.GetId())
+            wx.PostEvent(parent, evt)
+            self.colorbar_request = None
+    
+    def set_sta_title(self, title):
+        self.title_request = title
+    
+    def get_data(self):
+        return self.data_form.get_data()
+    
+    def export_chart(self, path):
+        self.export_path = path
+        
+    def start_sta(self):
+        self.start_request = True
+        
+    def stop_sta(self):
+        self.stop_request = True
+        
+    def restart_sta(self):
+        self.restart_request = True
+        
+    def check_fitting(self, fitting):
+        # fitting in ('gauss','gabor')
+        self.fitting_request = fitting
+    
+    def uncheck_fitting(self):
+        self.unfitting_request = True
+        
+    def check_colorbar(self, checked):
+        self.colorbar_request = checked
+
+class PyroSTAFrame(STAFrame):
+    """
+        Remote controlled STA frame
+    """
+    def __init__(self, pyro_port):
+        self.pyro_port = pyro_port
+        super(PyroSTAFrame, self).__init__()
+        
+    def create_chart_panel(self):
+        self.chart_panel = RCSTAPanel(self.panel, 'STA Chart')
+        threading.Thread(target=self.create_pyro_server).start()
+        
+    def create_pyro_server(self):
+        Pyro.config.PYRO_MULTITHREADED = 0
+        Pyro.core.initServer()
+        pyro_port = self.pyro_port
+        self.pyro_daemon = Pyro.core.Daemon(port=pyro_port)
+        self.PYRO_URI = self.pyro_daemon.connect(self.chart_panel, 'sta_server')
+        if self.pyro_daemon.port is not pyro_port:
+            raise RuntimeError("Pyro daemon cannot run on port %d. " %pyro_port +
+                               "Probably the port has already been taken up by another pyro daemon.")
+        self.pyro_daemon.requestLoop()
+    
+    def on_exit(self, event):
+        self.pyro_daemon.disconnect(self.chart_panel)
+        self.pyro_daemon.shutdown()
+        super(PyroSTAFrame, self).on_exit(event)
+        
         
