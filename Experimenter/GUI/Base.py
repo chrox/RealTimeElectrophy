@@ -3,29 +3,11 @@
 # Copyright (C) 2010-2011 Huang Xin
 # 
 # See LICENSE.TXT that came with this file.
-import numpy as np
 import os
+import wx
 import time
 import threading
-import wx
 import matplotlib
-import scipy
-#from StimControl.LightStim.LightData import IndexedParam
-
-class IndexedParam(list):
-    def __init__(self,parameter):
-        if parameter == 'orientation':
-            super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 16, endpoint=False))
-        elif parameter == 'orientation_180':
-            super(IndexedParam, self).__init__(np.linspace(0.0, 180.0, 16, endpoint=False))
-        elif parameter == 'spatial_freq':
-            super(IndexedParam, self).__init__(np.logspace(-1.0,0.5,16))
-        elif parameter == 'phase_at_t0':
-            super(IndexedParam, self).__init__(np.linspace(0.0, 360.0, 16, endpoint=False))
-        elif parameter is None:
-            super(IndexedParam, self).__init__([None])
-        else:
-            raise RuntimeError('Cannot understand parameter:%s' %str(parameter))
 
 EVT_DATA_UPDATED_TYPE = wx.NewEventType()
 EVT_DATA_UPDATED = wx.PyEventBinder(EVT_DATA_UPDATED_TYPE, 1)
@@ -146,11 +128,11 @@ class UnitChoice(wx.Panel):
         if index is not wx.NOT_FOUND:
             return self.units[index]
         
-class DataForm(wx.Panel):
+class DataPanel(wx.Panel):
     """ display results.
     """
     def __init__(self, parent, label, text_size=(150,600), name='results'):
-        super(DataForm, self).__init__(parent, -1, name=name)
+        super(DataPanel, self).__init__(parent, -1, name=name)
         
         self.results = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.HSCROLL | wx.VSCROLL | wx.TE_READONLY, size=text_size)        
         box = wx.StaticBox(self, -1, label)
@@ -166,111 +148,6 @@ class DataForm(wx.Panel):
         
     def get_data(self):
         return self.data
-    
-    def gen_psth_data(self, channel_unit_data):
-        index = max(channel_unit_data, key=lambda k: channel_unit_data[k]['mean'])
-        psth_data = channel_unit_data[index]['smooth_psth']
-        fft_data = abs(scipy.fft(psth_data))
-        try:
-            F1 = max(fft_data[1:len(psth_data)//2])*2.0/len(psth_data)
-            F0 = fft_data[0]/len(psth_data)
-            ratio = F1/F0
-        except ZeroDivisionError:
-            ratio = np.nan
-        mod_ratio = ''
-        mod_ratio += '\n' + '-'*18 + '\nF1/F0 :\n'
-        mod_ratio += '%.2f\n' %ratio
-        self.results.AppendText(mod_ratio)
-        self.data['F1/F0'] = ratio
-        
-    def gen_curve_data(self, x, means, stds, fittings, model_fitting, model_xdata, label):
-        if label[0] == 'orientation':
-            label[0] = 'ori'
-            x = x*180/np.pi
-        elif label[0] == 'spatial_frequency':
-            label[0] = 'spf'
-        elif label[0] == 'phase':
-            label[0] = 'pha'
-        elif label[0] == 'disparity':
-            label[0] = 'dsp'
-            
-        self.data['param'] = label[0]
-        ###########################
-        ##### data
-        data = '-'*18 + '\nData:\n' + "\t".join(label) + '\n'
-        for line in zip(x,means,stds):
-            dataline = '\t'.join('%.2f' %value for value in line)
-            data += dataline + '\n'
-        self.data['data'] = data
-        self.data['x'] = x
-        self.data['means'] = means
-        self.data['stds'] = stds
-        ###########################
-        ###########################
-        ##### extremes
-        extremes = ''
-        if any(model_fitting):
-            max_index = model_fitting.argmax()
-            min_index = model_fitting.argmin()
-            max_value = model_fitting[max_index]
-            min_value = model_fitting[min_index]
-            max_param = fittings[max_index]
-            min_param = fittings[min_index]
-        else:
-            max_index = means.argmax()
-            min_index = means.argmin()
-            max_value = means[max_index]
-            min_value = means[min_index]
-            max_param = x[max_index]
-            min_param = x[min_index]
-        extremes += '-'*18 + '\nMax/min '+label[1]+':\n'
-        extremes += 'Max ' + '\t' + label[0] + '\n'
-        extremes += '%.2f\t%.2f\n' %(max_value, max_param)
-        extremes += 'Min ' + '\t' + label[0] + '\n'
-        extremes += '%.2f\t%.2f\n' %(min_value, min_param)
-        self.data['max_param'] = max_param
-        self.data['max_value'] = max_value
-        self.data['min_param'] = min_param
-        self.data['min_value'] = min_value
-        ###########################
-        ###########################
-        ##### BII/S2N
-        BII = ''
-        S2N = ''
-        if any(model_fitting) and label[0] == 'dsp':
-            bii_ratio = 2.0*(max(model_fitting)-min(model_fitting))/(max(model_fitting)+min(model_fitting))
-            BII += '-'*18 + '\nBII :\n'
-            BII += '%.2f\n' %bii_ratio
-            noise = np.sqrt(np.sum((model_xdata-means)**2)/means.size)
-            s2n_ratio = (max(model_fitting)-min(model_fitting))/noise
-            S2N += '-'*18 + '\nS/N :\n'
-            S2N += '%.2f\n' %s2n_ratio
-            self.data['BII'] = bii_ratio
-            self.data['S/N'] = s2n_ratio
-        ############################
-        
-        form = data + extremes + BII + S2N
-        self.results.SetValue(form)
-        
-        
-    def gen_img_data(self,img,stim_type):
-        dims = img.shape
-        data = ''
-        extremes = ''
-        if stim_type == 'white_noise':
-            pass
-        elif stim_type == 'param_mapping':
-            ori = IndexedParam('orientation_180')
-            spf = IndexedParam('spatial_freq')
-            x_max,y_max = np.unravel_index(img.argmax(), dims)
-            x_min,y_min = np.unravel_index(img.argmin(), dims)
-            extremes += '\n' + '-'*18 + '\nMax/min values:\n'
-            extremes += 'Max: ' + '\tori' + '\tspf\n'
-            extremes += '\t%.2f\t%.2f\n' %(ori[x_max], spf[y_max])
-            extremes += 'Min: ' + '\tori' + '\tspf\n'
-            extremes += '\t%.2f\t%.2f\n' %(ori[x_min], spf[y_min])
-        form = data + extremes
-        self.results.SetValue(form)
 
 class MainFrame(wx.Frame):
     """ The main frame of the application
@@ -499,6 +376,8 @@ class MainFrame(wx.Frame):
 
     def on_flash_status_off(self, event):
         self.statusbar.SetStatusText('')
+        
+
         
 def adjust_spines(ax,spines,spine_outward=['left','right'],xoutward=0,youtward=5,xticks='bottom',yticks='left',\
                   xtick_dir='out',ytick_dir='out',tick_label=['x','y'],xaxis_loc=None,yaxis_loc=None,
