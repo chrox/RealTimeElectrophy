@@ -14,6 +14,9 @@ class STAExperiment(Experiment):
     STA_SERVER_PROCESS = None
     STA_SERVER_PORT = 6878
     def sta_analysis(self, sta_type=None):
+        # Beware that the pyro operation is asynchronized. It takes several 
+        # hundred millseconds for the app to complete action. So it's safe to wait for
+        # remote app taking effect before another pyro operation.
         try:
             self.sta_server = self.get_sta_server()
         except Exception,e:
@@ -56,19 +59,17 @@ class STAExperiment(Experiment):
             results = self.extract_results(data)
         except Exception,e:
             self.logger.error('Failed to extract sta data. ' + str(e))
-        
-        try:
-            chart_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.png'
-            self.logger.info('Exporting chart to: ' + chart_file)
-            self.sta_server.export_chart(chart_file)
-        except Exception,e:
-            self.logger.error('Failed to export sta chart. ' + str(e))
             
         try:
             self.logger.info('Stopping sta data.')
             self.sta_server.stop_sta()
         except Exception,e:
             self.logger.error('Failed to stop sta app. ' + str(e))
+            
+        try:
+            self.sta_server.clear_title()
+        except Exception,e:
+            self.logger.error('Failed to clear sta title. ' + str(e))
         
         try:
             return results
@@ -99,15 +100,16 @@ class STAExperiment(Experiment):
     
     def pre_stim_setup(self):
         self.sta_server.set_sta_title(self.exp_name)
+        self.sta_server.uncheck_fitting()
         
     def post_stim_setup(self):
         pass
         
 class RFCMappingExp(STAExperiment):
-    def __init__(self,eye,params,*args,**kwargs):
+    def __init__(self,eye,params,postfix,*args,**kwargs):
         super(RFCMappingExp, self).__init__(*args,**kwargs)
         self.source = 'sparsenoise.py'
-        self.exp_name = ExperimentConfig.CELLPREFIX + '-sparsenoise-' + eye
+        self.exp_name = ExperimentConfig.CELLPREFIX + '-sparsenoise-' + eye + '-' + postfix
         self.exp_param = 'sn'
         self.eye = eye
         self.params = params
@@ -129,9 +131,29 @@ class RFCMappingExp(STAExperiment):
     
     def post_stim_setup(self):
         super(RFCMappingExp, self).post_stim_setup()
+        try:
+            chart_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '-raw.png'
+            self.logger.info('Exporting raw chart to: ' + chart_file)
+            self.sta_server.export_chart(chart_file)
+            # wait for asynchronized pyro operation to complete
+            time.sleep(0.5)
+        except Exception,e:
+            self.logger.error('Failed to export sta chart. ' + str(e))
+        
         self.logger.info('Choose Gabor fitting.')
         self.sta_server.check_fitting('gabor')
-    
+        # wait for asynchronized pyro operation to complete
+        time.sleep(2.0)
+        
+        try:
+            chart_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '-fitted.png'
+            self.logger.info('Exporting fitted chart to: ' + chart_file)
+            self.sta_server.export_chart(chart_file)
+            # wait for asynchronized pyro operation to complete
+            time.sleep(0.5)
+        except Exception,e:
+            self.logger.error('Failed to export sta chart. ' + str(e))
+        
     def extract_results(self, data):
         if 'rf_center' not in data:
             self.logger.error('Failed to get RF center from %s experiment.' %self.exp_name)
@@ -144,4 +166,10 @@ class RFCMappingExp(STAExperiment):
             rf_pos = (rf_x_pos,rf_y_pos)
             self.logger.info('Get RF center from %s experiment: %.2f,%.2f' %(self.exp_name,rf_pos[0],rf_pos[1]))
             return rf_y_pos
+        
+    def log_sta_data(self, data):
+        data_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.csv'
+        with open(data_file,'w') as data_output:
+            if 'rf_center' in data:
+                data_output.writelines('rf position index,%.2f,%.2f' %(data['rf_center'][0],data['rf_center'][1]))
         

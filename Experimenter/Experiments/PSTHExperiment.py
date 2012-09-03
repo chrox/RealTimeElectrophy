@@ -23,7 +23,7 @@ class PSTHExperiment(Experiment):
         #self.psth_server.start_psth()
         try:
             self.logger.info('Starting psth data.')
-            self.psth_server.start_psth()
+            self.psth_server.start_data()
         except Exception,e:
             self.logger.error('Failed to start psth app. ' + str(e))
         
@@ -62,9 +62,14 @@ class PSTHExperiment(Experiment):
             
         try:
             self.logger.info('Stopping psth data.')
-            self.psth_server.stop_psth()
+            self.psth_server.stop_data()
         except Exception,e:
             self.logger.error('Failed to stop psth app. ' + str(e))
+            
+        try:
+            self.psth_server.clear_title()
+        except Exception,e:
+            self.logger.error('Failed to clear psth title. ' + str(e))
             
         try:
             return results
@@ -143,7 +148,7 @@ class PSTHExperiment(Experiment):
         return Pyro.core.getProxyForURI(URI)
         
     def psth_setup(self):
-        self.psth_server.set_psth_title(self.exp_name)
+        self.psth_server.set_title(self.exp_name)
     
 class ORITunExp(PSTHExperiment):
     def __init__(self,eye,params,*args,**kwargs):
