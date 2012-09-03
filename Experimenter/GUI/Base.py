@@ -6,6 +6,7 @@
 import os
 import wx
 import time
+import Pyro.core
 import threading
 import matplotlib
 
@@ -377,7 +378,90 @@ class MainFrame(wx.Frame):
     def on_flash_status_off(self, event):
         self.statusbar.SetStatusText('')
         
-
+class RCPanel(Pyro.core.ObjBase):
+    """
+        Interface for remote controlled panel
+    """
+    def __init__(self):
+        Pyro.core.ObjBase.__init__(self)
+        
+        # handle request from pyro client
+        self.set_title_request = None
+        self.clear_title_request = False
+        self.export_path = None
+        self.start_request = False
+        self.stop_request = False
+        self.restart_request = False
+        self.check_request_timer = wx.Timer(self, wx.NewId())
+        self.Bind(wx.EVT_TIMER, self._on_check_request, self.check_request_timer)
+        self.check_request_timer.Start(100)
+        
+    def _on_check_request(self, event):
+        self._check_set_title()
+        self._check_clear_title()
+        self._check_export_chart()
+        self._check_start_request()
+        self._check_stop_request()
+        self._check_restart_request()
+    
+    def _check_set_title(self):
+        if self.set_title_request is not None:
+            parent = wx.FindWindowByName('main_frame')
+            parent.SetTitle(parent.title + ' - ' + self.set_title_request)
+            self.set_title_request = None
+            
+    def _check_clear_title(self):
+        if self.clear_title_request is True:
+            parent = wx.FindWindowByName('main_frame')
+            parent.SetTitle(parent.title)
+            self.clear_title_request = False
+            
+    def _check_export_chart(self):
+        if self.export_path is not None:
+            self.save_chart(self.export_path)
+            self.export_path = None
+    
+    def _check_start_request(self):
+        if self.start_request is not False:
+            parent = wx.FindWindowByName('main_frame')
+            evt = wx.CommandEvent(EVT_DATA_START_TYPE)
+            wx.PostEvent(parent, evt)
+            self.start_request = False
+            
+    def _check_stop_request(self):
+        if self.stop_request is not False:
+            parent = wx.FindWindowByName('main_frame')
+            evt = wx.CommandEvent(EVT_DATA_STOP_TYPE)
+            wx.PostEvent(parent, evt)
+            self.stop_request = False
+    
+    def _check_restart_request(self):
+        if self.restart_request is not False:
+            parent = wx.FindWindowByName('main_frame')
+            evt = wx.CommandEvent(EVT_DATA_RESTART_TYPE)
+            wx.PostEvent(parent, evt)
+            self.restart_request = False
+    
+    def set_title(self, title):
+        self.set_title_request = title
+        
+    def clear_title(self):
+        self.clear_title_request = True
+    
+    def get_data(self):
+        return self.data_form.get_data()
+    
+    def export_chart(self, path):
+        self.export_path = path
+        
+    def start_data(self):
+        self.start_request = True
+        
+    def stop_data(self):
+        self.stop_request = True
+        
+    def restart_data(self):
+        self.restart_request = True
         
 def adjust_spines(ax,spines,spine_outward=['left','right'],xoutward=0,youtward=5,xticks='bottom',yticks='left',\
                   xtick_dir='out',ytick_dir='out',tick_label=['x','y'],xaxis_loc=None,yaxis_loc=None,
@@ -417,3 +501,4 @@ def adjust_spines(ax,spines,spine_outward=['left','right'],xoutward=0,youtward=5
             ax.yaxis.set_ticklabels([])
         ax.yaxis.set_ticks_position(yticks)
         ax.yaxis.set_tick_params(which='both',direction=ytick_dir)
+        
