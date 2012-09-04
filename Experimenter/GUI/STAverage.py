@@ -17,8 +17,7 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 from ..DataProcessing.Fitting.Fitters import GaussFit,GaborFit
 from ..SpikeData import RevCorr
 from Base import UpdateDataThread,UpdateFileDataThread,RenewDataThread
-from Base import EVT_DATA_START_TYPE,EVT_DATA_STOP_TYPE,EVT_DATA_RESTART_TYPE
-from Base import MainFrame,DataPanel,adjust_spines
+from Base import MainFrame,DataPanel,RCPanel,adjust_spines
 
 EVT_TIME_UPDATED_TYPE = wx.NewEventType()
 EVT_TIME_UPDATED = wx.PyEventBinder(EVT_TIME_UPDATED_TYPE, 1)
@@ -381,77 +380,34 @@ class STAFrame(MainFrame):
         
     def uncheck_gaborfitter(self):
         self.chart_panel.gaborfit(False)
+        
+    def uncheck_fitting(self):
+        for item in self.menu_fitting.GetMenuItems():
+            self.menu_fitting.Check(item.GetId(), False)
+            self.menu_uncheck_binds[item.GetId()]()
+        self.chart_panel.update_chart()
     
     def on_check_colorbar(self, event):
         self.chart_panel.show_colorbar(self.m_colorbar.IsChecked())
         self.chart_panel.update_chart()
         
-class RCSTAPanel(STAPanel, Pyro.core.ObjBase):
+class RCSTAPanel(STAPanel, RCPanel):
     """
         Remote controlled PSTH panel
     """
     def __init__(self, *args,**kwargs):
         STAPanel.__init__(self,*args,**kwargs)
-        Pyro.core.ObjBase.__init__(self)
+        RCPanel.__init__(self)
         
-        # handle request from pyro client
-        self.title_request = None
-        self.export_path = None
-        self.start_request = False
-        self.stop_request = False
-        self.restart_request = False
         self.fitting_request = None
         self.unfitting_request = False
-        self.colorbar_request = None
-        self.check_request_timer = wx.Timer(self, wx.NewId())
-        self.Bind(wx.EVT_TIMER, self._on_check_request, self.check_request_timer)
-        self.check_request_timer.Start(1000)
-    
-    def __del__(self):
-        STAPanel.__del__(self)
-        Pyro.core.ObjBase.__del__(self)
+        self.colorbar_request = False
         
     def _on_check_request(self, event):
-        self._check_set_title()
-        self._check_export_chart()
-        self._check_start_request()
-        self._check_stop_request()
-        self._check_restart_request()
+        RCPanel._on_check_request(self, event)
         self._check_fitting_request()
         self._check_unfitting_request()
         self._check_colorbar_request()
-    
-    def _check_set_title(self):
-        if self.title_request is not None:
-            parent = wx.FindWindowByName('main_frame')
-            parent.SetTitle(parent.title + ' - ' + self.title_request)
-            self.title_request = None
-            
-    def _check_export_chart(self):
-        if self.export_path is not None:
-            self.save_chart(self.export_path)
-            self.export_path = None
-    
-    def _check_start_request(self):
-        if self.start_request is not False:
-            parent = wx.FindWindowByName('main_frame')
-            evt = wx.CommandEvent(EVT_DATA_START_TYPE)
-            wx.PostEvent(parent, evt)
-            self.start_request = False
-            
-    def _check_stop_request(self):
-        if self.stop_request is not False:
-            parent = wx.FindWindowByName('main_frame')
-            evt = wx.CommandEvent(EVT_DATA_STOP_TYPE)
-            wx.PostEvent(parent, evt)
-            self.stop_request = False
-    
-    def _check_restart_request(self):
-        if self.restart_request is not False:
-            parent = wx.FindWindowByName('main_frame')
-            evt = wx.CommandEvent(EVT_DATA_RESTART_TYPE)
-            wx.PostEvent(parent, evt)
-            self.restart_request = False
             
     def _check_fitting_request(self):
         if self.fitting_request is not None:
@@ -474,31 +430,13 @@ class RCSTAPanel(STAPanel, Pyro.core.ObjBase):
             self.unfitting_request = False
             
     def _check_colorbar_request(self):
-        if self.colorbar_request is not None:
+        if self.colorbar_request is True:
             evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
             parent = wx.FindWindowByName('main_frame')
             parent.menu_view.Check(parent.m_colorbar.GetId(), self.colorbar_request)
             evt.SetId(parent.m_colorbar.GetId())
             wx.PostEvent(parent, evt)
-            self.colorbar_request = None
-    
-    def set_sta_title(self, title):
-        self.title_request = title
-    
-    def get_data(self):
-        return self.data_form.get_data()
-    
-    def export_chart(self, path):
-        self.export_path = path
-        
-    def start_sta(self):
-        self.start_request = True
-        
-    def stop_sta(self):
-        self.stop_request = True
-        
-    def restart_sta(self):
-        self.restart_request = True
+            self.colorbar_request = False
         
     def check_fitting(self, fitting):
         # fitting in ('gauss','gabor')
