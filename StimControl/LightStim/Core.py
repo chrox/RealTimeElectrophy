@@ -15,6 +15,11 @@ import sys
 import math
 import numpy as np
 #import logging
+import OpenGL
+# Suppress known PyOpenGL bug ID:2817196 and a performance improvement
+OpenGL.ERROR_CHECKING = False
+# performance improvement 
+OpenGL.ERROR_LOGGING = False
 import VisionEgg
 VisionEgg.start_default_logging(); VisionEgg.watch_exceptions()
 import VisionEgg.GL as gl
