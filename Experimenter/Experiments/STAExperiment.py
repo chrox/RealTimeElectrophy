@@ -24,7 +24,7 @@ class STAExperiment(Experiment):
         
         try:
             self.logger.info('Starting sta data.')
-            self.sta_server.start_sta()
+            self.sta_server.start_data()
         except Exception,e:
             self.logger.error('Failed to start sta app. ' + str(e))
         
@@ -62,7 +62,7 @@ class STAExperiment(Experiment):
             
         try:
             self.logger.info('Stopping sta data.')
-            self.sta_server.stop_sta()
+            self.sta_server.stop_data()
         except Exception,e:
             self.logger.error('Failed to stop sta app. ' + str(e))
             
