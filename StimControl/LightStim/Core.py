@@ -11,6 +11,7 @@ This module contains classes for multiply displays stimulation.
 """
 from __future__ import division
 import os
+import sys
 import math
 import numpy as np
 #import logging
@@ -24,10 +25,13 @@ class Screen(VisionEgg.Core.Screen):
     """ Large screen occupies multiply displays
     """
     def __init__(self, viewports_list, bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8, **kw):
-#        # Make sure that SDL_VIDEO_WINDOW_POS takes effect.
+        # Make sure that SDL_VIDEO_WINDOW_POS takes effect.
         VisionEgg.config.VISIONEGG_FRAMELESS_WINDOW = 0
         screen_offset = min([LightStim.config.get_viewport_offset(viewport) for viewport in LightStim.config.get_known_viewports() if viewport in viewports_list])
         os.environ['SDL_VIDEO_WINDOW_POS']="%d,%d" %(screen_offset,0)
+        if sys.platform == 'win32':
+            # Suppress known bug "pygame.error: No available video device" when initiating display in pygame
+            os.environ['SDL_VIDEODRIVER']='windib'
         self.screen_width = LightStim.config.get_screen_width_pix(viewports_list)
         self.screen_height = LightStim.config.get_screen_height_pix(viewports_list)
         super(Screen,self).__init__(size=(self.screen_width, self.screen_height), bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8, **kw)
