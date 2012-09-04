@@ -219,11 +219,8 @@ def start_server( server_modules, server_class=RTEPhysServer ):
             if ephys_server.exec_demoscript_flag:
                 ephys_server.exec_AST(screen)
         
-        #DefaultScreen.screen.close()
+        DefaultScreen.screen.close()
         DefaultScreen(default_viewports)
-        #screen = DefaultScreen.screen
-        #overlay2D_viewport = VisionEgg.Core.Viewport(screen=screen)
-        #overlay2D_viewport.parameters.stimuli = [wait_text]
         
 if __name__ == '__main__':
     start_server(server_modules, server_class=RTEPhysServer)
