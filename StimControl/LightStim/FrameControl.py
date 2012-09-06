@@ -9,7 +9,7 @@ import VisionEgg
 from Core import Viewport
 from LightUtil import TimeFormat
 from ManViewport import ManViewport
-from SweepController import SweepController,DTRemoteStartController,DTRemoteStopController
+from SweepController import SweepController,RemoteStartController,RemoteStopController
 
 class QuitSweepController(SweepController):
     """ Quit the frame sweep loop if there is no viewports in the screen.
@@ -134,7 +134,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         # pre stimulation go
         if prestim is not None:
             if RSTART:
-                remote_start_controller = DTRemoteStartController()
+                remote_start_controller = RemoteStartController()
                 self.add_controller(None,None,remote_start_controller)
             self.parameters.go_duration = (prestim, 'seconds')
             super(FrameSweep, self).go()
@@ -157,7 +157,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         # post stimulation go
         if poststim is not None:
             if RSTART:
-                self.add_controller(None,None,DTRemoteStopController())
+                self.add_controller(None,None,RemoteStopController())
             self.parameters.go_duration = (poststim, 'seconds')
             super(FrameSweep, self).go()
         

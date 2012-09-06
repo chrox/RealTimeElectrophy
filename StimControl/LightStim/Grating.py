@@ -20,7 +20,7 @@ from LightUtil import TimeFormat
 from LightData import dictattr
 from Core import Stimulus
 
-from SweepController import StimulusController,SweepSequeStimulusController,DTSweepSequeController
+from SweepController import StimulusController,SweepSequeStimulusController,SweepSequeTriggerController
 from LightData import IndexedParam
 
 class GratingController(StimulusController):
@@ -66,7 +66,7 @@ class RandPhaseController(SweepSequeStimulusController):
     def during_go_eval(self):
         self.gp.phase_at_t0 = random.choice(self.phase)
 
-class TimingStampController(DTSweepSequeController):
+class TimingStampController(SweepSequeTriggerController):
     def __init__(self,*args,**kwargs):
         super(TimingStampController, self).__init__(*args,**kwargs)
         self.gp = self.stimulus.gp
@@ -125,7 +125,7 @@ class ParamController(SweepSequeStimulusController):
             if any(num != num for num in next_param):  # check has any nan. assume that gp can handle nan parameter.
                 self.gp.on = False
 
-class ParamStampController(DTSweepSequeController):
+class ParamStampController(SweepSequeTriggerController):
     def __init__(self,*args,**kwargs):
         super(ParamStampController, self).__init__(*args,**kwargs)
         self.indexed_ori = IndexedParam('orientation')

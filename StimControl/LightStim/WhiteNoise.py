@@ -16,7 +16,7 @@ from VisionEgg.Core import FixationSpot
 from Core import Stimulus
 from LightUtil import TimeFormat
 from LightData import dictattr
-from SweepController import SweepSequeStimulusController,SaveParamsController,DTSweepSequeController
+from SweepController import SweepSequeStimulusController,SaveParamsController,SweepSequeTriggerController
 from CheckBoard import CheckBoard
 
 
@@ -32,7 +32,7 @@ class RFModel(object):
         else:
             return min(0,self.gabor_func(xpos,ypos)) 
 
-class WhiteNoiseSweepStampController(DTSweepSequeController):
+class WhiteNoiseSweepStampController(SweepSequeTriggerController):
     """Digital output for triggering and frame timing verification 
     """
     def __init__(self,*args,**kwargs):
