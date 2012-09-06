@@ -11,9 +11,12 @@ import ConfigParser
 class Config:
     """Reads and writes the config file, adds an update function"""
     template = {
-    'DTBoard' : {
-                'INSTALLED': False
-                },
+    'DAQBoard' : {
+                        'INSTALLED': False,
+                        'OUTPUT': True,
+                        'BASE_CHAN': 0,
+                        'NUM_CHANS': 16,
+                        },
     'Viewport' : {
                         'WIDTH_PIX': 1280,
                         'HEIGHT_PIX': 800,

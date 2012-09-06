@@ -9,7 +9,7 @@ import Pyro.core
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
 from VisionEgg.FlowControl import ONCE,TRANSITIONS,NOT_DURING_GO,NOT_BETWEEN_GO
-from SweepStamp import DT,DTBOARDINSTALLED,START_REC,STOP_REC
+from SweepStamp import START_REC,STOP_REC,StampTrigger
 
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.
@@ -65,37 +65,17 @@ class SweepSequeStimulusController(StimulusController):
         return len(self.vsync_list)
     def get_estimated_duration(self):
         return len(self.vsync_list) / self.viewport.refresh_rate
-
-class DTSweepStampController:
-    """ Digital output for triggering and frame timing verification
-    """
-    def __init__(self):
-        if DTBOARDINSTALLED: DT.initBoard()
-    def set_stamp(self,bits):
-        if DTBOARDINSTALLED: DT.setBitsNoDelay(bits)
-    def post_stamp(self,postval):
-        if DTBOARDINSTALLED: 
-            DT.postInt16NoDelay(postval)
-            DT.clearBitsNoDelay(postval)
-    def set_bits(self,setval):
-        #print 'set bits: %d' %setval
-        if DTBOARDINSTALLED:
-            DT.setBits(setval)
-    def clear_bits(self,clearval):
-        #print 'clear bits: %d' %clearval
-        if DTBOARDINSTALLED:
-            DT.clearBits(clearval)
         
-class DTSweepSequeController(DTSweepStampController, SweepSequeStimulusController):
-    """ DTSweepStampController for SweepSeque stimulus
+class SweepSequeTriggerController(StampTrigger, SweepSequeStimulusController):
+    """ StampTrigger for SweepSeque stimulus
     """
     def __init__(self,*args,**kwargs):
-        DTSweepStampController.__init__(self)
+        StampTrigger.__init__(self)
         SweepSequeStimulusController.__init__(self,*args,**kwargs)
 
-class DTRemoteStartController(DTSweepStampController, VisionEgg.FlowControl.Controller):
+class RemoteStartController(StampTrigger, VisionEgg.FlowControl.Controller):
     def __init__(self):
-        DTSweepStampController.__init__(self)
+        StampTrigger.__init__(self)
         VisionEgg.FlowControl.Controller.__init__(self,
                                            return_type=ve_types.NoneType,
                                            eval_frequency=ONCE|TRANSITIONS|NOT_BETWEEN_GO)
@@ -105,9 +85,9 @@ class DTRemoteStartController(DTSweepStampController, VisionEgg.FlowControl.Cont
     def between_go_eval(self):
         pass
 
-class DTRemoteStopController(DTSweepStampController, VisionEgg.FlowControl.Controller):
+class RemoteStopController(StampTrigger, VisionEgg.FlowControl.Controller):
     def __init__(self):
-        DTSweepStampController.__init__(self)
+        StampTrigger.__init__(self)
         VisionEgg.FlowControl.Controller.__init__(self,
                                            return_type=ve_types.NoneType,
                                            eval_frequency=ONCE|TRANSITIONS|NOT_DURING_GO)
