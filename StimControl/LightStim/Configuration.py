@@ -35,15 +35,18 @@ class Config:
     def __init__(self):
         self.cfg = ConfigParser.ConfigParser()
         
-        self.LIGHTSTIM_SYSTEM_DIR = os.path.split(__file__)[0]
         user_dir = os.path.expanduser("~")
+        current_dir = os.path.expanduser(".")
+        self.LIGHTSTIM_SYSTEM_DIR = os.path.split(__file__)[0]
         self.LIGHTSTIM_USER_DIR = os.path.join(user_dir,"LightStim")
         # Is there one in LIGHTSTIM_USER_DIR?
         configFile = os.path.join(self.LIGHTSTIM_USER_DIR,"LightStim.cfg")
         if not os.path.isfile(configFile):
-            configFile = os.path.join(self.LIGHTSTIM_SYSTEM_DIR,"LightStim.cfg")
+            configFile = os.path.join(current_dir,"LightStim.cfg")
             if not os.path.isfile(configFile):
-                configFile = None # No file, use defaults specified in environment variables then here
+                configFile = os.path.join(self.LIGHTSTIM_SYSTEM_DIR,"LightStim.cfg")
+                if not os.path.isfile(configFile):
+                    configFile = None # No file, use defaults specified in environment variables then here
         if configFile:
             self.cfg.read(configFile)
         else:
