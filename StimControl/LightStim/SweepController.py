@@ -5,7 +5,6 @@
 # See LICENSE.TXT that came with this file.
 
 import itertools
-import Pyro.core
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
 from VisionEgg.FlowControl import ONCE,TRANSITIONS,NOT_DURING_GO,NOT_BETWEEN_GO
@@ -134,15 +133,4 @@ class SweepController(VisionEgg.FlowControl.Controller):
     def during_go_eval(self):
         pass
     def between_go_eval(self):
-        pass
-
-class StimulusPoolController(SweepController,Pyro.core.ObjBase):
-    """ Maintain a stimulus pool and synchronize the pool with sweep viewport
-    """
-    def __init__(self,*arg,**kw):
-        super(StimulusPoolController, self).__init__(*arg,**kw)
-        Pyro.core.ObjBase.__init__(self)
-    def add_stimulus(self,stimulus):
-        self.framesweep.add_stimulus(stimulus)
-    def remove_stimulus(self,stimulus):
         pass
