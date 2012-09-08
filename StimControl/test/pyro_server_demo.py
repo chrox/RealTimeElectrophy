@@ -7,12 +7,24 @@
 from __future__ import division
 from StimControl.LightStim.FrameControl import FrameSweep
 from StimControl.LightStim.Core import Dummy_Stimulus
-from StimControl.LightStim.SweepController import StimulusPoolController
+from StimControl.LightStim.SweepController import SweepController
 from VisionEgg.PyroHelpers import PyroServer
 import Pyro
 Pyro.config.PYRO_MOBILE_CODE = True
 Pyro.config.PYRO_TRACELEVEL = 3
 Pyro.config.PYRO_PICKLE_FORMAT = 1
+
+
+class StimulusPoolController(SweepController,Pyro.core.ObjBase):
+    """ Maintain a stimulus pool and synchronize the pool with sweep viewport
+    """
+    def __init__(self,*arg,**kw):
+        super(StimulusPoolController, self).__init__(*arg,**kw)
+        Pyro.core.ObjBase.__init__(self)
+    def add_stimulus(self,stimulus):
+        self.framesweep.add_stimulus(stimulus)
+    def remove_stimulus(self,stimulus):
+        pass
 
 sweep = FrameSweep()
 dummy_stimulus = Dummy_Stimulus()

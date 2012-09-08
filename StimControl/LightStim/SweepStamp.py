@@ -178,8 +178,8 @@ class DT340DAQOUT(DAQTrigger):
         DT.postInt16NoDelay(value)
         DT.clearBitsNoDelay(value)
     
-class StampTrigger:
-    """ Digital output for triggering and frame timing verification
+class DAQStampTrigger:
+    """ Digital trigger via DAQ device.
     """
     def __init__(self):
         if COMEDI_INSTALLED:
@@ -191,3 +191,19 @@ class StampTrigger:
         if COMEDI_INSTALLED or DT340_INSTALLED:
             self.trigger_out_daq.trigger_out(postval)
             
+class SoftStampTrigger:
+    """ Software trigger for test only. Implemented in Pyro.
+    """
+    def __init__(self,host,port):
+        import Pyro.core
+        URI = "PYROLOC://%s:%d/%s" % (host,port,'trigger_receiver')
+        Pyro.core.initClient()
+        self.trigger_receiver = Pyro.core.getProxyForURI(URI)
+        
+    def post_stamp(self, postval):
+        print "Post soft triggered word: %d" %postval
+        try:
+            self.trigger_receiver.put_stamp(postval)
+        except:
+            print "Cannot post stamp to trigger receiver."
+    
