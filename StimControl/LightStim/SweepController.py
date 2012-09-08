@@ -9,7 +9,7 @@ import Pyro.core
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
 from VisionEgg.FlowControl import ONCE,TRANSITIONS,NOT_DURING_GO,NOT_BETWEEN_GO
-from SweepStamp import START_REC,STOP_REC,StampTrigger
+from SweepStamp import START_REC,STOP_REC,DAQStampTrigger
 
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.
@@ -66,36 +66,42 @@ class SweepSequeStimulusController(StimulusController):
     def get_estimated_duration(self):
         return len(self.vsync_list) / self.viewport.refresh_rate
         
-class SweepSequeTriggerController(StampTrigger, SweepSequeStimulusController):
-    """ StampTrigger for SweepSeque stimulus
+class SweepSequeTriggerController(SweepSequeStimulusController):
+    """ DAQStampTrigger for SweepSeque stimulus
     """
     def __init__(self,*args,**kwargs):
-        StampTrigger.__init__(self)
         SweepSequeStimulusController.__init__(self,*args,**kwargs)
+        self.stamp_trigger = DAQStampTrigger()
+    def post_stamp(self, postval):
+        self.stamp_trigger.post_stamp(postval)
 
-class RemoteStartController(StampTrigger, VisionEgg.FlowControl.Controller):
+class RemoteStartController(VisionEgg.FlowControl.Controller):
+    """ Sending a START event
+    """
     def __init__(self):
-        StampTrigger.__init__(self)
         VisionEgg.FlowControl.Controller.__init__(self,
                                            return_type=ve_types.NoneType,
                                            eval_frequency=ONCE|TRANSITIONS|NOT_BETWEEN_GO)
+        self.stamp_trigger = DAQStampTrigger()
     def during_go_eval(self):
         #print 'set bits: %d' %RSTART_EVT
-        self.post_stamp(START_REC)
+        self.stamp_trigger.post_stamp(START_REC)
     def between_go_eval(self):
         pass
 
-class RemoteStopController(StampTrigger, VisionEgg.FlowControl.Controller):
+class RemoteStopController(VisionEgg.FlowControl.Controller):
+    """ Sending a STOP event
+    """
     def __init__(self):
-        StampTrigger.__init__(self)
         VisionEgg.FlowControl.Controller.__init__(self,
                                            return_type=ve_types.NoneType,
                                            eval_frequency=ONCE|TRANSITIONS|NOT_DURING_GO)
+        self.stamp_trigger = DAQStampTrigger()
     def during_go_eval(self):
         pass
     def between_go_eval(self):
         #print 'clear bits: %d' %RSTART_EVT
-        self.post_stamp(STOP_REC)
+        self.stamp_trigger.post_stamp(STOP_REC)
 
 class SaveParamsController(SweepSequeStimulusController):
     """ Use Every_Frame evaluation controller in case of real time sweep table modification
@@ -105,8 +111,8 @@ class SaveParamsController(SweepSequeStimulusController):
         self.savedpost = []
         self.file_prefix = file_prefix
         import time,os
-        (year,month,day,hour24,min,sec) = time.localtime(time.time())[:6]
-        trial_time_str = "%04d%02d%02d_%02d%02d%02d"%(year,month,day,hour24,min,sec)
+        (year,month,day,hour24,_min,sec) = time.localtime(time.time())[:6]
+        trial_time_str = "%04d%02d%02d_%02d%02d%02d"%(year,month,day,hour24,_min,sec)
         save_dir = os.path.abspath(os.curdir)+ os.path.sep + 'params'
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
