@@ -96,7 +96,7 @@ class Experiment(object):
         self.stimulus = StimCommand(server_hostname=ExperimentConfig.STIM_SERVER_HOST)
         self.exp_name = None
         self.post_fix = None
-        
+        self.source = None
         self.logger = logging.getLogger('Experimenter.Experiments')
         
     def get_params(self):
@@ -115,7 +115,7 @@ class Experiment(object):
         try:
             with open(exp_file) as source_file:
                 source = source_file.read()
-        except:
+        except IOError:
             self.logger.error('Cannot read stimulation source code.')
             return
         self.stimulus.run(self.exp_name,source,left_params,right_params,assignments)
