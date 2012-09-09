@@ -32,7 +32,7 @@ First, download and install these dependencies:
 	- matplotlib (version >= 1.01)
 	- wxPython (version >= 2.8)
 	- VisionEgg (version == 1.2.1)
-	- setuptools (version >= 0.6, this package is optional)
+	- setuptools (version >= 0.6)
 
 To install RealTimeElectrophy from source, download the latest source code packages,
 and extract the files into your home directory. Type this from a command line from 
@@ -63,7 +63,9 @@ CREDITS
 
 Much of the behaviour and many of the features of LightStim package are based on 
 Dimstim, a python visual stimulation package written by Martin Spacek and released 
-under BSD license. The Dimstim project page can be found at http://swindale.ecc.ubc.ca/dimstim
+under BSD license. The Dimstim project page can be found at http://swindale.ecc.ubc.ca/dimstim .
+StimServer is modified from PyroApps, a demo VisionEgg application shipped with VisonEgg
+source code. For more information please refer to http://www.visionegg.org .
 
 MISC
 
