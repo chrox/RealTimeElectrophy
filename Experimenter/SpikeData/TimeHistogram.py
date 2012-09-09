@@ -31,7 +31,7 @@ class PSTHAverage(PlexSpikeData):
     def _update_data(self,callback=None):
         super(PSTHAverage, self)._update_data(callback)
             
-        new_triggers = self.pu.GetExtEvents(self.data, event='unstrobed_word', online=self.online)
+        new_triggers = self.pu.GetExtEvents(self.data, event='first_strobe_word')
         trigger_values = new_triggers['value']
         
         ori_index = trigger_values & ORI_MASK

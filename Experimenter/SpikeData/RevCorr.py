@@ -16,7 +16,7 @@ class RevCorrData(PlexSpikeData):
 
     def _update_data(self,callback=None):
         super(RevCorrData, self)._update_data(callback)
-        self.new_triggers = self.pu.GetExtEvents(self.data, event='unstrobed_word', online=self.online)
+        self.new_triggers = self.pu.GetExtEvents(self.data, event='first_strobe_word')
         new_spike_trains = self.pu.GetSpikeTrains(self.data)
             
         for channel,channel_trains in new_spike_trains.iteritems():
