@@ -16,6 +16,7 @@ class Config:
                         'IO': 'output',
                         'BASE_CHAN': 0,
                         'NUM_CHANS': 16,
+                        'STROBED': True,
                         },
     'Network' : {
                         'STIMSERVER_HOST': "192.168.1.101",
