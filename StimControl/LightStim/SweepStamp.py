@@ -30,11 +30,12 @@ if DT340_INSTALLED:
 
 # If DTboard pin C1 is connected to Omniplex pin A24, this post signal will trigger remote START recording.
 RSTART_EVT = 0x00020000
+STROBE_EVT = 0x00080000
 # use single bit event to trigger START/STOP recording
 START_REC = 1 << 14
 STOP_REC = 1 << 15
 # Maximum postable integer, 65535 for 16 digital lines. 
-MAXPOSTABLEINT = 0x0000ffff
+MAXPOSTABLEINT = 0xFFFF
  
 
 class ComediFunctionality(VisionEgg.Daq.Functionality):
@@ -172,9 +173,16 @@ class DT340DAQOUT(DAQTrigger):
     def __init__(self):
         DT.initBoard()
         
-    def trigger_out(self, value):
-        DT.postInt16NoDelay(value)
-        DT.clearBitsNoDelay(value)
+    def trigger_out(self, value, event):
+        if event == 'strobed':
+            DT.toggleBitsOnPost(STROBE_EVT)
+            DT.setBitsNoDelay(value)
+            DT.clearBitsNoDelay(MAXPOSTABLEINT)
+            DT.toggleBitsOnPost(0)
+        if event == 'start':
+            DT.toggleBitsNoDelay(value)
+        if event == 'stop':
+            DT.clearBitsNoDelay(value)
     
 class DAQStampTrigger:
     """ Digital trigger via DAQ device.
@@ -185,9 +193,9 @@ class DAQStampTrigger:
         elif DT340_INSTALLED:
             self.trigger_out_daq = DT340DAQOUT()
     
-    def post_stamp(self, postval):
+    def post_stamp(self, postval, event='strobed'):
         if COMEDI_INSTALLED or DT340_INSTALLED:
-            self.trigger_out_daq.trigger_out(postval)
+            self.trigger_out_daq.trigger_out(postval,event)
             
 class SoftStampTrigger:
     """ Software trigger for test only. Implemented in Pyro.

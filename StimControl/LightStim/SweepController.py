@@ -8,7 +8,7 @@ import itertools
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
 from VisionEgg.FlowControl import ONCE,TRANSITIONS,NOT_DURING_GO,NOT_BETWEEN_GO
-from SweepStamp import START_REC,STOP_REC,DAQStampTrigger
+from SweepStamp import RSTART_EVT,DAQStampTrigger
 
 class StimulusController(VisionEgg.FlowControl.Controller):
     """ Base class for real time stimulus parameter controller.
@@ -84,7 +84,7 @@ class RemoteStartController(VisionEgg.FlowControl.Controller):
         self.stamp_trigger = DAQStampTrigger()
     def during_go_eval(self):
         #print 'set bits: %d' %RSTART_EVT
-        self.stamp_trigger.post_stamp(START_REC)
+        self.stamp_trigger.post_stamp(RSTART_EVT, event='start')
     def between_go_eval(self):
         pass
 
@@ -100,7 +100,7 @@ class RemoteStopController(VisionEgg.FlowControl.Controller):
         pass
     def between_go_eval(self):
         #print 'clear bits: %d' %RSTART_EVT
-        self.stamp_trigger.post_stamp(STOP_REC)
+        self.stamp_trigger.post_stamp(RSTART_EVT, event='stop')
 
 class SaveParamsController(SweepSequeStimulusController):
     """ Use Every_Frame evaluation controller in case of real time sweep table modification

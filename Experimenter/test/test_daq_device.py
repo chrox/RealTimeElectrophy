@@ -26,7 +26,7 @@ class SoftTriggerReceiver(Pyro.core.ObjBase):
         self.comp_queue.put_nowait(value)
         
     def get_comp_stamp(self):
-        return self.comp_queue.get(timeout=10.0)
+        return self.comp_queue.get(timeout=3.0)
     
     def get_all_stamps(self):
         stamp_list = []
@@ -59,13 +59,16 @@ class TestDAQTriggerExp(Experiment):
         self.params = params
         self.assignments = ["trigger_receiver_host = '%s'" %self.receiver_host,
                             "trigger_receiver_port = %d" %self.receiver_port ]
+        self.pc = PlexClient()
+        self.pc.InitClient()
+        self.pu = PlexUtil()
         
     def run(self):
         super(TestDAQTriggerExp, self).run()
         self.run_stimulus(left_params=self.params, assignments=self.assignments)
-        self.test()
+        self.test(mode="strobed")
         
-    def test(self):
+    def test(self, mode="strobed"):
         """ Stimulus will run on StimServer with a regular stamp controller posting 
             stamps via DAQ device and a soft stamp controller writting stamps to a 
             trigger receiver running at receiver host. The sweep stamps of both controllers 
@@ -75,23 +78,52 @@ class TestDAQTriggerExp(Experiment):
             stamps are pairly identical.
         """
         trig_receiver = SoftTriggerReceiver(host=self.receiver_host,port=self.receiver_port)
-        with PlexClient() as pc:
-            pu = PlexUtil()
-            while True:
-                data = pc.GetTimeStampArrays()
-                unstrobed_word = pu.GetExtEvents(data, event='unstrobed_word')
-                words_str = ','.join(str(stamp) for stamp in trig_receiver.get_all_stamps())
-                if len(words_str) > 0:
-                    print "found soft trigger words: %s" %words_str
-                for value,timestamp in zip(unstrobed_word['value'],unstrobed_word['timestamp']) :
-                    print "found event:unstrobed word:%d t=%f" % (value,timestamp)
-                    soft_stamp = trig_receiver.get_comp_stamp()
-                    print "found soft trigger word: %d" %soft_stamp
-                    assert value == soft_stamp
-                time.sleep(1.0)
-
+        
+        DAQ_nstamps = 0
+        Soft_nstamps = 0
+        failed_times = 0
+        finished = False
+        while not finished:
+            data = self.pc.GetTimeStampArrays()
+            if mode == "strobed":
+                daq_stamps = self.pu.GetExtEvents(data, event='first_strobe_word')
+            elif mode == "unstrobed":
+                daq_stamps = self.pu.GetExtEvents(data, event='unstrobed_word')
+            DAQ_nstamps += len(daq_stamps['value'])
+            daq_words_str = ','.join(str(stamp) for stamp in daq_stamps['value'])
+            
+            soft_stamps = trig_receiver.get_all_stamps()
+            Soft_nstamps += len(soft_stamps)
+            soft_words_str = ','.join(str(stamp) for stamp in soft_stamps)
+            with open("test_daq_device.txt",'a') as self.output:
+                if len(daq_words_str) > 0:
+                    self._log_test("Found daq trigger words: %s" %daq_words_str)
+                if len(soft_words_str) > 0:
+                    self._log_test("Found soft trigger words: %s" %soft_words_str)
+                for index,(value,timestamp) in enumerate(zip(daq_stamps['value'],daq_stamps['timestamp'])) :
+                    self._log_test("Stamp index:%d" % index)
+                    self._log_test("Found DAQ stamps:%d, Soft stamps:%d" % (DAQ_nstamps, Soft_nstamps))
+                    self._log_test("found daq  trigger word: %d t=%f" % (value,timestamp))
+                    try:
+                        soft_stamp = trig_receiver.get_comp_stamp()
+                    except:
+                        self._log_test("found no soft trigger word")
+                        break
+                    self._log_test("found soft trigger word: %d" %soft_stamp)
+                    try:
+                        assert value == soft_stamp
+                    except:
+                        failed_times += 1
+                        self._log_test("Assertion failed:\n\tDAQ stamp:\t%d\t(%s)\tt=%f\n\tSoft stamp:\t%d\t(%s)" \
+                            % (value,bin(value),timestamp,soft_stamp,bin(soft_stamp)))
+                    self._log_test("Assertion failed times:%d\n" % failed_times)
+            time.sleep(1.0)
+    def _log_test(self, line):
+        print(line)
+        self.output.writelines(line + "\n")
+    
 if __name__ == '__main__':
-    ExperimentConfig(data_base_dir='data_test',stim_server_host='192.168.1.105',new_cell=True)
+    ExperimentConfig(data_base_dir='data_test',stim_server_host='192.168.1.1',new_cell=True)
     p_left, p_right = Experiment().get_params()
-    TestDAQTriggerExp(receiver_host='192.168.1.105',receiver_port=8118,params=p_left).run()
+    TestDAQTriggerExp(receiver_host='192.168.1.2',receiver_port=8118,params=p_left).run()
     
