@@ -59,9 +59,9 @@ class PL_Event(Structure):
                 ('NumberOfBlocksInRecord', ctypes.c_byte),    ## reserved 
                 ('BlockNumberInRecord', ctypes.c_byte),       ## reserved 
                 ('UpperTS', ctypes.c_ubyte),                  ## Upper 8 bits of the 40-bit timestamp
-                ('TimeStamp', ctypes.c_ulong),                ## Channel that this came from, or Event number
-                ('Channel', ctypes.c_short),                  ## Unit classification, or Event strobe value
-                ('Unit', ctypes.c_short),                     ## reserved
+                ('TimeStamp', ctypes.c_ulong),                ## Lower 32 bits of the 40-bit timestamp
+                ('Channel', ctypes.c_short),                  ## Channel that this came from, or Event number
+                ('Unit', ctypes.c_short),                     ## Unit classification, or Event strobe value
                 ('DataType', ctypes.c_byte),                  ## reserved
                 ('NumberOfBlocksPerWaveform', ctypes.c_byte), ## reserved
                 ('BlockNumberForWaveform', ctypes.c_byte),    ## reserved

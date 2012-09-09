@@ -145,8 +145,8 @@ class PlexUtil(object):
             strobed_events = (channel == Plexon.PL_StrobedExtChannel)
             strobed_unit = unit[strobed_events]
             strobed_timestamp = timestamp[strobed_events]
-            first_strobe  = (strobed_unit & 0x8000) != 0
-            second_strobe = (strobed_unit & 0x8000) == 0
+            first_strobe  = (strobed_unit & 0x8000) == 0
+            second_strobe = (strobed_unit & 0x8000) != 0
             if event == 'first_strobe_word':
                 return {'value':strobed_unit[first_strobe] & 0x7FFF , 'timestamp':strobed_timestamp[first_strobe]}
             else:
