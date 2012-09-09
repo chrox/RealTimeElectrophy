@@ -13,9 +13,13 @@ class Config:
     template = {
     'DAQBoard' : {
                         'INSTALLED': False,
-                        'OUTPUT': True,
+                        'IO': 'output',
                         'BASE_CHAN': 0,
                         'NUM_CHANS': 16,
+                        },
+    'Network' : {
+                        'STIMSERVER_HOST': "192.168.1.101",
+                        'EXPERIMENT_HOST': "192.168.1.102",
                         },
     'Viewport' : {
                         'WIDTH_PIX': 1280,
@@ -33,6 +37,7 @@ class Config:
     }
     viewport_prefix = 'LIGHTSTIM_VIEWPORT_'
     def __init__(self):
+        logger = logging.getLogger('LightStim.Configuration')
         self.cfg = ConfigParser.ConfigParser()
         
         user_dir = os.path.expanduser("~")
@@ -52,7 +57,8 @@ class Config:
         else:
             raise RuntimeError('No hardware configuration file was found.')
 
-        # Get the values from the configFile
+        # Get the values from the configFile. The option names are compared to
+        # template options to determine data types.
         self.sections = self.cfg.sections()
         for section in self.sections:
             for template_section in Config.template.iterkeys():
@@ -65,13 +71,20 @@ class Config:
                     value = False
                 elif value == 'True' or value == 'true':
                     value = True
-                if isinstance(section_template[name], bool):
-                    value = self.cfg.getboolean(section, option)
-                elif isinstance(section_template[name], int):
-                    value = self.cfg.getint(section, option)
-                elif isinstance(section_template[name], float):
-                    value = self.cfg.getfloat(section, option)
-                setattr(self,'LIGHTSTIM_'+section.upper()+'_'+name,value)
+                try:
+                    template_value = section_template[name]
+                except KeyError:
+                    logger.error('Cannot understand option name:%s in section:%s.' %(name,section))
+                else:
+                    if isinstance(template_value, bool):
+                        value = self.cfg.getboolean(section, option)
+                    elif isinstance(template_value, int):
+                        value = self.cfg.getint(section, option)
+                    elif isinstance(template_value, float):
+                        value = self.cfg.getfloat(section, option)
+                    elif isinstance(template_value, str):
+                        value = self.cfg.get(section, option)
+                    setattr(self,'LIGHTSTIM_'+section.upper()+'_'+name,value)
 
     def get_screen_width_pix(self,viewports_list):
         known_viewports = self.get_known_viewports()
@@ -141,6 +154,8 @@ class Config:
                                'viewport in configuration file.' %stim_viewports[viewport_index])
                 
     def check_viewport_refresh_rate(self):
+        """ Check refresh rate consistency across all viewports except control viewport.
+        """
         logger = logging.getLogger('LightStim.Configuration')
         stim_viewport_refresh_rates = [self.get_viewport_refresh_rate(viewport) \
                                       for viewport in self.get_known_viewports() if viewport != 'control']
