@@ -64,8 +64,8 @@ CREDITS
 Much of the behaviour and many of the features of LightStim package are based on 
 Dimstim, a python visual stimulation package written by Martin Spacek and released 
 under BSD license. The Dimstim project page can be found at http://swindale.ecc.ubc.ca/dimstim .
-StimServer is modified from PyroApps, a demo VisionEgg application shipped with VisonEgg
-source code. For more information please refer to http://www.visionegg.org .
+StimServer is modified from PyroApps, a demo VisionEgg application shipped with 
+VisonEgg source code. For more information please refer to http://www.visionegg.org .
 
 MISC
 
