@@ -27,8 +27,6 @@ if DT340_INSTALLED:
         import DT # only importable if DT board is installed
     except ImportError:
         raise RuntimeError('Cannot import DT module.')
-    else:
-        DT = None
 
 # If DTboard pin C1 is connected to Omniplex pin A24, this post signal will trigger remote START recording.
 RSTART_EVT = 0x00020000
@@ -80,8 +78,8 @@ class ComediChannel(VisionEgg.Daq.Channel):
             raise RuntimeError("Comedi input/output not supported on this platform.")
         VisionEgg.Daq.Channel.__init__(self,**kw)
         
-        base_channel = self.constant_parameters.base_channel
-        if not isinstance(base_channel, int) or base_channel < 0:
+        first_channel = self.constant_parameters.first_channel
+        if not isinstance(first_channel, int) or first_channel < 0:
             raise ValueError("Base channel must be nonnegative integer.")
         num_channels = self.constant_parameters.num_channels
         if not isinstance(num_channels, int) or num_channels < 0:
