@@ -134,7 +134,7 @@ class PSTHPanel(wx.Panel):
         sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         
         # data form
-        self.data_form = DataPanel(self, 'Data form')
+        self.data_form = PSTHDataPanel(self, 'Data form')
         
         # canvas
         self.dpi = 100
