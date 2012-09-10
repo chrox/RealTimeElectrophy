@@ -32,6 +32,8 @@ class PSTHAverage(PlexSpikeData):
         super(PSTHAverage, self)._update_data(callback)
             
         new_triggers = self.pu.GetExtEvents(self.data, event='first_strobe_word')
+        if len(new_triggers['value']) == 0:
+            new_triggers = self.pu.GetExtEvents(self.data, event='unstrobed_word', online=self.online)
         trigger_values = new_triggers['value']
         
         ori_index = trigger_values & ORI_MASK
@@ -49,7 +51,7 @@ class PSTHAverage(PlexSpikeData):
         #elif np.any(pha_index) and not np.any(pha_type):
         elif np.any(pha_index):
             self.parameter = 'disparity'
-        param_indices = ori_index + spf_index + pha_index
+        param_indices = np.array((ori_index + spf_index + pha_index), np.int)
         offset_trigger = (trigger_values & ONSET_MASK) == 0
         param_indices[offset_trigger] = -1
         # param_index_que typically has values in the range of [-1,15]. That's enough to describe the stimuli, isn't it?
