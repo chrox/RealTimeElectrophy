@@ -61,6 +61,8 @@ class PSTHExperiment(Experiment):
             self.logger.error('Failed to export psth chart. ' + str(e))
             
         try:
+            # wait for complete of preceding pyro operationsg
+            time.sleep(3.0)
             self.logger.info('Stopping psth data.')
             self.psth_server.stop_data()
         except Exception,e:
