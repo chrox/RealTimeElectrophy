@@ -321,7 +321,7 @@ class ManGrating(ManStimulus):
                     preferences_dict = pickle.load(pkl_input)
             except:
                 logger.warning('Cannot load previous preferences.'+ ' Use the default preference.')
-                if name not in preferences_dict:
+            if name not in preferences_dict:
                     preferences_dict[name] = [self.defalut_preference] * 2
             with open('stimulus_params.pkl','wb') as pkl_output:
                 preferences_dict[name][index].update(self.get_parameters())
