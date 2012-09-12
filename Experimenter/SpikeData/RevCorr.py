@@ -179,9 +179,10 @@ class STAImg(RevCorrImg):
         if len(timestamps)>1:
             spikes = spike_trains[channel][unit]
             triggered_stim = spikes - tau
-            stim_times = np.zeros_like(timestamps[:-1], dtype=np.dtype('int'))
-            for time in np.linspace(-0.40, 0.40, 5):
-                stim_times += np.histogram(triggered_stim, timestamps+time)[0]
+            #stim_times = np.zeros(timestamps.size-1, np.dtype('int'))
+            #for time in np.linspace(-0.40, 0.40, 5):
+                #stim_times += np.histogram(triggered_stim, timestamps+time)[0]
+            stim_times = np.histogram(triggered_stim, timestamps)[0]
             take = stim_times > 0
             triggered_times = stim_times[take]
             col = cols[take]
