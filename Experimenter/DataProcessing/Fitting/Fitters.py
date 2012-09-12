@@ -95,8 +95,8 @@ class GaussFit(object):
         x_dim,y_dim = img.shape
         limitedmin = [False,False,True,True,True,True,True]
         limitedmax = [False,False,True,True,True,True,True]
-        minpars = [0.0, 0.0, -x_dim, -y_dim, 0.01, 0.01, 0.0]
-        maxpars = [0.0, 0.0, x_dim, y_dim, x_dim, y_dim, 360.0]
+        minpars = [0.0, 0.0, 0, 0, x_dim/8.0, y_dim/8.0, 0.0]
+        maxpars = [0.0, 0.0, x_dim, y_dim, x_dim*0.8, y_dim*0.8, 360.0]
         usemoment= np.array([True,True,True,True,True,True,True],dtype='bool')
         
         if returnfitimage:
@@ -147,8 +147,8 @@ class GaborFit(object):
         diag = math.sqrt(x_dim**2+y_dim**2)
         limitedmin=[False,False,True,True,True,True,True,True,True]
         limitedmax=[False,False,True,True,True,True,True,True,True]
-        minpars=[0.0, 0.0, 0.01, 0.01, 0.01, 0.01, 0.0, 0.01, 0.0]
-        maxpars=[0.0, 0.0, x_dim, y_dim, x_dim, y_dim, 360.0, diag, 360.0]
+        minpars=[0.0, 0.0, 0.01, 0.01, x_dim/8.0, y_dim/8.0, 0.0, diag/8.0, 0.0]
+        maxpars=[0.0, 0.0, x_dim, y_dim, x_dim*0.8, y_dim*0.8, 360.0, diag*0.8, 360.0]
         
         if returnfitimage:
             params,img = gaborfit(img,params=self.params,returnfitimage=True,limitedmin=limitedmin,\
