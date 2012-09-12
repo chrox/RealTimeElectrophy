@@ -62,7 +62,7 @@ class RandPhaseController(SweepSequeStimulusController):
     def __init__(self,*args,**kwargs):
         super(RandPhaseController, self).__init__(*args,**kwargs)
         self.gp = self.stimulus.gp
-        self.phase = IndexedParam('phase_at_t0_4')
+        self.phase = np.linspace(0.0, 360.0, 4, endpoint=False)
     def during_go_eval(self):
         self.gp.phase_at_t0 = random.choice(self.phase)
 
