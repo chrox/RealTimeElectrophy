@@ -119,10 +119,10 @@ class PlexClient(object):
             # make man readable timestamp
             data['timestamp'] = self.EventTimestampArray[:num.value]/self.MAPSampleRate
         else:
-            data['type'] = np.empty(0)
-            data['channel'] = np.empty(0)
-            data['unit'] = np.empty(0)
-            data['timestamp'] = np.empty(0)
+            data['type'] = np.empty(0,dtype=np.uint16)
+            data['channel'] = np.empty(0,dtype=np.uint16)
+            data['unit'] = np.empty(0,dtype=np.uint16)
+            data['timestamp'] = np.empty(0,dtype=np.uint32)
         return data
         
     def GetTimeStampStructures(self, num=MAX_MAP_EVENTS_PER_READ):
