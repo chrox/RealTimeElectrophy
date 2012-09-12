@@ -41,7 +41,7 @@ class PSTHAverage(PlexSpikeData):
         pha_index = (trigger_values & PHA_MASK)>>8
         #pha_type  = (trigger_values & PHA_TUN_TYPE)>>13
         # only one of the three parameters was used in the stimuli. 
-        #assert np.any(ori_index) + np.any(spf_index) + np.any(pha_index) < 2
+        assert np.any(ori_index) + np.any(spf_index) + np.any(pha_index) < 2
         if np.any(ori_index):
             self.parameter = 'orientation'
         elif np.any(spf_index):
