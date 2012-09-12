@@ -10,19 +10,18 @@ from StimControl.LightStim.SweepSeque import SparseNoiseSeque
 from StimControl.LightStim.LightData import dictattr
 from StimControl.LightStim.WhiteNoise import WhiteNoise
 from StimControl.LightStim.FrameControl import FrameSweep
-from StimControl.LightStim.Core import DefaultScreen
 
 eye = 'left'
-
-DefaultScreen(['left','right'])
 
 p = dictattr()
 
 """Grid settings"""
 # grid dimension (x, y)
 p.griddim = (32, 32)
+# grid magnification factor relative to receptive field width
+p.gridmag = 2
 # noise magnification fator relative to grid cell size
-p.widthmag = 4
+p.widthmag = 2
 p.heightmag = 1
 """Background settings"""
 # background brightness (0-1)
@@ -43,7 +42,7 @@ x_index = range(p.griddim[0])
 y_index = range(p.griddim[1])
 contrast = [0,1]
 
-noise_sequence = SparseNoiseSeque(repeat=8, x_index=x_index, y_index=y_index, contrast=contrast, frame_duration=p.sweepSec, blank_duration=p.postsweepSec)
+noise_sequence = SparseNoiseSeque(repeat=4, x_index=x_index, y_index=y_index, contrast=contrast, frame_duration=p.sweepSec, blank_duration=p.postsweepSec)
 
 stimulus_left = WhiteNoise(viewport=eye, params=p, sweepseq=noise_sequence)
 

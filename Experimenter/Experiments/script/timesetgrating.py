@@ -9,9 +9,6 @@ from StimControl.LightStim.SweepSeque import TimingSeque
 from StimControl.LightStim.LightData import dictattr
 from StimControl.LightStim.FrameControl import FrameSweep
 from StimControl.LightStim.Grating import TimingSetGrating,RandPhaseTimingSetGrating
-from StimControl.LightStim.Core import DefaultScreen
-
-DefaultScreen(['left','right'])
 
 p_left = dictattr()
 p_left.ml = 0.5

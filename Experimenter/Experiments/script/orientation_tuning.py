@@ -8,12 +8,9 @@ from __future__ import division
 from StimControl.LightStim.SweepSeque import ParamSeque
 from StimControl.LightStim.FrameControl import FrameSweep
 from StimControl.LightStim.Grating import ParamsGrating
-from StimControl.LightStim.Core import DefaultScreen
 from StimControl.LightStim.LightData import dictattr,IndexedParam
 
 eye = 'left'
-
-DefaultScreen(['left','right'])
 
 p = dictattr()
 p.ml = 0.5

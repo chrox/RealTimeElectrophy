@@ -6,9 +6,7 @@
 
 from __future__ import division
 from StimControl.LightStim.FrameControl import FrameSweep
-from StimControl.LightStim.Core import DefaultScreen,Dummy_Stimulus
-
-DefaultScreen(['left','right'])
+from StimControl.LightStim.Core import Dummy_Stimulus
 
 duration = 15.0
 

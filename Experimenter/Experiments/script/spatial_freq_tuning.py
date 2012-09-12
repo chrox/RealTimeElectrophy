@@ -9,17 +9,14 @@ from StimControl.LightStim.SweepSeque import ParamSeque
 from StimControl.LightStim.LightData import dictattr
 from StimControl.LightStim.FrameControl import FrameSweep
 from StimControl.LightStim.Grating import ParamsGrating
-from StimControl.LightStim.Core import DefaultScreen
 from StimControl.LightStim.LightData import IndexedParam
 
 eye = 'left'
 
-DefaultScreen(['left','right'])
-
 p = dictattr()
 p.ml = 0.5
 p.tfreqCycSec = 2.0
-p.bgbrightness = 0.5
+p.bgbrightness = 0.0
 p.phase0 = 0
 p.contrast = 1
 

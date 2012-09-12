@@ -33,7 +33,7 @@ p.ml = 0.5
 # grating contrast (0-1)
 p.contrast = 1
 # background brightness (0-1)
-p.bgbrightness = 0.5
+p.bgbrightness = 0
 # antialiase the bar?
 p.antialiase = True
 # flash the grating?
