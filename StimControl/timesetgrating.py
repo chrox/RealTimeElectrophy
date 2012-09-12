@@ -5,7 +5,6 @@
 # See LICENSE.TXT that came with this file.
 
 from __future__ import division
-import numpy as np
 from StimControl.LightStim.SweepSeque import TimingSeque
 from StimControl.LightStim.LightData import dictattr
 from StimControl.LightStim.FrameControl import FrameSweep
@@ -21,10 +20,17 @@ p.bgbrightness = 0.0
 p.phase0 = 0
 p.contrast = 1
 
-cycle_left = dictattr(duration=0.132, pre=np.linspace(0.0,0.0,1), stimulus=0.016)
-cycle_right = dictattr(duration=0.132, pre=np.linspace(0.016,0.016,1), stimulus=0.016)
-block_left = dictattr(repeat=1600, cycle=cycle_left, interval=0.0)
-block_right = dictattr(repeat=1600, cycle=cycle_right, interval=0.0)
+stim_interval = 0.0
+
+pre_left = 0.0 if stim_interval > 0 else abs(stim_interval)
+pre_right = 0.0 if stim_interval <= 0 else stim_interval
+
+repeats = 1600
+
+cycle_left = dictattr(duration=0.132, pre=pre_left, stimulus=0.016)
+cycle_right = dictattr(duration=0.132, pre=pre_right, stimulus=0.016)
+block_left = dictattr(repeat=repeats, cycle=cycle_left, interval=0.0)
+block_right = dictattr(repeat=repeats, cycle=cycle_right, interval=0.0)
 sequence_left = TimingSeque(repeat=1, block=block_left, shuffle=True)
 sequence_right = TimingSeque(repeat=1, block=block_right, shuffle=True)
 
@@ -35,6 +41,3 @@ sweep = FrameSweep()
 sweep.add_stimulus(grating_left)
 sweep.add_stimulus(grating_right)
 sweep.go()
-
-
-
