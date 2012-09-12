@@ -109,7 +109,7 @@ class STAPanel(wx.Panel):
         self.start_data()
         self.stimulus = None
         # reverse time in ms
-        time_slider = 65
+        time_slider = 85
         self.time = time_slider/1000
         
         self.dpi = 100
