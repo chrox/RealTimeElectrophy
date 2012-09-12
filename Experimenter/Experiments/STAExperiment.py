@@ -99,7 +99,7 @@ class STAExperiment(Experiment):
         return Pyro.core.getProxyForURI(URI)
     
     def pre_stim_setup(self):
-        self.sta_server.set_sta_title(self.exp_name)
+        self.sta_server.set_title(self.exp_name)
         self.sta_server.uncheck_fitting()
         
     def post_stim_setup(self):
@@ -159,13 +159,13 @@ class RFCMappingExp(STAExperiment):
             self.logger.error('Failed to get RF center from %s experiment.' %self.exp_name)
         else:
             orig_pos = self.params['xorigDeg'], self.params['yorigDeg']
-            cell_width = self.params['widthDeg']*3.0/16.0
+            cell_width = self.params['widthDeg']*2.0/32.0
             
             rf_x_pos = orig_pos[0] + cell_width * (data['rf_center'][0]-16)
             rf_y_pos = orig_pos[0] + cell_width * (16-data['rf_center'][1])
-            rf_pos = (rf_x_pos,rf_y_pos)
+            rf_pos = (float(rf_x_pos), float(rf_y_pos))
             self.logger.info('Get RF center from %s experiment: %.2f,%.2f' %(self.exp_name,rf_pos[0],rf_pos[1]))
-            return rf_y_pos
+            return rf_pos
         
     def log_sta_data(self, data):
         data_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.csv'
