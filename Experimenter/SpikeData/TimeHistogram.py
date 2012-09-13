@@ -9,17 +9,23 @@ import numpy as np
 import scipy.ndimage as nd
 from PlexSpikeData import PlexSpikeData
 
-ORI_MASK = 0xF<<0
-SPF_MASK = 0xF<<4
-PHA_MASK = 0xF<<8
-ONSET_MASK = 1<<12
-#PHA_TUN_TYPE = 1<<13
-
-class PSTHAverage(PlexSpikeData):
-    def renew_data(self):
+class PSTHTuning(PlexSpikeData):
+    ORI_MASK = 0xF<<0
+    SPF_MASK = 0xF<<4
+    PHA_MASK = 0xF<<8
+    ONSET_MASK = 1<<12
+    #PHA_TUN_TYPE = 1<<13
+    def __init__(self, *args,**kwargs):
+        super(PSTHTuning, self).__init__(*args,**kwargs)
         self.param_indices = np.empty(0,dtype=np.int16)
         self.timestamps = np.empty(0)
         self.parameter = None
+        self.spike_trains = {}
+        self.histogram_data = {}
+        
+    def renew_data(self):
+        self.param_indices = np.empty(0,dtype=np.int16)
+        self.timestamps = np.empty(0)
         self.spike_trains = {}
         self.histogram_data = {}
     
@@ -29,16 +35,16 @@ class PSTHAverage(PlexSpikeData):
         return self.histogram_data
     
     def _update_data(self,callback=None):
-        super(PSTHAverage, self)._update_data(callback)
+        super(PSTHTuning, self)._update_data(callback)
             
         new_triggers = self.pu.GetExtEvents(self.data, event='first_strobe_word')
         if len(new_triggers['value']) == 0:
             new_triggers = self.pu.GetExtEvents(self.data, event='unstrobed_word', online=self.online)
         trigger_values = new_triggers['value']
         
-        ori_index = trigger_values & ORI_MASK
-        spf_index = (trigger_values & SPF_MASK)>>4
-        pha_index = (trigger_values & PHA_MASK)>>8
+        ori_index = trigger_values & PSTHTuning.ORI_MASK
+        spf_index = (trigger_values & PSTHTuning.SPF_MASK)>>4
+        pha_index = (trigger_values & PSTHTuning.PHA_MASK)>>8
         #pha_type  = (trigger_values & PHA_TUN_TYPE)>>13
         # only one of the three parameters was used in the stimuli. 
         assert np.any(ori_index) + np.any(spf_index) + np.any(pha_index) < 2
@@ -52,7 +58,7 @@ class PSTHAverage(PlexSpikeData):
         elif np.any(pha_index):
             self.parameter = 'disparity'
         param_indices = np.array((ori_index + spf_index + pha_index), np.int)
-        offset_trigger = (trigger_values & ONSET_MASK) == 0
+        offset_trigger = (trigger_values & PSTHTuning.ONSET_MASK) == 0
         param_indices[offset_trigger] = -1
         # param_index_que typically has values in the range of [-1,15]. That's enough to describe the stimuli, isn't it?
         self.param_indices = np.append(self.param_indices, param_indices)
@@ -128,3 +134,76 @@ class PSTHAverage(PlexSpikeData):
                 self.histogram_data[channel][unit][param_index]['mean'] = mean
                 self.histogram_data[channel][unit][param_index]['means'].append(trial_mean)
                 self.histogram_data[channel][unit][param_index]['std'] = np.std(self.histogram_data[channel][unit][param_index]['means'])
+                
+class PSTHAverage(PlexSpikeData):
+    ONSET_MASK = 1<<12
+    def __init__(self, *args,**kwargs):
+        super(PSTHAverage, self).__init__(*args,**kwargs)
+        self.timestamps = np.empty(0)
+        self.onset_timestamps = np.empty(0)
+        self.spike_trains = {}
+        self.histogram_data = {}
+        
+    def renew_data(self):
+        self.timestamps = np.empty(0)
+        self.spike_trains = {}
+        self.histogram_data = {}
+    
+    def get_data(self,callback=None):
+        self._update_data(callback)
+        self._get_psth_data()
+        return self.histogram_data
+    
+    def _update_data(self,callback=None):
+        super(PSTHAverage, self)._update_data(callback)
+        new_triggers = self.pu.GetExtEvents(self.data, event='first_strobe_word')
+        if len(new_triggers['value']) == 0:
+            new_triggers = self.pu.GetExtEvents(self.data, event='unstrobed_word', online=self.online)
+        trigger_values = new_triggers['value']
+        is_onset_trigger = (trigger_values & PSTHTuning.ONSET_MASK) != 0
+        onset_timestamps = new_triggers['timestamp'][is_onset_trigger]
+        self.onset_timestamps = np.append(self.onset_timestamps, onset_timestamps)
+        self.timestamps = np.append(self.timestamps, new_triggers['timestamp'])
+                
+        new_spike_trains = self.pu.GetSpikeTrains(self.data)
+        for channel,channel_trains in new_spike_trains.iteritems():
+            if channel not in self.spike_trains:
+                self.spike_trains[channel] = channel_trains
+            else:
+                for unit,unit_train in channel_trains.iteritems():
+                    if unit not in self.spike_trains[channel]:
+                        self.spike_trains[channel][unit] = unit_train
+                    else:
+                        self.spike_trains[channel][unit] = np.append(self.spike_trains[channel][unit], unit_train)
+            
+    def _get_psth_data(self):
+        for channel,channel_trains in self.spike_trains.iteritems():
+            if channel not in self.histogram_data:
+                self.histogram_data[channel] = {}
+            for unit,_unit_train in channel_trains.iteritems():
+                if unit not in self.histogram_data[channel]:
+                    self.histogram_data[channel][unit] = {}
+                    self.histogram_data[channel][unit]['trials'] = 0
+                    self.histogram_data[channel][unit]['spikes'] = []
+                    self.histogram_data[channel][unit]['means'] = []
+                    self._process_unit(channel,unit)
+                    
+    def _process_unit(self,channel,unit):
+        duration = 0.152
+        binsize = 0.001 #binsize 1 ms
+        bins = np.arange(0.,duration,binsize)
+        self.histogram_data[channel][unit]['bins'] = bins[:-1]*1000
+        stimulus_on = self.onset_timestamps
+        unit_train = self.spike_trains[channel][unit]
+        for begin in stimulus_on:
+            take = ((unit_train >= begin) & (unit_train < begin + duration))
+            trial_spikes = unit_train[take] - begin
+            spikes = np.append(self.histogram_data[channel][unit]['spikes'], trial_spikes)
+            trials = self.histogram_data[channel][unit]['trials'] + 1
+            psth_data = np.array(np.histogram(spikes, bins=bins)[0],dtype='float') / (binsize*trials)
+            smoothed_psth = nd.gaussian_filter1d(psth_data, sigma=10)
+            self.histogram_data[channel][unit]['spikes'] = spikes
+            self.histogram_data[channel][unit]['trials'] = trials
+            self.histogram_data[channel][unit]['psth_data'] = psth_data
+            self.histogram_data[channel][unit]['smoothed_psth'] = smoothed_psth
+            
