@@ -38,7 +38,7 @@ class PlexSpikeData(object):
     def renew_data(self):
         pass
     
-    def get_data(self):
+    def get_data(self,callback=None):
         pass
         
     def _update_data(self,callback=None):
