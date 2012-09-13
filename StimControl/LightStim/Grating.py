@@ -172,7 +172,7 @@ class ParamStampController(SweepSequeTriggerController):
             
 class ParamMappingStamp(ParamStampController):
     def __init__(self,*args,**kwargs):
-        super(ParamStampController, self).__init__(*args,**kwargs)
+        super(ParamMappingStamp, self).__init__(*args,**kwargs)
         self.indexed_ori = IndexedParam('orientation_180')
         self.indexed_sfq = IndexedParam('spatial_freq')
         self.indexed_pha = IndexedParam('phase_at_t0')
