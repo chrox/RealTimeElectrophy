@@ -164,6 +164,8 @@ class WhiteNoise(Stimulus):
         position = (self.viewport.xorig+self.viewport.deg2pix(self.parameters.xorigDeg), \
                     self.viewport.yorig+self.viewport.deg2pix(self.parameters.yorigDeg))
         
+        self.parameters.gridsize = self.parameters.rfsize * self.parameters.gridmag
+        
         self.gridcell = (self.parameters.gridsize/self.parameters.griddim[0],
                          self.parameters.gridsize/self.parameters.griddim[1])
         
@@ -234,5 +236,5 @@ class WhiteNoise(Stimulus):
 
         parameters.xorigDeg = self.preference['xorigDeg']
         parameters.yorigDeg = self.preference['yorigDeg']
-        parameters.gridsize = self.preference['widthDeg']
+        parameters.rfsize = self.preference['widthDeg']
         parameters.ori = self.preference['ori']
