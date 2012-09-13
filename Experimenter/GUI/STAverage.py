@@ -399,6 +399,10 @@ class RCSTAPanel(STAPanel, RCPanel):
         STAPanel.__init__(self,*args,**kwargs)
         RCPanel.__init__(self)
         
+        self.check_request_timer = wx.Timer(self, wx.NewId())
+        self.Bind(wx.EVT_TIMER, self._on_check_request, self.check_request_timer)
+        self.check_request_timer.Start(200)
+        
         self.fitting_request = None
         self.unfitting_request = False
         self.colorbar_request = False

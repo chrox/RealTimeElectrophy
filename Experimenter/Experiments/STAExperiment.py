@@ -61,15 +61,20 @@ class STAExperiment(Experiment):
             self.logger.error('Failed to extract sta data. ' + str(e))
             
         try:
+            # wait for complete of preceding pyro operationsg
+            time.sleep(3.0)
             self.logger.info('Stopping sta data.')
             self.sta_server.stop_data()
         except Exception,e:
             self.logger.error('Failed to stop sta app. ' + str(e))
-            
+        
         try:
-            self.sta_server.clear_title()
+            # wait for complete of preceding pyro operationsg
+            time.sleep(3.0)
+            self.logger.info('Closing sta server.')
+            self.sta_server.close()
         except Exception,e:
-            self.logger.error('Failed to clear sta title. ' + str(e))
+            self.logger.error('Failed to close sta server. ' + str(e))
         
         try:
             return results
@@ -83,7 +88,7 @@ class STAExperiment(Experiment):
         self.logger.info('Fetching sta server.')
         try:
             if STAExperiment.STA_SERVER_PROCESS.poll() is not None:
-                self.logger.warning('STA server is dead.')
+                self.logger.info('STA server is dead.')
                 raise
         except:
             self.logger.info('Creating new sta app.')

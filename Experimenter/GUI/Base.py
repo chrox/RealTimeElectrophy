@@ -24,6 +24,8 @@ EVT_PROG_BAR_HIDE_TYPE = wx.NewEventType()
 EVT_PROG_BAR_HIDE = wx.PyEventBinder(EVT_PROG_BAR_HIDE_TYPE, 1)
 EVT_PROG_BAR_SHOW_TYPE = wx.NewEventType()
 EVT_PROG_BAR_SHOW = wx.PyEventBinder(EVT_PROG_BAR_SHOW_TYPE, 1)
+EVT_FRAME_CLOSE_TYPE = wx.NewEventType()
+EVT_FRAME_CLOSE = wx.PyEventBinder(EVT_FRAME_CLOSE_TYPE, 1)
 
 class DataUpdatedEvent(wx.PyCommandEvent):
     def __init__(self, etype, eid, data=None):
@@ -167,6 +169,7 @@ class MainFrame(wx.Frame):
         self.Bind(EVT_DATA_STOP, self.on_stop_data)
         self.Bind(EVT_DATA_RESTART, self.on_restart_data)
         self.Bind(EVT_UNIT_SELECTED, self.on_select_unit)
+        self.Bind(EVT_FRAME_CLOSE, self.on_exit)
         
     def create_menu(self):
         self.menubar = wx.MenuBar()
@@ -392,9 +395,7 @@ class RCPanel(Pyro.core.ObjBase):
         self.start_request = False
         self.stop_request = False
         self.restart_request = False
-        self.check_request_timer = wx.Timer(self, wx.NewId())
-        self.Bind(wx.EVT_TIMER, self._on_check_request, self.check_request_timer)
-        self.check_request_timer.Start(100)
+        self.close_request = False
         
     def _on_check_request(self, event):
         self._check_set_title()
@@ -403,6 +404,7 @@ class RCPanel(Pyro.core.ObjBase):
         self._check_start_request()
         self._check_stop_request()
         self._check_restart_request()
+        self._check_close_request()
     
     def _check_set_title(self):
         if self.set_title_request is not None:
@@ -442,6 +444,13 @@ class RCPanel(Pyro.core.ObjBase):
             wx.PostEvent(parent, evt)
             self.restart_request = False
     
+    def _check_close_request(self):
+        if self.close_request is True:
+            parent = wx.FindWindowByName('main_frame')
+            evt = wx.CommandEvent(EVT_FRAME_CLOSE_TYPE)
+            wx.PostEvent(parent, evt)
+            self.close_request = False
+    
     def set_title(self, title):
         self.set_title_request = title
         
@@ -462,6 +471,9 @@ class RCPanel(Pyro.core.ObjBase):
         
     def restart_data(self):
         self.restart_request = True
+        
+    def close(self):
+        self.close_request = True
         
 def adjust_spines(ax,spines,spine_outward=['left','right'],xoutward=0,youtward=5,xticks='bottom',yticks='left',\
                   xtick_dir='out',ytick_dir='out',tick_label=['x','y'],xaxis_loc=None,yaxis_loc=None,
