@@ -23,6 +23,12 @@ class PlexClient(object):
     def __init__(self):
         self.library = Plexon._lib
         self.MAX_MAP_EVENTS_PER_READ = MAX_MAP_EVENTS_PER_READ
+        self.MAPSampleRate = None
+        self.EventTypeArray      = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.uint16)
+        self.EventChannelArray   = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.uint16)
+        self.EventUnitArray      = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.uint16)
+        self.EventTimestampArray = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.uint32)
+        self.ServerEventBuffer = (Plexon.PL_Event * self.MAX_MAP_EVENTS_PER_READ)()
     def __enter__(self):
         self.InitClient()
         return self
@@ -97,16 +103,6 @@ class PlexClient(object):
         """
         num = ctypes.c_int(num)
         data = {}
-        if not hasattr(self, 'EventTypeArray'):
-            self.EventTypeArray      = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.uint16)
-        if not hasattr(self, 'EventChannelArray'):
-            self.EventChannelArray   = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.uint16)
-        if not hasattr(self, 'EventUnitArray'):
-            self.EventUnitArray      = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.uint16)
-            #self.UnitChar            = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.char)
-        if not hasattr(self, 'EventTimestampArray'):
-            self.EventTimestampArray = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.uint32)
-            #self.TimestampSeconds    = np.empty(self.MAX_MAP_EVENTS_PER_READ,dtype=np.float32)
         if self.library:
             Plexon.PL_GetTimeStampArrays(ctypes.byref(num), 
                                   self.EventTypeArray.ctypes.data_as(ctypes.POINTER(ctypes.c_short)),
@@ -122,7 +118,7 @@ class PlexClient(object):
             data['type'] = np.empty(0,dtype=np.uint16)
             data['channel'] = np.empty(0,dtype=np.uint16)
             data['unit'] = np.empty(0,dtype=np.uint16)
-            data['timestamp'] = np.empty(0,dtype=np.uint32)
+            data['timestamp'] = np.empty(0)
         return data
         
     def GetTimeStampStructures(self, num=MAX_MAP_EVENTS_PER_READ):
@@ -143,8 +139,6 @@ class PlexClient(object):
             Array of PL_Event structures filled with new data
         """
         num = ctypes.c_int(num)
-        if not hasattr(self, 'ServerEventBuffer'):
-            self.ServerEventBuffer = (Plexon.PL_Event * self.MAX_MAP_EVENTS_PER_READ)()
         Plexon.PL_GetTimeStampStructures(ctypes.byref(num), ctypes.byref(self.ServerEventBuffer[0]))
         return (num.value, self.ServerEventBuffer)
 
