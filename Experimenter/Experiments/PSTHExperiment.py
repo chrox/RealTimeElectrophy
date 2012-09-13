@@ -13,6 +13,11 @@ from Experiment import ExperimentConfig,Experiment
 class PSTHExperiment(Experiment):
     PSTH_SERVER_PROCESS = None
     PSTH_SERVER_PORT = 6743
+    def __init__(self,*args,**kwargs):
+        super(PSTHExperiment, self).__init__(*args,**kwargs)
+        self.pyro_source = ''
+        self.exp_param = ''
+        
     def psth_analysis(self, psth_type=None):
         #self.psth_server = self.get_psth_server()
         try:
@@ -67,11 +72,14 @@ class PSTHExperiment(Experiment):
             self.psth_server.stop_data()
         except Exception,e:
             self.logger.error('Failed to stop psth app. ' + str(e))
-            
+        
         try:
-            self.psth_server.clear_title()
+            # wait for complete of preceding pyro operationsg
+            time.sleep(3.0)
+            self.logger.info('Closing psth server.')
+            self.psth_server.close()
         except Exception,e:
-            self.logger.error('Failed to clear psth title. ' + str(e))
+            self.logger.error('Failed to close psth server. ' + str(e))
             
         try:
             return results
@@ -104,41 +112,16 @@ class PSTHExperiment(Experiment):
                 data_output.writelines('BII,%s\n' % str(data['BII']))
             if 'S/N' in data:
                 data_output.writelines('S/N,%s\n' % str(data['S/N']))
-                
-    def _get_psth_server(self):
-        # multiprocessing version !NOT WORKING ON WIN32!
-        import multiprocessing
-        import Experimenter.Experiments.app.pyro_psth as pyro_psth
-
-        PSTH_SERVER_PORT = 6743
-        self.logger.info('Fetching psth server.')
-        try:
-            if not Experiment.psth_server_process.is_alive():
-                self.logger.warning('PSTH server is dead.')
-                raise
-        except:
-            self.logger.info('Creating new psth app.')
-            #Experiment.psth_server_process = multiprocessing.Process(target=launch_psth_app,kwargs={'port':PSTH_SERVER_PORT})
-            Experiment.psth_server_process = multiprocessing.Process(target=pyro_psth.launch_psth_app)
-            Experiment.psth_server_process.start()
-            time.sleep(5.0)
-        else:
-            self.logger.info('Psth app has been launched.')
-        
-        assert Experiment.psth_server_process.is_alive()
-        URI = "PYROLOC://localhost:%d/%s" % (PSTH_SERVER_PORT, 'psth_server')
-        Pyro.core.initClient()
-        return Pyro.core.getProxyForURI(URI)
     
     def get_psth_server(self):
         self.logger.info('Fetching psth server.')
         try:
             if PSTHExperiment.PSTH_SERVER_PROCESS.poll() is not None:
-                self.logger.warning('PSTH server is dead.')
+                self.logger.info('PSTH server is dead.')
                 raise
         except:
             self.logger.info('Creating new psth app.')
-            psth_app_path = os.path.dirname(__file__) + os.path.sep + 'app' + os.path.sep + 'pyro_psth.py'
+            psth_app_path = os.path.dirname(__file__) + os.path.sep + 'app' + os.path.sep + self.pyro_source
             args = [sys.executable, psth_app_path, str(PSTHExperiment.PSTH_SERVER_PORT)]
             PSTHExperiment.PSTH_SERVER_PROCESS = subprocess.Popen(args)
             time.sleep(3.0)                
@@ -151,11 +134,15 @@ class PSTHExperiment(Experiment):
         
     def psth_setup(self):
         self.psth_server.set_title(self.exp_name)
+        
+    def extract_results(self, data):
+        raise RuntimeError("Must override extract_results method with exp implementation!")
     
 class ORITunExp(PSTHExperiment):
     def __init__(self,eye,params,*args,**kwargs):
         super(ORITunExp, self).__init__(*args,**kwargs)
-        self.source = 'orientation_tuning.py'
+        self.pyro_source = 'pyro_psth_tuning.py'
+        self.stim_source = 'orientation_tuning.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-ori-tun-' + eye
         self.exp_param = 'ori'
         self.eye = eye
@@ -186,7 +173,8 @@ class ORITunExp(PSTHExperiment):
 class SPFTunExp(PSTHExperiment):
     def __init__(self,eye,params,*args,**kwargs):
         super(SPFTunExp, self).__init__(*args,**kwargs)
-        self.source = 'spatial_freq_tuning.py'
+        self.pyro_source = 'pyro_psth_tuning.py'
+        self.stim_source = 'spatial_freq_tuning.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-spf-tun-' + eye
         self.exp_param = 'spf'
         self.eye = eye
@@ -217,7 +205,8 @@ class SPFTunExp(PSTHExperiment):
 class PHATunExp(PSTHExperiment):
     def __init__(self,eye,params,*args,**kwargs):
         super(PHATunExp, self).__init__(*args,**kwargs)
-        self.source = 'phase_tuning.py'
+        self.pyro_source = 'pyro_psth_tuning.py'
+        self.stim_source = 'phase_tuning.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-pha-tun-' + eye
         self.exp_param = 'pha'
         self.eye = eye
@@ -248,7 +237,8 @@ class PHATunExp(PSTHExperiment):
 class DSPTunExp(PSTHExperiment):
     def __init__(self,left_params,right_params,repeats,postfix,*args,**kwargs):
         super(DSPTunExp, self).__init__(*args,**kwargs)
-        self.source = 'disparity_tuning.py'
+        self.pyro_source = 'pyro_psth_tuning.py'
+        self.stim_source = 'disparity_tuning.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-dsp-tun-' + postfix
         self.exp_param = 'dsp'
         self.eye = ['left','right']
@@ -274,4 +264,35 @@ class DSPTunExp(PSTHExperiment):
         else:
             self.logger.info('Get optimal parameter from %s experiment: %f' %(self.exp_name, data['max_param']))
             return float(data['max_param'])
+
+class SpikeLatencyExp(PSTHExperiment):
+    def __init__(self,eye,params,*args,**kwargs):
+        super(SpikeLatencyExp, self).__init__(*args,**kwargs)
+        self.pyro_source = 'pyro_psth_average.py'
+        self.stim_source = 'rand_phase.py'
+        self.exp_name = ExperimentConfig.CELLPREFIX + '-latency-' + eye
+        self.exp_param = 'lat'
+        self.eye = eye
+        self.params = params
+        self.assignments = ["eye = '%s'" %eye]
         
+    def run(self):
+        super(SpikeLatencyExp, self).run()
+        if self.eye == 'left':
+            self.run_stimulus(left_params=self.params, assignments=self.assignments)
+        elif self.eye == 'right':
+            self.run_stimulus(right_params=self.params, assignments=self.assignments)
+        ori = self.psth_analysis()
+        return ori
+    
+    def psth_setup(self):
+        super(SpikeLatencyExp, self).psth_setup()
+        self.logger.info('Uncheck curve fitting for this experiment.')
+        self.psth_server.uncheck_fitting()
+        
+    def extract_results(self, data):
+        if 'latency' not in data:
+            self.logger.error('Failed to get optimal parameter from %s experiment.' %self.exp_name)
+        else:
+            self.logger.info('Get spike latency from %s experiment: %f' %(self.exp_name, data['latency']))
+            return float(data['latency'])
