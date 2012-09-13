@@ -4,10 +4,10 @@
 #
 # See LICENSE.TXT that came with this file.
 import wx
-from Experimenter.GUI.PSTHAverage import PSTHFrame
+from Experimenter.GUI.PSTHAverage import PSTHAverageFrame
 
 if __name__ == '__main__':
     app = wx.PySimpleApp()
-    app.frame = PSTHFrame()
+    app.frame = PSTHAverageFrame()
     app.frame.Show()
     app.MainLoop()
