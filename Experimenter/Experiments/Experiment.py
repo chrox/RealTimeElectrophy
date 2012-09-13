@@ -96,7 +96,7 @@ class Experiment(object):
         self.stimulus = StimCommand(server_hostname=ExperimentConfig.STIM_SERVER_HOST)
         self.exp_name = None
         self.post_fix = None
-        self.source = None
+        self.stim_source = None
         self.logger = logging.getLogger('Experimenter.Experiments')
         
     def get_params(self):
@@ -108,7 +108,7 @@ class Experiment(object):
         self.logger.info('='*18)
         
     def run_stimulus(self, left_params=None, right_params=None, assignments=[]):
-        exp_file = os.path.dirname(__file__) + os.path.sep + 'script' + os.path.sep + self.source
+        exp_file = os.path.dirname(__file__) + os.path.sep + 'script' + os.path.sep + self.stim_source
         self.logger.info('Running script: ' + exp_file)
         self.logger.info('Experiment name is: ' + self.exp_name)
         self.logger.info('Experiment time is: ' + time.strftime('%Y/%m/%d %H:%M:%S', time.localtime()))
@@ -135,7 +135,7 @@ class Experiment(object):
 class ManbarExp(Experiment):
     def __init__(self,left_params,right_params,*args,**kwargs):
         super(ManbarExp, self).__init__(*args,**kwargs)
-        self.source = 'manbar.py'
+        self.stim_source = 'manbar.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-manbar'
         
     def run(self):
@@ -147,7 +147,7 @@ class ManbarExp(Experiment):
 class MangratingExp(Experiment):
     def __init__(self,left_params,right_params,*args,**kwargs):
         super(MangratingExp, self).__init__(*args,**kwargs)
-        self.source = 'mangrating.py'
+        self.stim_source = 'mangrating.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-mangrating'
         
     def run(self):
@@ -159,7 +159,7 @@ class MangratingExp(Experiment):
 class StimTimingExp(Experiment):
     def __init__(self,left_phase,right_phase,interval,duration,postfix,rand_phase=False,*args,**kwargs):
         super(StimTimingExp, self).__init__(*args,**kwargs)
-        self.source = 'timesetgrating.py'
+        self.stim_source = 'timesetgrating.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-stim-timing-' + postfix
         self.eye = ['left','right']
         self.assignments = ['p_left.phase0 = %f' %left_phase, 'p_right.phase0 = %f' %right_phase, 
@@ -174,7 +174,7 @@ class StimTimingExp(Experiment):
 class RestingExp(Experiment):
     def __init__(self,duration,postfix,*args,**kwargs):
         super(RestingExp, self).__init__(*args,**kwargs)
-        self.source = 'resting.py'
+        self.stim_source = 'resting.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-resting-' + postfix
         self.eye = ['left','right']
         self.assignments = ['duration = %f' %(duration*60.0)]
