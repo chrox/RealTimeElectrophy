@@ -8,7 +8,6 @@ import pickle
 import logging
 import VisionEgg
 import VisionEgg.PyroApps.EPhysServer as server
-from StimControl import LightStim
 from StimControl.LightStim.Core import DefaultScreen
 from StimControl.LightStim.LightData import dictattr
 
@@ -25,21 +24,21 @@ class MyDropinMetaController(DropinMetaController):
         self.p = presentation
 
 class Targets(object):
-        def __init__(self, targets_list):
-            self.targets = targets_list
-        def __eq__(self,other):
-            if len(self.targets)!=len(other.targets):
-                return False
-            for i in range(len(other.targets)):
-                if not self.equal_target(self.targets[i],other.targets[i]):
-                    return False
-            return True
-        def equal_target(self, left, right):
-            if isinstance(left, ast.Attribute) and isinstance(right, ast.Attribute):
-                return self.equal_target(left.value, right.value) and left.attr == right.attr
-            if isinstance(left, ast.Name) and isinstance(right, ast.Name):
-                return left.id == right.id
+    def __init__(self, targets_list):
+        self.targets = targets_list
+    def __eq__(self,other):
+        if len(self.targets)!=len(other.targets):
             return False
+        for i in range(len(other.targets)):
+            if not self.equal_target(self.targets[i],other.targets[i]):
+                return False
+        return True
+    def equal_target(self, left, right):
+        if isinstance(left, ast.Attribute) and isinstance(right, ast.Attribute):
+            return self.equal_target(left.value, right.value) and left.attr == right.attr
+        if isinstance(left, ast.Name) and isinstance(right, ast.Name):
+            return left.id == right.id
+        return False
 
 class ModAssignments(ast.NodeTransformer):  
     def __init__(self, assign_exp):
@@ -173,43 +172,26 @@ class NewPyroServer(PyroServer):
         
 def start_server( server_modules, server_class=RTEPhysServer ):
     pyro_server = NewPyroServer()
-    #pyro_server = VisionEgg.PyroHelpers.PyroServer()
-    default_viewports = ['control','left','right']
-    #default_viewports = ['left','right']
+    default_viewports = ['left','right']
     DefaultScreen(default_viewports)
     screen = DefaultScreen.screen
     
     perspective_viewport = VisionEgg.Core.Viewport(screen=screen)
     overlay2D_viewport = VisionEgg.Core.Viewport(screen=screen)
     p = VisionEgg.FlowControl.Presentation(viewports=[perspective_viewport, overlay2D_viewport]) # 2D overlay on top
-    #print 'main Presentation',p
-    control_viewport_width = LightStim.config.get_viewport_width_pix('control')
-    wait_text = VisionEgg.Text.Text(
-        text = "Starting up...",
-        position = (control_viewport_width/2.0,5),
-        anchor='bottom',
-        color = (1.0,0.0,0.0,0.0))
 
-
-    overlay2D_viewport.parameters.stimuli = [wait_text]
     p.between_presentations() # draw wait_text
 
     ephys_server = server_class(p, server_modules)
     pyro_server.connect(ephys_server,"ephys_server")
-    hostname,port = pyro_server.get_hostname_and_port()
-
-    wait_text.parameters.text = "Waiting for connection at %s port %d"%(hostname,port)
 
     # get listener controller and register it
     p.add_controller(None,None, pyro_server.create_listener_controller())
 
     p.run_forever() # run until we get first connnection, which breaks out immmediately
 
-    wait_text.parameters.text = "Loading new experiment, please wait."
-
     while not ephys_server.quit_server_status():
         if ephys_server.get_stimkey() == "dropin_server":
-            wait_text.parameters.text = "Vision Egg script mode"
             p.parameters.enter_go_loop = False
             # wait for client side quit status
             p.run_forever()
@@ -218,9 +200,6 @@ def start_server( server_modules, server_class=RTEPhysServer ):
             
             if ephys_server.exec_demoscript_flag:
                 ephys_server.exec_AST(screen)
-        
-        DefaultScreen.screen.close()
-        DefaultScreen(default_viewports)
         
 if __name__ == '__main__':
     start_server(server_modules, server_class=RTEPhysServer)
