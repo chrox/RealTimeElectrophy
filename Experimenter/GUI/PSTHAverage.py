@@ -78,7 +78,7 @@ class PSTHAveragePanel(wx.Panel):
 
         self.update_data_timer = wx.Timer(self, wx.NewId())
         self.Bind(wx.EVT_TIMER, self.on_update_data_timer, self.update_data_timer)
-        self.update_data_timer.Start(3000)
+        self.update_data_timer.Start(2000)
 
     def make_chart(self, bins=np.arange(150), bin_data=np.zeros(150)):
         self.bins = bins
@@ -90,8 +90,8 @@ class PSTHAveragePanel(wx.Panel):
         axes = self.fig.add_subplot(111)
         adjust_spines(axes,spines=['left','bottom','right'],spine_outward=['left','right','bottom'],xoutward=0,youtward=0,\
                       xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=7,xminor_auto_loc=2,yminor_auto_loc=2)
+        axes.set_xlabel('Time(ms)',fontsize=12)
         axes.set_ylabel('Response(spikes/sec)',fontsize=12)
-        
         self.curve_data = axes.plot(self.bins, self.bin_data, self.data_point_styles[0])[0]
         self.curve_axes = axes
         
@@ -175,6 +175,8 @@ class PSTHAveragePanel(wx.Panel):
         self.open_file(path, callback)
         
     def clear_data(self):
+        self.append_data_curve = False
+        self.data_curves = 1
         self.make_chart()
         wx.FindWindowByName('main_frame').unit_choice.clear_unit()
         self.data_form.clear_data()
