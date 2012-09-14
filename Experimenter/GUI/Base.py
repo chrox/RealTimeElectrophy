@@ -159,7 +159,8 @@ class MainFrame(wx.Frame):
         style = wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER ^ wx.MAXIMIZE_BOX
         #style = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, None, -1, title=title, style=style, name='main_frame')
-
+        self.currentOpenDir = ''
+        self.currentSaveDir = ''
         self.create_menu()
         self.create_status_bar()
         self.create_main_panel()
@@ -296,10 +297,12 @@ class MainFrame(wx.Frame):
         dlg = wx.FileDialog(
             self,
             message="Open Plexon plx file...",
+            defaultDir=self.currentOpenDir,
             wildcard=file_choices,
             style=wx.OPEN|wx.CHANGE_DIR)
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
+            self.currentOpenDir = os.path.dirname(path)
             self.flash_status_message("Opening file %s ..." % path, flash_len_ms=1000)
             self.chart_panel.open_file(path,self.progress_bar_on_update)
             self.SetTitle(self.title + ' - ' + os.path.basename(path))
@@ -309,10 +312,12 @@ class MainFrame(wx.Frame):
         dlg = wx.FileDialog(
             self,
             message="Open Plexon plx file...",
+            defaultDir=self.currentOpenDir,
             wildcard=file_choices,
             style=wx.OPEN|wx.CHANGE_DIR)
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
+            self.currentOpenDir = os.path.dirname(path)
             self.flash_status_message("Opening file %s ..." % path, flash_len_ms=1000)
             self.chart_panel.append_data(path,self.progress_bar_on_update)
             self.SetTitle(self.title + ' - ' + os.path.basename(path))
@@ -326,11 +331,13 @@ class MainFrame(wx.Frame):
         dlg = wx.FileDialog(
             self,
             message="Save data as...",
+            defaultDir=self.currentSaveDir,
             wildcard=file_choices,
             style=wx.SAVE|wx.CHANGE_DIR)
         if dlg.ShowModal() == wx.ID_OK:
             import pickle
             pkl_file = dlg.GetPath()
+            self.currentSaveDir = os.path.dirname(pkl_file)
             data_dict = self.chart_panel.save_data()
             with open(pkl_file, 'wb') as pkl_output:
                 pickle.dump(data_dict, pkl_output)
