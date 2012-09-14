@@ -3,6 +3,7 @@
 # Copyright (C) 2010-2012 Huang Xin
 # 
 # See LICENSE.TXT that came with this file.
+from __future__ import division
 import os
 import sys
 import time
@@ -135,7 +136,7 @@ class PSTHExperiment(Experiment):
     def psth_setup(self):
         self.psth_server.set_title(self.exp_name)
         
-    def extract_results(self, data):
+    def extract_results(self, _data):
         raise RuntimeError("Must override extract_results method with exp implementation!")
     
 class ORITunExp(PSTHExperiment):
@@ -282,17 +283,37 @@ class SpikeLatencyExp(PSTHExperiment):
             self.run_stimulus(left_params=self.params, assignments=self.assignments)
         elif self.eye == 'right':
             self.run_stimulus(right_params=self.params, assignments=self.assignments)
-        ori = self.psth_analysis()
-        return ori
+        latency = self.psth_analysis()
+        return latency
     
     def psth_setup(self):
         super(SpikeLatencyExp, self).psth_setup()
-        self.logger.info('Uncheck curve fitting for this experiment.')
-        self.psth_server.uncheck_fitting()
         
     def extract_results(self, data):
-        if 'latency' not in data:
-            self.logger.error('Failed to get optimal parameter from %s experiment.' %self.exp_name)
+        if 'maxima' not in data:
+            self.logger.error('Failed to get spike latency from %s experiment.' %self.exp_name)
         else:
-            self.logger.info('Get spike latency from %s experiment: %f' %(self.exp_name, data['latency']))
-            return float(data['latency'])
+            index = data['maxima'].argmax()
+            maximum = data['maxima_index'][index]
+            self.logger.info('Get spike latency from %s experiment: %f' %(self.exp_name, maximum))
+            return maximum/1000.0
+        
+    def log_psth_data(self, data):
+        data_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.csv'
+        data = ''
+        if 'time' in data and 'psth' in data:
+            data += 'Time,Value\n'
+            for index in data['time']:
+                data += '{0},{1:.2f}\n'.format(data['time'][index],data['psth'][index])
+        extrima = ''
+        if 'maxima_indices' in data and 'maxima' in data:
+            extrima += 'Maxima,Value\n'
+            for index in data['maxima_indices']:
+                extrima += '{0},{1:.2f}\n'.format(data['maxima_indices'][index],data['maxima'][index])
+        if 'minima_indices' in data and 'minima' in data:
+            extrima += 'Minima,Value\n'
+            for index in data['minima_indices']:
+                extrima += '{0},{1:.2f}\n'.format(data['minima_indices'][index],data['minima'][index])
+        with open(data_file,'w') as data_output:
+            data_output.writelines(data + extrima)
+            
