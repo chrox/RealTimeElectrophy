@@ -20,17 +20,23 @@ from Base import MainFrame,DataPanel,RCPanel,adjust_spines
 
 class PSTHAverageDataPanel(DataPanel):        
     def gen_curve_data(self, indices, psth_data):
-        extremes = ''
-        index = psth_data.argmax()
-        max_index = indices[index]
-        max_value = psth_data[index]
-        self.data['index'] = max_index
-        self.data['value'] = max_value
-        extremes += '-'*18 + '\n'
-        extremes += 'index \t Value\n'
-        extremes += '%d\t\t%.2f\n' %(max_index, max_value)
-        
-        form = extremes
+        self.data['time'] = indices
+        self.data['psth'] = psth_data
+        maxima_indices = (np.diff(np.sign(np.diff(psth_data))) < 0).nonzero()[0] + 1
+        minima_indices = (np.diff(np.sign(np.diff(psth_data))) > 0).nonzero()[0] + 1
+        self.data['maxima_index'] = maxima_indices
+        self.data['minima_index'] = minima_indices
+        self.data['maxima'] = psth_data[maxima_indices]
+        self.data['minima'] = psth_data[minima_indices]
+        extrema = ''
+        extrema += '-'*18 + '\n'
+        extrema += '{0:6}\t{1}\n'.format('Maxima','Value')
+        for index in maxima_indices:
+            extrema += '{0:4}\t{1:.2f}\n'.format(indices[index],psth_data[index])
+        extrema += 'Minima\tValue\n'
+        for index in minima_indices:
+            extrema += '{0:4}\t{1:.2f}\n'.format(indices[index],psth_data[index])  
+        form = extrema
         self.results.SetValue(form)
 
 class PSTHAveragePanel(wx.Panel):
