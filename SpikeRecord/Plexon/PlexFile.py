@@ -266,9 +266,9 @@ class PlexFile(object):
 
     def GetNullTimeStamp(self):
         data = {}
-        data['type'] = np.empty(0)
-        data['channel'] = np.empty(0)
-        data['unit'] = np.empty(0)
+        data['type'] = np.empty(0,dtype=np.uint16)
+        data['channel'] = np.empty(0,dtype=np.uint16)
+        data['unit'] = np.empty(0,dtype=np.uint16)
         data['timestamp'] = np.empty(0)
         return data
     
