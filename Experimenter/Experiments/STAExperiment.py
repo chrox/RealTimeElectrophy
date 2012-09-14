@@ -118,11 +118,11 @@ class STAExperiment(Experiment):
         raise RuntimeError("Must override extract_results method with exp implementation!")
         
 class RFCMappingExp(STAExperiment):
-    def __init__(self,eye,params,postfix,latency,*args,**kwargs):
+    def __init__(self,eye,params,postfix,*args,**kwargs):
         super(RFCMappingExp, self).__init__(*args,**kwargs)
         self.pyro_source = 'pyro_sta.py'
         self.stim_source = 'sparsenoise.py'
-        self.exp_name = ExperimentConfig.CELLPREFIX + '-sparsenoise-' + eye + '-' + postfix
+        self.exp_name = ExperimentConfig.CELLPREFIX + '-sparsenoise-' + postfix + '-' + eye
         self.exp_param = 'sn'
         self.eye = eye
         self.params = params
@@ -168,6 +168,10 @@ class RFCMappingExp(STAExperiment):
             self.logger.error('Failed to export sta chart. ' + str(e))
         
     def extract_results(self, data):
+        if 'peak_time' not in data:
+            self.logger.error('Failed to get peak time data from %s experiment.' %self.exp_name)
+        else:
+            self.logger.info('Get peak response at %.1fms after stimulus onset.' %data['peak_time'])
         if 'rf_center' not in data:
             self.logger.error('Failed to get RF center from %s experiment.' %self.exp_name)
         else:
@@ -183,6 +187,8 @@ class RFCMappingExp(STAExperiment):
     def log_sta_data(self, data):
         data_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.csv'
         with open(data_file,'w') as data_output:
+            if 'peak_time' in data:
+                data_output.writelines('peak time,%.1f' %data['peak_time'])
             if 'rf_center' in data:
                 data_output.writelines('rf position index,%.2f,%.2f' %(data['rf_center'][0],data['rf_center'][1]))
         

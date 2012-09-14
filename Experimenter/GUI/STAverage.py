@@ -15,8 +15,8 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 
 from ..DataProcessing.Fitting.Fitters import GaussFit,GaborFit
-from ..SpikeData import RevCorr
-from Base import UpdateDataThread,UpdateFileDataThread,RenewDataThread
+from ..SpikeData import RevCorr,TimeHistogram
+from Base import UpdateDataThread,UpdateFileDataThread
 from Base import MainFrame,DataPanel,RCPanel,adjust_spines
 
 EVT_TIME_UPDATED_TYPE = wx.NewEventType()
@@ -46,14 +46,14 @@ class OptionPanel(wx.Panel):
         sizer.Add(self.slider, 0, flag=wx.ALIGN_LEFT, border=5)
         self.SetSizer(sizer)
         sizer.Fit(self)
-    def on_slider_update(self, event):
+    def on_slider_update(self, _event):
         # reverse time in ms
         time = self.slider.GetValue() / 1000
         evt = TimeUpdatedEvent(EVT_TIME_UPDATED_TYPE, -1, time)
         wx.PostEvent(self.GetParent(), evt)
         
 class STADataPanel(DataPanel):
-    def gen_img_data(self,params,img,stim_type):
+    def gen_img_data(self,params,img,stim_type,peak_time):
         class IndexedParam(list):
             def __init__(self,parameter):
                 if parameter == 'orientation':
@@ -70,7 +70,10 @@ class STADataPanel(DataPanel):
                     raise RuntimeError('Cannot understand parameter:%s' %str(parameter))
         
         dims = img.shape
+        self.data['peak_time'] = peak_time
         data = ''
+        data += '-'*18 + '\nPeak time(ms):\n'
+        data += '%.1f\n' %peak_time
         extremes = ''
         if stim_type == 'white_noise':
             self.data['rf_center'] = (params[2],params[3])
@@ -105,9 +108,24 @@ class STAPanel(wx.Panel):
         self.fitting_gabor = False
         
         # default data type
+        self.collecting_data = True
+        self.connected_to_server = True
+        self.data = None
         self.sta_data = None
+        self.psth_data = None
         self.start_data()
         self.stimulus = None
+        self.update_sta_data_thread = None
+        self.update_psth_data_thread = None
+        
+        self.axes = None
+        self.im = None
+        self.img_dim = None
+        
+        self.gauss_fitter = None
+        self.gabor_fitter = None
+        
+        self.peak_time = None
         # reverse time in ms
         time_slider = 85
         self.time = time_slider/1000
@@ -159,9 +177,13 @@ class STAPanel(wx.Panel):
         self.SetSizer(sizer)
         sizer.Fit(self)
 
-        self.update_data_timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.on_update_data_timer, self.update_data_timer)
-        self.update_data_timer.Start(2000)
+        self.update_sta_data_timer = wx.Timer(self, wx.NewId())
+        self.Bind(wx.EVT_TIMER, self.on_update_sta_data_timer, self.update_sta_data_timer)
+        self.update_sta_data_timer.Start(2000)
+        
+        self.update_psth_data_timer = wx.Timer(self, wx.NewId())
+        self.Bind(wx.EVT_TIMER, self.on_update_psth_data_timer, self.update_psth_data_timer)
+        self.update_psth_data_timer.Start(3000)
                 
     def make_chart(self):
         self.fig.clear()
@@ -174,6 +196,20 @@ class STAPanel(wx.Panel):
         
     def set_data(self, data):
         self.data = data
+        
+    def update_slider(self, data):
+        selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
+        if selected_unit:
+            channel, unit = selected_unit
+            peak_time = data[channel][unit]['peak_time'] if channel in data and unit in data[channel] else None
+            if peak_time is not None:
+                self.peak_time = peak_time
+                parent = wx.FindWindowByName('main_frame')
+                parent.chart_panel.options.slider.SetValue(peak_time)
+                evt = wx.CommandEvent(wx.wxEVT_COMMAND_SLIDER_UPDATED)
+                evt.SetId(parent.chart_panel.options.slider.GetId())
+                parent.chart_panel.options.on_slider_update(evt)
+                wx.PostEvent(parent, evt)
     
     def update_chart(self,data=None):
         if data is None and hasattr(self, 'data'):
@@ -181,7 +217,7 @@ class STAPanel(wx.Panel):
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit:
             channel, unit = selected_unit
-            img = self.sta_data.get_img(data, channel, unit, tau=self.time, format='rgb')
+            img = self.sta_data.get_img(data, channel, unit, tau=self.time, img_format='rgb')
             if self.img_dim != img.shape or self.interpolation_changed or self.show_colorbar_changed:
                 self.make_chart()
                 self.im = self.axes.imshow(img,interpolation=self.interpolation)
@@ -197,12 +233,12 @@ class STAPanel(wx.Panel):
                 #    cbar.ax.set_yticklabels([" ", " ", "response"])
                 #===============================================================
             if self.fitting_gaussian or self.fitting_gabor:
-                float_img = self.sta_data.get_img(data, channel, unit, tau=self.time, format='float')
+                float_img = self.sta_data.get_img(data, channel, unit, tau=self.time, img_format='float')
                 if self.fitting_gaussian:
                     params,img = self.gauss_fitter.gaussfit2d(float_img,returnfitimage=True)
                 elif self.fitting_gabor:
                     params,img = self.gabor_fitter.gaborfit2d(float_img,returnfitimage=True)
-                self.data_form.gen_img_data(params, img, self.stimulus)
+                self.data_form.gen_img_data(params, img, self.stimulus, self.peak_time)
                 img = self.sta_data.float_to_rgb(img,cmap='jet')
 
             self.im.set_data(img)
@@ -214,10 +250,15 @@ class STAPanel(wx.Panel):
             self.im.autoscale()
             self.canvas.draw()
     
-    def on_update_data_timer(self, event):
+    def on_update_sta_data_timer(self, _event):
         if self.collecting_data and self.connected_to_server:
-            self.update_data_thread = UpdateDataThread(self, self.sta_data)
-            self.update_data_thread.start()
+            self.update_sta_data_thread = UpdateDataThread(self, self.sta_data)
+            self.update_sta_data_thread.start()
+            
+    def on_update_psth_data_timer(self, _event):
+        if self.collecting_data and self.connected_to_server:
+            self.update_psth_data_thread = UpdateDataThread(self, self.psth_data)
+            self.update_psth_data_thread.start()
     
     def on_update_time_slider(self, event):
         self.time = event.get_time()
@@ -226,14 +267,20 @@ class STAPanel(wx.Panel):
     def start_data(self):
         if self.sta_data is None:
             self.sta_data = RevCorr.STAData()
+        if self.psth_data is None:
+            self.psth_data = TimeHistogram.PSTHAverage()
         self.collecting_data = True
         self.connected_to_server = True
     
     def stop_data(self):
         self.collecting_data = False
         self.clear_data()
-        if hasattr(self, 'update_data_thread') and self.sta_data is not None:
-            RenewDataThread(self, self.sta_data, self.update_data_thread).start()
+        self.sta_data = None
+        self.psth_data = None
+        #if hasattr(self, 'update_sta_data_thread') and self.sta_data is not None:
+            #RenewDataThread(self, self.sta_data, self.update_sta_data_thread).start()
+        #if hasattr(self, 'update_psth_data_thread') and self.psth_data is not None:
+            #RenewDataThread(self, self.sta_data, self.update_psth_data_thread).start()
         
     def restart_data(self):
         self.stop_data()
@@ -279,8 +326,9 @@ class STAPanel(wx.Panel):
             self.sta_data = RevCorr.STAData(path)
         elif data_type == 'param_map':
             self.sta_data = RevCorr.ParamMapData(path)
-        data_thread = UpdateFileDataThread(self, self.sta_data, callback)
-        data_thread.start()
+        self.psth_data = TimeHistogram.PSTHAverage(path)
+        UpdateFileDataThread(self, self.sta_data, callback).start()
+        UpdateFileDataThread(self, self.psth_data, callback).start()
         self.connected_to_server = False
     
     def save_data(self):
@@ -301,9 +349,17 @@ class STAFrame(MainFrame):
     """ The main frame of the application
     """
     def __init__(self):
-        self.title = 'Spike Triggered Average(STA)'
-        super(STAFrame, self).__init__(self.title)
-
+        self.m_sparse_noise = None
+        self.m_param_mapping = None
+        self.menu_fitting = None
+        self.m_gaussfitter = None
+        self.m_gaborfitter = None
+        self.menu_uncheck_binds = None
+        self.menu_view = None
+        self.m_colorbar = None
+        super(STAFrame, self).__init__('Spike Triggered Average(STA)')
+    
+    # invoked when MainFrame is initiated
     def create_menu(self):
         super(STAFrame, self).create_menu()
         
@@ -336,16 +392,20 @@ class STAFrame(MainFrame):
         self.chart_panel = STAPanel(self.panel, 'STA chart')
         
     def on_data_updated(self, event):
+        data_type = event.get_data_type()
         data = event.get_data()
-        self.chart_panel.set_data(data)
-        self.unit_choice.update_units(data['spikes'])
-        self.chart_panel.update_chart(data)
+        if data_type == 'psth_average':
+            self.chart_panel.update_slider(data)
+        else:
+            self.chart_panel.set_data(data)
+            self.unit_choice.update_units(data['spikes'])
+            self.chart_panel.update_chart(data)
     
-    def on_sparse_noise_data(self, event):
+    def on_sparse_noise_data(self, _event):
         self.chart_panel.sparse_noise_data()
         self.flash_status_message("Data source changed to sparse noise")
     
-    def on_param_mapping_data(self, event):
+    def on_param_mapping_data(self, _event):
         self.chart_panel.param_mapping_data()
         self.flash_status_message("Data source changed to parameter mapping")
         
@@ -355,7 +415,7 @@ class STAFrame(MainFrame):
         elif self.m_param_mapping.IsChecked():
             return 'param_map'
         
-    def on_check_gaussfitter(self, event):
+    def on_check_gaussfitter(self, _event):
         if self.m_gaussfitter.IsChecked():
             for item in self.menu_fitting.GetMenuItems():
                 if item.GetId() != self.m_gaussfitter.GetId() and item.IsChecked():
@@ -368,7 +428,7 @@ class STAFrame(MainFrame):
     def uncheck_gaussfitter(self):
         self.chart_panel.gaussianfit(False)
         
-    def on_check_gaborfitter(self, event):
+    def on_check_gaborfitter(self, _event):
         if self.m_gaborfitter.IsChecked():
             for item in self.menu_fitting.GetMenuItems():
                 if item.GetId() != self.m_gaborfitter.GetId() and item.IsChecked():
@@ -387,7 +447,7 @@ class STAFrame(MainFrame):
             self.menu_uncheck_binds[item.GetId()]()
         self.chart_panel.update_chart()
     
-    def on_check_colorbar(self, event):
+    def on_check_colorbar(self, _event):
         self.chart_panel.show_colorbar(self.m_colorbar.IsChecked())
         self.chart_panel.update_chart()
         
@@ -399,58 +459,42 @@ class RCSTAPanel(STAPanel, RCPanel):
         STAPanel.__init__(self,*args,**kwargs)
         RCPanel.__init__(self)
         
-        self.check_request_timer = wx.Timer(self, wx.NewId())
-        self.Bind(wx.EVT_TIMER, self._on_check_request, self.check_request_timer)
-        self.check_request_timer.Start(200)
-        
-        self.fitting_request = None
-        self.unfitting_request = False
-        self.colorbar_request = False
-        
-    def _on_check_request(self, event):
-        RCPanel._on_check_request(self, event)
-        self._check_fitting_request()
-        self._check_unfitting_request()
-        self._check_colorbar_request()
-            
-    def _check_fitting_request(self):
-        if self.fitting_request is not None:
-            evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
-            parent = wx.FindWindowByName('main_frame')
-            if self.fitting_request == 'gauss':
-                parent.menu_fitting.Check(parent.m_gaussfitter.GetId(), True)
-                evt.SetId(parent.m_gaussfitter.GetId())
-                wx.PostEvent(parent, evt)
-            if self.fitting_request == 'gabor':
-                parent.menu_fitting.Check(parent.m_gaborfitter.GetId(), True)
-                evt.SetId(parent.m_gaborfitter.GetId()) 
-                wx.PostEvent(parent, evt)
-            self.fitting_request = None
-        
-    def _check_unfitting_request(self):
-        if self.unfitting_request is not False:
-            parent = wx.FindWindowByName('main_frame')
-            parent.uncheck_fitting()
-            self.unfitting_request = False
-            
-    def _check_colorbar_request(self):
-        if self.colorbar_request is True:
-            evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
-            parent = wx.FindWindowByName('main_frame')
-            parent.menu_view.Check(parent.m_colorbar.GetId(), self.colorbar_request)
-            evt.SetId(parent.m_colorbar.GetId())
-            wx.PostEvent(parent, evt)
-            self.colorbar_request = False
-        
     def check_fitting(self, fitting):
-        # fitting in ('gauss','gabor')
-        self.fitting_request = fitting
+        evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
+        parent = wx.FindWindowByName('main_frame')
+        if fitting == 'gauss':
+            parent.menu_fitting.Check(parent.m_gaussfitter.GetId(), True)
+            evt.SetId(parent.m_gaussfitter.GetId())
+            wx.PostEvent(parent, evt)
+        if fitting == 'gabor':
+            parent.menu_fitting.Check(parent.m_gaborfitter.GetId(), True)
+            evt.SetId(parent.m_gaborfitter.GetId()) 
+            wx.PostEvent(parent, evt)
     
     def uncheck_fitting(self):
-        self.unfitting_request = True
+        parent = wx.FindWindowByName('main_frame')
+        parent.uncheck_fitting()
         
     def check_colorbar(self, checked):
-        self.colorbar_request = checked
+        evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
+        parent = wx.FindWindowByName('main_frame')
+        parent.menu_view.Check(parent.m_colorbar.GetId(), checked)
+        evt.SetId(parent.m_colorbar.GetId())
+        wx.PostEvent(parent, evt)
+    
+    def set_latency(self, latency):
+        evt = wx.CommandEvent(wx.wxEVT_COMMAND_SLIDER_UPDATED)
+        parent = wx.FindWindowByName('main_frame')
+        value = latency*1000
+        parent.chart_panel.options.slider.SetValue(value)
+        evt.SetId(parent.chart_panel.options.slider.GetId())
+        wx.PostEvent(parent, evt)
+    
+    def get_data(self):
+        return self.data_form.get_data()
+    
+    def export_chart(self, path):
+        self.save_chart(path)
 
 class PyroSTAFrame(STAFrame):
     """
@@ -458,8 +502,10 @@ class PyroSTAFrame(STAFrame):
     """
     def __init__(self, pyro_port):
         self.pyro_port = pyro_port
+        self.pyro_daemon = None
+        self.PYRO_URI = None
         super(PyroSTAFrame, self).__init__()
-        
+
     def create_chart_panel(self):
         self.chart_panel = RCSTAPanel(self.panel, 'STA Chart')
         threading.Thread(target=self.create_pyro_server).start()
