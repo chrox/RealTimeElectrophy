@@ -13,6 +13,10 @@ from Experiment import ExperimentConfig,Experiment
 class STAExperiment(Experiment):
     STA_SERVER_PROCESS = None
     STA_SERVER_PORT = 6878
+    def __init__(self,*args,**kwargs):
+        super(STAExperiment, self).__init__(*args,**kwargs)
+        self.pyro_source = ''
+        self.exp_param = ''
     def sta_analysis(self, sta_type=None):
         # Beware that the pyro operation is asynchronized. It takes several 
         # hundred millseconds for the app to complete action. So it's safe to wait for
@@ -92,7 +96,7 @@ class STAExperiment(Experiment):
                 raise
         except:
             self.logger.info('Creating new sta app.')
-            sta_app_path = os.path.dirname(__file__) + os.path.sep + 'app' + os.path.sep + 'pyro_sta.py'
+            sta_app_path = os.path.dirname(__file__) + os.path.sep + 'app' + os.path.sep + self.pyro_source
             args = [sys.executable, sta_app_path, str(STAExperiment.STA_SERVER_PORT)]
             STAExperiment.STA_SERVER_PROCESS = subprocess.Popen(args)
             time.sleep(3.0)                
@@ -109,11 +113,15 @@ class STAExperiment(Experiment):
         
     def post_stim_setup(self):
         pass
+    
+    def extract_results(self, _data):
+        raise RuntimeError("Must override extract_results method with exp implementation!")
         
 class RFCMappingExp(STAExperiment):
-    def __init__(self,eye,params,postfix,*args,**kwargs):
+    def __init__(self,eye,params,postfix,latency,*args,**kwargs):
         super(RFCMappingExp, self).__init__(*args,**kwargs)
-        self.source = 'sparsenoise.py'
+        self.pyro_source = 'pyro_sta.py'
+        self.stim_source = 'sparsenoise.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-sparsenoise-' + eye + '-' + postfix
         self.exp_param = 'sn'
         self.eye = eye
