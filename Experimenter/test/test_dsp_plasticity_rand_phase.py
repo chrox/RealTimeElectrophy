@@ -6,7 +6,7 @@
 import numpy as np
 #from StimControl.LightStim.LightData import dictattr
 from Experimenter.Experiments.Experiment import ExperimentConfig,Experiment,StimTimingExp,RestingExp
-from Experimenter.Experiments.PSTHExperiment import ORITunExp,SPFTunExp,DSPTunExp
+from Experimenter.Experiments.PSTHExperiment import ORITunExp,SPFTunExp,DSPTunExp,SpikeLatencyExp
 from Experimenter.Experiments.STAExperiment import RFCMappingExp
 
 ExperimentConfig(data_base_dir='data_test',stim_server_host='192.168.1.105',new_cell=True)
@@ -34,14 +34,27 @@ for eye in np.random.permutation(['left','right']):
         p_right.sfreqCycDeg = SPFTunExp(eye='right', params=p_right).run()
         p_right.sfreqCycDeg = 0.55
 
+# spiking latency experiments find the spike latency of the neuron
+for eye in np.random.permutation(['left','right']):
+    if eye == 'left':
+        left_latency = SpikeLatencyExp(eye='left', params=p_left).run()
+        left_latency = 0.065
+    if eye == 'right':
+        right_latency = SpikeLatencyExp(eye='right', params=p_right).run()
+        right_latency = 0.070
+
+intrinsic_delay = left_latency - right_latency
 """
     Induction and binocular tests
 """
-intervals = [-0.040, -0.016, -0.008, 0.0, 0.008, 0.016, 0.040]
+intervals = np.random.permutation([-0.040, -0.016, -0.008, 0.0, 0.008, 0.016, 0.040])
+intervals_rectified = intervals + intrinsic_delay
 dsp_index = 1
-for interval in np.random.permutation(intervals):
+for index,interval in enumerate(intervals_rectified):
     # interval string like m16ms(-0.016) or 24ms(0.024)
-    interval_str = 'm'+str(int(interval*1000))+'ms' if interval < 0 else str(int(interval*1000))+'ms'
+    interval_str = 'm'+str(int(intervals[index]*1000))+'ms' \
+                    if interval-intrinsic_delay < 0 \
+                    else str(int(intervals[index]*1000))+'ms'
     phase_str = 'rand'
     # receptive field mapping before induction
     exp_postfix = interval_str + '-' + phase_str + '-pre'
@@ -76,9 +89,11 @@ for interval in np.random.permutation(intervals):
     exp_postfix = interval_str + '-' + phase_str + '-post'
     for eye in np.random.permutation(['left','right']):
         if eye == 'left':
-            p_left.xorigDeg, p_left.yorigDeg = RFCMappingExp(eye='left', params=p_left, postfix=exp_postfix).run()
+            RFCMappingExp(eye='left', params=p_left, postfix=exp_postfix).run()
+            p_left.xorigDeg, p_left.yorigDeg = (-1.2, 1.5)
         if eye == 'right':
-            p_right.xorigDeg, p_right.yorigDeg = RFCMappingExp(eye='right', params=p_right, postfix=exp_postfix).run()
+            RFCMappingExp(eye='right', params=p_right, postfix=exp_postfix).run()
+            p_right.xorigDeg, p_right.yorigDeg = (1.6, 1.8)
     
     for times in range(5):
         # resting experiment for 5min

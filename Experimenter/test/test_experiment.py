@@ -13,6 +13,8 @@ p_left, p_right = Experiment().get_params()
 
 for eye in np.random.permutation(['left','right']):
     if eye == 'left':
-        RFCMappingExp(eye='left', params=p_left).run()
+        RFCMappingExp(eye='left', params=p_left, postfix='', latency=0.063).run()
+        p_left.xorigDeg, p_left.yorigDeg = (-1.2, 1.5)
     if eye == 'right':
-        RFCMappingExp(eye='right', params=p_right).run()
+        RFCMappingExp(eye='right', params=p_right, postfix='', latency=0.065).run()
+        p_right.xorigDeg, p_right.yorigDeg = (1.6, 1.8)
