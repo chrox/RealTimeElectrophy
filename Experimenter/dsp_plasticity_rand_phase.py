@@ -6,10 +6,10 @@
 import numpy as np
 #from StimControl.LightStim.LightData import dictattr
 from Experimenter.Experiments.Experiment import ExperimentConfig,Experiment,StimTimingExp,RestingExp
-from Experimenter.Experiments.PSTHExperiment import ORITunExp,SPFTunExp,DSPTunExp
+from Experimenter.Experiments.PSTHExperiment import ORITunExp,SPFTunExp,DSPTunExp,SpikeLatencyExp
 from Experimenter.Experiments.STAExperiment import RFCMappingExp
 
-ExperimentConfig(data_base_dir='data',stim_server_host='192.168.1.1',new_cell=False)
+ExperimentConfig(data_base_dir='data',stim_server_host='192.168.1.105',new_cell=False)
 
 p_left, p_right = Experiment().get_params()
 
@@ -29,23 +29,36 @@ for eye in np.random.permutation(['left','right']):
         p_left.sfreqCycDeg = SPFTunExp(eye='left', params=p_left).run()
     if eye == 'right':
         p_right.sfreqCycDeg = SPFTunExp(eye='right', params=p_right).run()
+        
+# spiking latency experiments find the spike latency of the neuron
+for eye in np.random.permutation(['left','right']):
+    if eye == 'left':
+        left_latency = SpikeLatencyExp(eye='left', params=p_left).run()
+    if eye == 'right':
+        right_latency = SpikeLatencyExp(eye='right', params=p_right).run()
 
+intrinsic_delay = left_latency - right_latency
 """
     Induction and binocular tests
 """
-intervals = [-0.040, -0.016, -0.008, 0.0, 0.008, 0.016, 0.040]
+intervals = np.random.permutation([-0.040, -0.016, -0.008, 0.0, 0.008, 0.016, 0.040])
+intervals_rectified = intervals + intrinsic_delay
 dsp_index = 1
-for interval in np.random.permutation(intervals):
+for index,interval in enumerate(intervals_rectified):
     # interval string like m16ms(-0.016) or 24ms(0.024)
-    interval_str = 'm'+str(int(abs(interval)*1000))+'ms' if interval < 0 else str(int(interval*1000))+'ms'
+    interval_str = 'm'+str(int(intervals[index]*1000))+'ms' \
+                    if interval-intrinsic_delay < 0 \
+                    else str(int(intervals[index]*1000))+'ms'
     phase_str = 'rand'
     # receptive field mapping before induction
     exp_postfix = interval_str + '-' + phase_str + '-pre'
     for eye in np.random.permutation(['left','right']):
         if eye == 'left':
-            p_left.xorigDeg, p_left.yorigDeg = RFCMappingExp(eye='left', params=p_left, postfix=exp_postfix).run()
+            p_left.xorigDeg, p_left.yorigDeg = RFCMappingExp(eye='left', params=p_left, 
+                                                             postfix=exp_postfix).run()
         if eye == 'right':
-            p_right.xorigDeg, p_right.yorigDeg = RFCMappingExp(eye='right', params=p_right, postfix=exp_postfix).run()
+            p_right.xorigDeg, p_right.yorigDeg = RFCMappingExp(eye='right', params=p_right, 
+                                                               postfix=exp_postfix).run()
     # disparity tuning experiment before induction
     exp_postfix = interval_str + '-' + phase_str + '-pre'
     pre_dsp = DSPTunExp(left_params=p_left,right_params=p_right,
@@ -71,9 +84,11 @@ for interval in np.random.permutation(intervals):
     exp_postfix = interval_str + '-' + phase_str + '-post'
     for eye in np.random.permutation(['left','right']):
         if eye == 'left':
-            p_left.xorigDeg, p_left.yorigDeg = RFCMappingExp(eye='left', params=p_left, postfix=exp_postfix).run()
+            p_left.xorigDeg, p_left.yorigDeg = RFCMappingExp(eye='left', params=p_left, 
+															 postfix=exp_postfix).run()
         if eye == 'right':
-            p_right.xorigDeg, p_right.yorigDeg = RFCMappingExp(eye='right', params=p_right, postfix=exp_postfix).run()
+            p_right.xorigDeg, p_right.yorigDeg = RFCMappingExp(eye='right', params=p_right, 
+                                                               postfix=exp_postfix).run()
     
     for times in range(5):
         # resting experiment for 5min
