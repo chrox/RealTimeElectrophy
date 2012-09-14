@@ -195,15 +195,17 @@ class PSTHAverage(PlexSpikeData):
         self.histogram_data[channel][unit]['bins'] = bins[:-1]*1000
         stimulus_on = self.onset_timestamps
         unit_train = self.spike_trains[channel][unit]
+        spikes = []
+        trials = 0
         for begin in stimulus_on:
             take = ((unit_train >= begin) & (unit_train < begin + duration))
             trial_spikes = unit_train[take] - begin
-            spikes = np.append(self.histogram_data[channel][unit]['spikes'], trial_spikes)
-            trials = self.histogram_data[channel][unit]['trials'] + 1
-            psth_data = np.array(np.histogram(spikes, bins=bins)[0],dtype='float') / (binsize*trials)
-            smoothed_psth = nd.gaussian_filter1d(psth_data, sigma=10)
-            self.histogram_data[channel][unit]['spikes'] = spikes
-            self.histogram_data[channel][unit]['trials'] = trials
-            self.histogram_data[channel][unit]['psth_data'] = psth_data
-            self.histogram_data[channel][unit]['smoothed_psth'] = smoothed_psth
+            spikes = np.append(spikes, trial_spikes)
+            trials = trials + 1
+        psth_data = np.array(np.histogram(spikes, bins=bins)[0],dtype='float') / (binsize*trials)
+        smoothed_psth = nd.gaussian_filter1d(psth_data, sigma=10)
+        self.histogram_data[channel][unit]['spikes'] = spikes
+        self.histogram_data[channel][unit]['trials'] = trials
+        self.histogram_data[channel][unit]['psth_data'] = psth_data
+        self.histogram_data[channel][unit]['smoothed_psth'] = smoothed_psth
             
