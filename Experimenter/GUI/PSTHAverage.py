@@ -15,15 +15,13 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 
 from ..SpikeData import TimeHistogram
-from Base import UpdateDataThread,UpdateFileDataThread,RenewDataThread
+from Base import UpdateDataThread,UpdateFileDataThread
 from Base import MainFrame,DataPanel,RCPanel,adjust_spines
 
 class PSTHAverageDataPanel(DataPanel):        
-    def gen_curve_data(self, indices, psth_data):
-        self.data['time'] = indices
+    def gen_curve_data(self, bins, psth_data, maxima_indices, minima_indices):
+        self.data['time'] = bins
         self.data['psth'] = psth_data
-        maxima_indices = (np.diff(np.sign(np.diff(psth_data))) < 0).nonzero()[0] + 1
-        minima_indices = (np.diff(np.sign(np.diff(psth_data))) > 0).nonzero()[0] + 1
         self.data['maxima_index'] = maxima_indices
         self.data['minima_index'] = minima_indices
         self.data['maxima'] = psth_data[maxima_indices]
@@ -32,10 +30,10 @@ class PSTHAverageDataPanel(DataPanel):
         extrema += '-'*18 + '\n'
         extrema += '{0:6}\t{1}\n'.format('Maxima','Value')
         for index in maxima_indices:
-            extrema += '{0:4}\t{1:.2f}\n'.format(indices[index],psth_data[index])
+            extrema += '{0:4}\t{1:.2f}\n'.format(bins[index],psth_data[index])
         extrema += 'Minima\tValue\n'
         for index in minima_indices:
-            extrema += '{0:4}\t{1:.2f}\n'.format(indices[index],psth_data[index])  
+            extrema += '{0:4}\t{1:.2f}\n'.format(bins[index],psth_data[index])  
         form = extrema
         self.results.SetValue(form)
 
@@ -46,13 +44,20 @@ class PSTHAveragePanel(wx.Panel):
         super(PSTHAveragePanel, self).__init__(parent, -1, name=name)
         
         self.connected_to_server = True
+        self.collecting_data = True
         self.append_data_curve = False
         self.data_curves = 1
         self.data_point_styles = ['g-','r-','b-']
         
-        self.psth = None
-        self.start_data()
+        self.psth_data = TimeHistogram.PSTHAverage()
+        self.data = None
         self.raw_data = None
+        self.bins = None
+        self.bin_data = None
+        self.curve_data = None
+        self.curve_axes = None
+        
+        self.update_data_thread = None
         
         # layout sizer
         box = wx.StaticBox(self, -1, label)
@@ -103,12 +108,8 @@ class PSTHAveragePanel(wx.Panel):
         self.fig.canvas.draw()
         
     def update_chart(self, data=None):
-        if data is None and hasattr(self, 'data'):
+        if data is None and self.data is not None:
             data = self.data
-        else:
-            self.data = data
-        if self.psth is None:
-            return
         
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit is not None:
@@ -119,9 +120,10 @@ class PSTHAveragePanel(wx.Panel):
             #psth_data = data[channel][unit]['psth_data']
             bins = data[channel][unit]['bins']
             smoothed_psth = data[channel][unit]['smoothed_psth']
+            maxima_indices = data[channel][unit]['maxima_indices']
+            minima_indices = data[channel][unit]['minima_indices']
             
             self.curve_axes.set_xscale('linear')
-            
             if self.append_data_curve:
                 self.curve_axes.plot(self.bins, smoothed_psth, self.data_point_styles[self.data_curves-1])
             elif not np.array_equal(self.bins,bins):
@@ -130,7 +132,7 @@ class PSTHAveragePanel(wx.Panel):
                 self.curve_data.set_xdata(self.bins)
                 self.curve_data.set_ydata(smoothed_psth)
             
-            self.data_form.gen_curve_data(self.bins, smoothed_psth)
+            self.data_form.gen_curve_data(self.bins, smoothed_psth, maxima_indices, minima_indices)
             self.curve_axes.set_xlim(min(self.bins),max(self.bins))
             self.curve_axes.set_ylim(auto=True)
             #self.curve_axes.set_ylim(0,100)
@@ -139,22 +141,23 @@ class PSTHAveragePanel(wx.Panel):
             
         self.fig.canvas.draw()
     
-    def on_update_data_timer(self, event):
+    def on_update_data_timer(self, _event):
         if self.collecting_data and self.connected_to_server:
-            self.update_data_thread = UpdateDataThread(self, self.psth)
+            self.update_data_thread = UpdateDataThread(self, self.psth_data)
             self.update_data_thread.start()
         
     def start_data(self):
-        if self.psth is None:
-            self.psth = TimeHistogram.PSTHAverage()
+        if self.psth_data is None:
+            self.psth_data = TimeHistogram.PSTHAverage()
         self.collecting_data = True
         self.connected_to_server = True
     
     def stop_data(self):
         self.collecting_data = False
         self.clear_data()
-        if hasattr(self, 'update_data_thread') and self.psth is not None:
-            RenewDataThread(self, self.psth, self.update_data_thread).start()
+        self.psth_data = None
+        #if hasattr(self, 'update_data_thread') and self.psth_data is not None:
+            #RenewDataThread(self, self.psth_data, self.update_data_thread).start()
         
     def restart_data(self):
         self.stop_data()
@@ -164,8 +167,8 @@ class PSTHAveragePanel(wx.Panel):
         pass
     
     def open_file(self, path, callback=None):
-        self.psth = TimeHistogram.PSTHAverage(path)
-        data_thread = UpdateFileDataThread(self, self.psth, callback)
+        self.psth_data = TimeHistogram.PSTHAverage(path)
+        data_thread = UpdateFileDataThread(self, self.psth_data, callback)
         data_thread.start()
         self.connected_to_server = False
     
@@ -193,9 +196,11 @@ class PSTHAverageFrame(MainFrame):
     """ The main frame of the application
     """
     def __init__(self):
-        self.title = 'Peri-Stimulus Time Histogram(PSTH) Average'
-        super(PSTHAverageFrame, self).__init__(self.title)
-        
+        self.menu_view = None
+        self.m_smooth = None
+        super(PSTHAverageFrame, self).__init__('Peri-Stimulus Time Histogram(PSTH) Average')
+    
+    # invoked when MainFrame is initiated
     def create_menu(self):
         super(PSTHAverageFrame, self).create_menu()
         
@@ -206,7 +211,7 @@ class PSTHAverageFrame(MainFrame):
         
         self.menubar.Append(self.menu_view, "&View")
         self.SetMenuBar(self.menubar)
-        
+
     def create_chart_panel(self):
         self.chart_panel = PSTHAveragePanel(self.panel, 'PSTH Chart')
     
@@ -228,35 +233,28 @@ class RCPSTHAveragePanel(PSTHAveragePanel, RCPanel):
     def __init__(self, *args,**kwargs):
         PSTHAveragePanel.__init__(self,*args,**kwargs)
         RCPanel.__init__(self)
-        
-        self.check_request_timer = wx.Timer(self, wx.NewId())
-        self.Bind(wx.EVT_TIMER, self._on_check_request, self.check_request_timer)
-        self.check_request_timer.Start(200)
-        
-        self.smooth_request = False
     
-    def _on_check_request(self, event):
-        RCPanel._on_check_request(self, event)
-        self._check_smooth_request()
-            
-    def _check_smooth_request(self):
-        if self.smooth_request is True:
-            evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
-            parent = wx.FindWindowByName('main_frame')
-            parent.menu_view.Check(parent.m_smooth.GetId(), self.smooth_request)
-            evt.SetId(parent.m_smooth.GetId())
-            wx.PostEvent(parent, evt)
-            self.smooth_request = False
-        
     def check_errbar(self, checked):
-        self.smooth_request = checked
-        
+        evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
+        parent = wx.FindWindowByName('main_frame')
+        parent.menu_view.Check(parent.m_smooth.GetId(), checked)
+        evt.SetId(parent.m_smooth.GetId())
+        wx.PostEvent(parent, evt)
+    
+    def get_data(self):
+        return self.data_form.get_data()
+    
+    def export_chart(self, path):
+        self.save_chart(path)
+
 class PyroPSTHAverageFrame(PSTHAverageFrame):
     """
         Remote controlled PSTH frame
     """
     def __init__(self, pyro_port):
         self.pyro_port = pyro_port
+        self.pyro_daemon = None
+        self.PYRO_URI = None
         super(PyroPSTHAverageFrame, self).__init__()
         
     def create_chart_panel(self):

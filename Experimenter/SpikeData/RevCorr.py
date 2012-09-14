@@ -8,11 +8,20 @@ import numpy as np
 from PlexSpikeData import PlexSpikeData
 
 class RevCorrData(PlexSpikeData):
+    def __init__(self, *args,**kwargs):
+        super(RevCorrData, self).__init__(*args,**kwargs)
+        self.spike_trains = {}
+        self.x_indices = np.empty(0,dtype=np.int16)
+        self.y_indices = np.empty(0,dtype=np.int16)
+        self.timestamps = np.empty(0)
+        self.new_triggers = None
+        
     def renew_data(self):
         self.spike_trains = {}
         self.x_indices = np.empty(0,dtype=np.int16)
         self.y_indices = np.empty(0,dtype=np.int16)
         self.timestamps = np.empty(0)
+        self.new_triggers = None
 
     def _update_data(self,callback=None):
         super(RevCorrData, self)._update_data(callback)
@@ -36,10 +45,10 @@ class RevCorrData(PlexSpikeData):
                 'x_indices':self.x_indices,'y_indices':self.y_indices,'timestamps':self.timestamps}
         return data
     
-    def get_img(self, data, channel, unit, dimension, tau, format, cmap):
-        if format == 'rgb':
+    def get_img(self, data, channel, unit, dimension, tau, img_format, cmap):
+        if img_format == 'rgb':
             return RevCorrImg.get_rgb_img(data, channel, unit, dimension, tau, cmap)
-        elif format == 'float':
+        elif img_format == 'float':
             return RevCorrImg.get_float_img(data, channel, unit, dimension, tau, cmap)
     
     def float_to_rgb(self, float_img, cmap='jet'):
@@ -103,7 +112,7 @@ class RevCorrImg(object):
 
     @staticmethod
     def get_float_img(data,channel,unit,dimension,tau,cmap):
-        raise RuntimeError("%s: Definition of get_float_img() in base class RevCorrImg must be overriden."%(str(self),))
+        RuntimeError("Must override get_float_img method with RevCorrImg implementation!")
 
     @staticmethod
     def get_rgb_img(data,channel,unit,dimension,tau,cmap):
@@ -128,8 +137,9 @@ class RevCorrImg(object):
 class STAData(RevCorrData):
     """ Spike triggered average(STA) analysis
     """
-    def __init__(self,file=None):
-        super(STAData, self).__init__(file)
+    def __init__(self,*args,**kwargs):
+        super(STAData, self).__init__(*args,**kwargs)
+        self.data_type = 'sparse_noise_sta'
         self.X_INDEX = 0B111111
         self.X_BIT_SHIFT = 0
         self.Y_INDEX = 0B111111
@@ -158,10 +168,10 @@ class STAData(RevCorrData):
         data['contrast'] = self.contrast
         return data
     
-    def get_img(self, data, channel, unit, dimension=(32,32), tau=0.085, format='rgb', cmap='jet'):
-        if format == 'rgb':
+    def get_img(self, data, channel, unit, dimension=(32,32), tau=0.085, img_format='rgb', cmap='jet'):
+        if img_format == 'rgb':
             return STAImg.get_rgb_img(data, channel, unit, dimension, tau, cmap)
-        elif format == 'float':
+        elif img_format == 'float':
             return STAImg.get_float_img(data, channel, unit, dimension, tau, cmap)
         
 class STAImg(RevCorrImg):
@@ -202,8 +212,9 @@ class STAImg(RevCorrImg):
         return STAImg._process_img(img, cmap)
         
 class ParamMapData(RevCorrData):
-    def __init__(self,file=None):
-        super(ParamMapData,self).__init__(file)
+    def __init__(self,*args,**kwargs):
+        super(ParamMapData,self).__init__(*args,**kwargs)
+        self.data_type = 'param_map_sta'
         self.X_INDEX = 0B1111
         self.X_BIT_SHIFT = 0
         self.Y_INDEX = 0B1111
@@ -222,10 +233,10 @@ class ParamMapData(RevCorrData):
     def get_data(self,callback=None):
         data = super(ParamMapData,self).get_data(callback)
         return data
-    def get_img(self, data, channel, unit, dimension=(16,16), tau=0.085, format='rgb', cmap='jet'):
-        if format == 'rgb':
+    def get_img(self, data, channel, unit, dimension=(16,16), tau=0.085, img_format='rgb', cmap='jet'):
+        if img_format == 'rgb':
             return ParamMapIMG.get_rgb_img(data, channel, unit, dimension, tau, cmap)
-        elif format == 'float':
+        elif img_format == 'float':
             return ParamMapIMG.get_float_img(data, channel, unit, dimension, tau, cmap)
 
 class ParamMapIMG(RevCorrImg):

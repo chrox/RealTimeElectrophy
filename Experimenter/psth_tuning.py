@@ -1,4 +1,4 @@
-# PSTH average analysis for orientation tuning/ spatial frequency tuning and disparity tuning experiment.
+# PSTH tuning analysis for orientation tuning/ spatial frequency tuning and disparity tuning experiment.
 #
 # Copyright (C) 2010-2011 Huang Xin
 #

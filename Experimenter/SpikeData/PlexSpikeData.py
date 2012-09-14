@@ -10,7 +10,11 @@ from SpikeRecord.Plexon.PlexUtil import PlexUtil
 
 class PlexSpikeData(object):
     # Base class handling spike records online or offline from Plexon.
-    def __init__(self, file=None):
+    def __init__(self, filename=None):
+        self.online = True
+        self.data = None
+        self.data_type = None
+        
         self.read_from_server = True
         self.read_from_file = False
         self.file_has_read = False
@@ -19,13 +23,13 @@ class PlexSpikeData(object):
         self.pc = None
         self.pf = None
         
-        if file is None:
+        if filename is None:
             self.pc = PlexClient()
             self.pc.InitClient()
         else:
             self.read_from_server = False
             self.read_from_file = True
-            self.pf = PlexFile(file)
+            self.pf = PlexFile(filename)
         self.pu = PlexUtil()
         self.renew_data()
 
@@ -39,8 +43,13 @@ class PlexSpikeData(object):
         pass
     
     def get_data(self,callback=None):
-        pass
+        # just suppress warning of unused argument
+        callback = callback 
+        raise RuntimeError("Must override get_data method with PlexSpikeData implementation!")
         
+    def get_data_type(self):
+        return self.data_type
+    
     def _update_data(self,callback=None):
         if self.read_from_server:
             self.data = self.pc.GetTimeStampArrays()

@@ -19,7 +19,7 @@ from matplotlib import pylab
 
 from ..DataProcessing.Fitting.Fitters import GaussFit,SinusoidFit,GaborFit
 from ..SpikeData import TimeHistogram
-from Base import UpdateDataThread,UpdateFileDataThread,RenewDataThread
+from Base import UpdateDataThread,UpdateFileDataThread
 from Base import MainFrame,DataPanel,RCPanel,adjust_spines
 
 class PSTHTuningDataPanel(DataPanel):
@@ -114,20 +114,47 @@ class PSTHTuningPanel(wx.Panel):
     def __init__(self, parent, label, name='psth_panel'):
         super(PSTHTuningPanel, self).__init__(parent, -1, name=name)
         
+        self.connected_to_server = True
+        self.collecting_data = True
         self.show_errbar_changed = False
+        self.show_fitting_changed = False
         self.showing_errbar = False
         self.log_fitting = False
         self.fitting_gaussian = False
         self.fitting_sinusoid = False
         self.fitting_gabor = False
         self.append_data_curve = False
+        self.polar_chart = False
+        
+        self.hist_bins = []
+        self.hist_patches = []
         self.data_curves = 1
         self.data_point_styles = ['g.','r.','b.']
         self.fitting_curve_styles = ['g-','r--','b-.']
         
-        self.psth = None
+        self.data = None
+        self.psth_data = None
         self.start_data()
         self.raw_data = None
+        
+        self.parameter = None
+        self.curve_data = None
+        self.errbars = None
+        self.curve_axes = None
+        
+        self.fitting_x = None
+        self.fitting_y = None
+        self.fitting_data = None
+        
+        self.x = None
+        self.means = None
+        self.stds = None
+        
+        self.update_data_thread = None
+        
+        self.gauss_fitter = None
+        self.sinusoid_fitter = None
+        self.gabor_fitter = None
         
         # layout sizer
         box = wx.StaticBox(self, -1, label)
@@ -155,7 +182,7 @@ class PSTHTuningPanel(wx.Panel):
         self.Bind(wx.EVT_TIMER, self.on_update_data_timer, self.update_data_timer)
         self.update_data_timer.Start(1000)
 
-    def make_chart(self,data=np.zeros(1),bins=np.arange(10)+1,polar=False,fitting=False):
+    def make_chart(self,data=np.zeros(1),bins=np.arange(10)+1,polar=False):
         self.polar_chart = polar
         self.hist_bins = []
         self.hist_patches = []
@@ -181,7 +208,7 @@ class PSTHTuningPanel(wx.Panel):
             self.curve_data = axes.plot(self.x, self.means, self.data_point_styles[0])[0]
         self.errbars = axes.errorbar(self.x, self.means, yerr=self.stds, fmt='k.') if self.showing_errbar else None
         self.curve_axes = axes
-        #if fitting:
+        
         self.fitting_data = axes.plot(self.fitting_x, self.fitting_y, self.fitting_curve_styles[0])[0]
         
         axes.set_ylim(0,100)
@@ -210,28 +237,26 @@ class PSTHTuningPanel(wx.Panel):
                 self.hist_patches.append(patches)
                 
         self.fig.canvas.draw()
-        
+    
+    def set_data(self, data):
+        self.data = data
+    
     def update_chart(self, data=None):
-        if data is None and hasattr(self, 'data'):
+        if data is None and self.data is not None:
             data = self.data
-        else:
-            self.data = data
-        if self.psth is None:
-            return
+        
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit is not None:
             channel, unit = selected_unit
             zeroth_psth_data = None
-            if channel not in data or unit not in data[channel]:
-                return
             polar_dict = {'orientation':True, 'spatial_frequency':False, 'phase':False, 'disparity':False}
-            self.parameter = self.psth.parameter
+            self.parameter = self.psth_data.parameter
             if self.parameter in polar_dict:
                 polar_chart = polar_dict[self.parameter]
             else:
                 polar_chart = self.polar_chart
             # histogram
-            for index in filter(lambda index: not index & 1, data[channel][unit].iterkeys()):
+            for index in [i for i in data[channel][unit].iterkeys() if not i&1]:
                 patch_index = index // 2
                 spike_times = data[channel][unit][index]['spikes']
                 bins = data[channel][unit][index]['bins']
@@ -241,7 +266,7 @@ class PSTHTuningPanel(wx.Panel):
                 _trials = data[channel][unit][index]['trials']
                 self.show_fitting_changed = False
                 if len(bins) != len(self.hist_bins[0]) or self.show_errbar_changed or polar_chart != self.polar_chart:
-                    self.make_chart(spike_times, bins, polar_chart, self.fitting_gaussian or self.fitting_sinusoid or self.fitting_gabor)
+                    self.make_chart(spike_times, bins, polar_chart)
                     self.show_errbar_changed = False
                     self.show_fitting_changed = False
                 else:
@@ -342,22 +367,23 @@ class PSTHTuningPanel(wx.Panel):
         # Update the error bars
         errbar[2][0].set_segments(np.array([[x, means-yerrs], [x, means+yerrs]]).transpose((2, 0, 1)))
     
-    def on_update_data_timer(self, event):
+    def on_update_data_timer(self, _event):
         if self.collecting_data and self.connected_to_server:
-            self.update_data_thread = UpdateDataThread(self, self.psth)
+            self.update_data_thread = UpdateDataThread(self, self.psth_data)
             self.update_data_thread.start()
         
     def start_data(self):
-        if self.psth is None:
-            self.psth = TimeHistogram.PSTHTuning()
+        if self.psth_data is None:
+            self.psth_data = TimeHistogram.PSTHTuning()
         self.collecting_data = True
         self.connected_to_server = True
     
     def stop_data(self):
         self.collecting_data = False
         self.clear_data()
-        if hasattr(self, 'update_data_thread') and self.psth is not None:
-            RenewDataThread(self, self.psth, self.update_data_thread).start()
+        self.psth_data = None
+        #if hasattr(self, 'update_data_thread') and self.psth_data is not None:
+            #RenewDataThread(self, self.psth_data, self.update_data_thread).start()
         
     def restart_data(self):
         self.stop_data()
@@ -385,8 +411,8 @@ class PSTHTuningPanel(wx.Panel):
         self.PopupMenu(self.popup_menu, pos)
     
     def open_file(self, path, callback=None):
-        self.psth = TimeHistogram.PSTHTuning(path)
-        data_thread = UpdateFileDataThread(self, self.psth, callback)
+        self.psth_data = TimeHistogram.PSTHTuning(path)
+        data_thread = UpdateFileDataThread(self, self.psth_data, callback)
         data_thread.start()
         self.connected_to_server = False
     
@@ -402,7 +428,7 @@ class PSTHTuningPanel(wx.Panel):
     
     def save_data(self):
         data_dict = {}
-        data_dict['stimulus'] = self.psth.parameter
+        data_dict['stimulus'] = self.psth_data.parameter
         data_dict['x'] = self.x
         data_dict['y'] = self.means
         data_dict['data'] = self.data
@@ -415,9 +441,16 @@ class PSTHTuningFrame(MainFrame):
     """ The main frame of the application
     """
     def __init__(self):
-        self.title = 'Peri-Stimulus Time Histogram(PSTH) Average'
-        super(PSTHTuningFrame, self).__init__(self.title)
-        
+        self.menu_fitting = None
+        self.m_gaussfitter = None
+        self.m_sinfitter = None
+        self.m_gaborfitter = None
+        self.menu_uncheck_binds = None
+        self.menu_view = None
+        self.m_errbar = None
+        super(PSTHTuningFrame, self).__init__('Peri-Stimulus Time Histogram(PSTH) Tuning')
+    
+    # invoked when MainFrame is initiated
     def create_menu(self):
         super(PSTHTuningFrame, self).create_menu()
         
@@ -450,9 +483,10 @@ class PSTHTuningFrame(MainFrame):
     def on_data_updated(self, event):
         data = event.get_data()
         self.unit_choice.update_units(data)
+        self.chart_panel.set_data(data)
         self.chart_panel.update_chart(data)
         
-    def on_check_gaussfitter(self, event):
+    def on_check_gaussfitter(self, _event):
         if self.m_gaussfitter.IsChecked():
             for item in self.menu_fitting.GetMenuItems():
                 if item.GetId() != self.m_gaussfitter.GetId() and item.IsChecked():
@@ -465,7 +499,7 @@ class PSTHTuningFrame(MainFrame):
     def uncheck_gaussfitter(self):
         self.chart_panel.gaussianfit(False)
         
-    def on_check_sinfitter(self, event):
+    def on_check_sinfitter(self, _event):
         if self.m_sinfitter.IsChecked():
             for item in self.menu_fitting.GetMenuItems():
                 if item.GetId() != self.m_sinfitter.GetId() and item.IsChecked():
@@ -478,7 +512,7 @@ class PSTHTuningFrame(MainFrame):
     def uncheck_sinfitter(self):
         self.chart_panel.sinusoidfit(False)
         
-    def on_check_gaborfitter(self, event):
+    def on_check_gaborfitter(self, _event):
         if self.m_gaborfitter.IsChecked():
             for item in self.menu_fitting.GetMenuItems():
                 if item.GetId() != self.m_gaborfitter.GetId() and item.IsChecked():
@@ -497,7 +531,7 @@ class PSTHTuningFrame(MainFrame):
             self.menu_uncheck_binds[item.GetId()]()
         self.chart_panel.update_chart()
         
-    def on_check_errbar(self, event):
+    def on_check_errbar(self, _event):
         if self.m_errbar.IsChecked():
             self.chart_panel.show_errbar(True)
             self.flash_status_message("Showing error bar")
@@ -510,63 +544,39 @@ class RCPSTHTuningPanel(PSTHTuningPanel, RCPanel):
     def __init__(self, *args,**kwargs):
         PSTHTuningPanel.__init__(self,*args,**kwargs)
         RCPanel.__init__(self)
-        
-        self.check_request_timer = wx.Timer(self, wx.NewId())
-        self.Bind(wx.EVT_TIMER, self._on_check_request, self.check_request_timer)
-        self.check_request_timer.Start(200)
-        
-        self.fitting_request = None
-        self.unfitting_request = False
-        self.errbar_request = False
-    
-    def _on_check_request(self, event):
-        RCPanel._on_check_request(self, event)
-        self._check_fitting_request()
-        self._check_unfitting_request()
-        self._check_errbar_request()
-
-    def _check_fitting_request(self):
-        if self.fitting_request is not None:
-            evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
-            parent = wx.FindWindowByName('main_frame')
-            if self.fitting_request == 'gauss':
-                parent.menu_fitting.Check(parent.m_gaussfitter.GetId(), True)
-                evt.SetId(parent.m_gaussfitter.GetId())
-                wx.PostEvent(parent, evt)
-            if self.fitting_request == 'sin':
-                parent.menu_fitting.Check(parent.m_sinfitter.GetId(), True)
-                evt.SetId(parent.m_sinfitter.GetId()) 
-                wx.PostEvent(parent, evt)
-            if self.fitting_request == 'gabor':
-                parent.menu_fitting.Check(parent.m_gaborfitter.GetId(), True)
-                evt.SetId(parent.m_gaborfitter.GetId()) 
-                wx.PostEvent(parent, evt)
-            self.fitting_request = None
-        
-    def _check_unfitting_request(self):
-        if self.unfitting_request is not False:
-            parent = wx.FindWindowByName('main_frame')
-            parent.uncheck_fitting()
-            self.unfitting_request = False
-            
-    def _check_errbar_request(self):
-        if self.errbar_request is True:
-            evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
-            parent = wx.FindWindowByName('main_frame')
-            parent.menu_view.Check(parent.m_errbar.GetId(), self.errbar_request)
-            evt.SetId(parent.m_errbar.GetId())
-            wx.PostEvent(parent, evt)
-            self.errbar_request = False
             
     def check_fitting(self, fitting):
-        # fitting in ('gauss','sin','gabor')
-        self.fitting_request = fitting
+        evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
+        parent = wx.FindWindowByName('main_frame')
+        if fitting == 'gauss':
+            parent.menu_fitting.Check(parent.m_gaussfitter.GetId(), True)
+            evt.SetId(parent.m_gaussfitter.GetId())
+            wx.PostEvent(parent, evt)
+        if fitting == 'sin':
+            parent.menu_fitting.Check(parent.m_sinfitter.GetId(), True)
+            evt.SetId(parent.m_sinfitter.GetId()) 
+            wx.PostEvent(parent, evt)
+        if fitting == 'gabor':
+            parent.menu_fitting.Check(parent.m_gaborfitter.GetId(), True)
+            evt.SetId(parent.m_gaborfitter.GetId()) 
+            wx.PostEvent(parent, evt)
     
     def uncheck_fitting(self):
-        self.unfitting_request = True
+        parent = wx.FindWindowByName('main_frame')
+        parent.uncheck_fitting()
         
     def check_errbar(self, checked):
-        self.errbar_request = checked
+        evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
+        parent = wx.FindWindowByName('main_frame')
+        parent.menu_view.Check(parent.m_errbar.GetId(), checked)
+        evt.SetId(parent.m_errbar.GetId())
+        wx.PostEvent(parent, evt)
+        
+    def get_data(self):
+        return self.data_form.get_data()
+    
+    def export_chart(self, path):
+        self.save_chart(path)
         
 class PyroPSTHTuningFrame(PSTHTuningFrame):
     """
@@ -574,6 +584,8 @@ class PyroPSTHTuningFrame(PSTHTuningFrame):
     """
     def __init__(self, pyro_port):
         self.pyro_port = pyro_port
+        self.pyro_daemon = None
+        self.PYRO_URI = None
         super(PyroPSTHTuningFrame, self).__init__()
         
     def create_chart_panel(self):

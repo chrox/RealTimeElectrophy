@@ -17,6 +17,7 @@ class PSTHTuning(PlexSpikeData):
     #PHA_TUN_TYPE = 1<<13
     def __init__(self, *args,**kwargs):
         super(PSTHTuning, self).__init__(*args,**kwargs)
+        self.data_type = 'psth_tuning'
         self.param_indices = np.empty(0,dtype=np.int16)
         self.timestamps = np.empty(0)
         self.parameter = None
@@ -139,6 +140,7 @@ class PSTHAverage(PlexSpikeData):
     ONSET_MASK = 1<<12
     def __init__(self, *args,**kwargs):
         super(PSTHAverage, self).__init__(*args,**kwargs)
+        self.data_type = 'psth_average'
         self.timestamps = np.empty(0)
         self.onset_timestamps = np.empty(0)
         self.spike_trains = {}
@@ -186,7 +188,7 @@ class PSTHAverage(PlexSpikeData):
                     self.histogram_data[channel][unit]['trials'] = 0
                     self.histogram_data[channel][unit]['spikes'] = []
                     self.histogram_data[channel][unit]['means'] = []
-                    self._process_unit(channel,unit)
+                self._process_unit(channel,unit)
                     
     def _process_unit(self,channel,unit):
         duration = 0.152
@@ -204,8 +206,22 @@ class PSTHAverage(PlexSpikeData):
             trials = trials + 1
         psth_data = np.array(np.histogram(spikes, bins=bins)[0],dtype='float') / (binsize*trials)
         smoothed_psth = nd.gaussian_filter1d(psth_data, sigma=10)
+        maxima_indices = (np.diff(np.sign(np.diff(smoothed_psth))) < 0).nonzero()[0] + 1
+        minima_indices = (np.diff(np.sign(np.diff(smoothed_psth))) > 0).nonzero()[0] + 1
+        maxima = smoothed_psth[maxima_indices]
+        time = self.histogram_data[channel][unit]['bins']
+        try:
+            peak_time = time[maxima_indices[maxima.argmax()]]
+        except:
+            peak_time = None
+        
         self.histogram_data[channel][unit]['spikes'] = spikes
         self.histogram_data[channel][unit]['trials'] = trials
         self.histogram_data[channel][unit]['psth_data'] = psth_data
         self.histogram_data[channel][unit]['smoothed_psth'] = smoothed_psth
+        self.histogram_data[channel][unit]['maxima'] = smoothed_psth[maxima_indices]
+        self.histogram_data[channel][unit]['minima'] = smoothed_psth[minima_indices]
+        self.histogram_data[channel][unit]['maxima_indices'] = maxima_indices
+        self.histogram_data[channel][unit]['minima_indices'] = minima_indices
+        self.histogram_data[channel][unit]['peak_time'] = peak_time
             
