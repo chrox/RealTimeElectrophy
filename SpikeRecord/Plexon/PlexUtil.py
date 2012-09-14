@@ -46,7 +46,7 @@ def reconstruct_word_in_python(WORD_BITS,bits_num,unstrobed_bits,words_buffer,ti
 try:
     import _unstrobed_word
     reconstruct_word = _unstrobed_word.reconstruct_word_32
-except ImportError,ValueError:
+except ImportError or ValueError:
     reconstruct_word = reconstruct_word_in_python
     logger.info("Cannot import C version of reconstruct_word. Building a C version is highly recommended. We will use Python version this time.")
 
@@ -83,9 +83,9 @@ class PlexUtil(object):
         spike_trains = {}
         sorted_spikes = (data['type'] == Plexon.PL_SingleWFType) & (data['unit'] > 0)
         for channel in np.unique(data['channel'][sorted_spikes]):
-            spike_trains[str(channel)] = {}
+            spike_trains[channel] = {}
             for unit in map(chr,np.unique(data['unit'][sorted_spikes & (data['channel'] == channel)]) + (ord('a')-1)):
-                spike_trains[str(channel)][unit] = self.GetSpikeTrain(data, channel=channel, unit=unit)
+                spike_trains[channel][unit] = self.GetSpikeTrain(data, channel=channel, unit=unit)
         return spike_trains
             
     def GetSpikeTrain(self, data, channel, unit):
