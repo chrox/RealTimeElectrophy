@@ -112,6 +112,8 @@ class Experiment(object):
         self.logger.info('Running script: ' + exp_file)
         self.logger.info('Experiment name is: ' + self.exp_name)
         self.logger.info('Experiment time is: ' + time.strftime('%Y/%m/%d %H:%M:%S', time.localtime()))
+        # make sure that experiment timestamp is at least 1 sec earlier than PLX file timestamp
+        time.sleep(1.0)
         try:
             with open(exp_file) as source_file:
                 source = source_file.read()
@@ -119,7 +121,6 @@ class Experiment(object):
             self.logger.error('Cannot read stimulation source code.')
             return
         self.stimulus.run(self.exp_name,source,left_params,right_params,assignments)
-        time.sleep(1.0)
         
     def wait_for_stim(self):
         self.logger.info('Waiting for stimulus...')
