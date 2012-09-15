@@ -407,11 +407,6 @@ class PSTHTuningPanel(wx.Panel):
         self.show_errbar_changed = True
         self.showing_errbar = checked
     
-    def on_show_popup(self, event):
-        pos = event.GetPosition()
-        pos = event.GetEventObject().ScreenToClient(pos)
-        self.PopupMenu(self.popup_menu, pos)
-    
     def open_file(self, path, callback=None):
         self.psth_data = TimeHistogram.PSTHTuning(path)
         data_thread = UpdateFileDataThread(self, self.psth_data, callback)
