@@ -6,6 +6,7 @@ import ast
 import Pyro
 import pickle
 import logging
+import pygame
 import VisionEgg
 import VisionEgg.PyroApps.EPhysServer as server
 from StimControl.LightStim.Core import DefaultScreen
@@ -169,37 +170,49 @@ class NewPyroServer(PyroServer):
             # workaround bug in Pyro pre-3.2
             del self.daemon.implementations[_object.GUID()]
             _object.setDaemon(None)
+
+class StimServer(object):
+    def __init__(self):
+        self.presentation = None
+        self.ephys_server = None
         
-def start_server( server_modules, server_class=RTEPhysServer ):
-    pyro_server = NewPyroServer()
-    default_viewports = ['left','right']
-    DefaultScreen(default_viewports)
-    screen = DefaultScreen.screen
+    def start_server(self, server_modules=server_modules, server_class=RTEPhysServer ):
+        pyro_server = NewPyroServer()
+        default_viewports = ['left','right']
+        DefaultScreen(default_viewports)
+        screen = DefaultScreen.screen
+        
+        perspective_viewport = VisionEgg.Core.Viewport(screen=screen)
+        overlay2D_viewport = VisionEgg.Core.Viewport(screen=screen)
+        self.presentation = VisionEgg.FlowControl.Presentation(viewports=[perspective_viewport, overlay2D_viewport]) # 2D overlay on top
+        self.presentation.parameters.handle_event_callbacks = [(pygame.locals.KEYDOWN, self.keydown_callback)]
+        self.presentation.between_presentations() # draw wait_text
     
-    perspective_viewport = VisionEgg.Core.Viewport(screen=screen)
-    overlay2D_viewport = VisionEgg.Core.Viewport(screen=screen)
-    p = VisionEgg.FlowControl.Presentation(viewports=[perspective_viewport, overlay2D_viewport]) # 2D overlay on top
-
-    p.between_presentations() # draw wait_text
-
-    ephys_server = server_class(p, server_modules)
-    pyro_server.connect(ephys_server,"ephys_server")
-
-    # get listener controller and register it
-    p.add_controller(None,None, pyro_server.create_listener_controller())
-
-    p.run_forever() # run until we get first connnection, which breaks out immmediately
-
-    while not ephys_server.quit_server_status():
-        if ephys_server.get_stimkey() == "dropin_server":
-            p.parameters.enter_go_loop = False
-            # wait for client side quit status
-            p.run_forever()
-            if ephys_server.quit_server_status():
-                break
-            
-            if ephys_server.exec_demoscript_flag:
-                ephys_server.exec_AST(screen)
-        
+        self.ephys_server = server_class(self.presentation, server_modules)
+        pyro_server.connect(self.ephys_server,"ephys_server")
+    
+        # get listener controller and register it
+        self.presentation.add_controller(None,None, pyro_server.create_listener_controller())
+    
+        self.presentation.run_forever() # run until we get first connnection, which breaks out immmediately
+    
+        while not self.ephys_server.quit_server_status():
+            if self.ephys_server.get_stimkey() == "dropin_server":
+                self.presentation.parameters.enter_go_loop = False
+                # wait for client side quit status
+                self.presentation.run_forever()
+                if self.ephys_server.quit_server_status():
+                    break
+                
+                if self.ephys_server.exec_demoscript_flag:
+                    self.ephys_server.exec_AST(screen)
+      
+    def keydown_callback(self,event):
+        if event.key == pygame.locals.K_q:
+            self.presentation.parameters.quit = True
+            self.ephys_server.set_quit_server_status(True)
+          
 if __name__ == '__main__':
-    start_server(server_modules, server_class=RTEPhysServer)
+    #start_server(server_modules, server_class=RTEPhysServer)
+    stim_server = StimServer()
+    stim_server.start_server()
