@@ -242,7 +242,9 @@ class PSTHTuningPanel(wx.Panel):
         self.data = data
     
     def update_chart(self, data=None):
-        if data is None and self.data is not None:
+        if data is None and self.data is None:
+            return
+        elif data is None and self.data is not None:
             data = self.data
         
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
@@ -265,13 +267,13 @@ class PSTHTuningPanel(wx.Panel):
                     zeroth_psth_data = psth_data
                 _trials = data[channel][unit][index]['trials']
                 self.show_fitting_changed = False
-                if len(bins) != len(self.hist_bins[0]) or self.show_errbar_changed or polar_chart != self.polar_chart:
+                if len(bins) != len(self.hist_bins[patch_index]) or self.show_errbar_changed or polar_chart != self.polar_chart:
                     self.make_chart(spike_times, bins, polar_chart)
                     self.show_errbar_changed = False
                     self.show_fitting_changed = False
-                else:
-                    for rect,h in zip(self.hist_patches[patch_index],psth_data):
-                        rect.set_height(h)
+                #else:
+                for rect,h in zip(self.hist_patches[patch_index],psth_data):
+                    rect.set_height(h)
             
             for index in data[channel][unit].iterkeys():
                 mean = data[channel][unit][index]['mean']
