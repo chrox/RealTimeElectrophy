@@ -51,10 +51,15 @@ def collect_log_timestamp(log_dir):
 
 if __name__ == '__main__':
     update_file = False
+    simulation = False
+    
     argv = list(sys.argv)
     if '-u' in argv:
         update_file = True
         argv.remove('-u')
+    if '-s' in argv:
+        simulation = True
+        argv.remove('-s')
         
     plx_timestamps = collect_plx_timestamp(argv[1])
     log_timestamps = collect_log_timestamp(argv[2])
@@ -78,6 +83,8 @@ if __name__ == '__main__':
                     dst_file = os.path.join(oldest_log[0],oldest_log[1]+'.plx')
                     if update_file and os.path.exists(dst_file):
                         print "File %s exists" %dst_file
+                    elif simulation:
+                        print "Simulated creating file %s" %dst_file
                     else:
                         shutil.copyfile(src_file, dst_file)
                         print "Created file %s" %dst_file
