@@ -25,4 +25,4 @@ grating = ParamsGrating(viewport=eye, params=p, sweepseq=param)
 
 sweep = FrameSweep()
 sweep.add_stimulus(grating)
-sweep.go()
+sweep.go(prestim=5.0,poststim=5.0,RSTART=True)

@@ -28,4 +28,4 @@ param_sequence = ParamSeque(repeat=4, orientation=orientation, spatial_freq=spat
 random_grating = ParamMapGrating(viewport=eye, params=p, sweepseq=param_sequence)
 sweep = FrameSweep()
 sweep.add_stimulus(random_grating)
-sweep.go()
+sweep.go(prestim=5.0,poststim=5.0,RSTART=True)
