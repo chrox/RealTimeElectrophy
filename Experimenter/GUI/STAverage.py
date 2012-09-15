@@ -268,8 +268,11 @@ class STAPanel(wx.Panel):
         self.update_chart()
         
     def start_data(self):
-        if self.sta_data is None:
+        data_type = wx.FindWindowByName('main_frame').get_data_type()
+        if data_type == 'sparse_noise':
             self.sta_data = RevCorr.STAData()
+        elif data_type == 'param_map':
+            self.sta_data = RevCorr.ParamMapData()
         if self.psth_data is None:
             self.psth_data = TimeHistogram.PSTHAverage()
         self.collecting_data = True
@@ -344,6 +347,7 @@ class STAPanel(wx.Panel):
         self.canvas.print_figure(path, dpi=self.dpi)
         
     def clear_data(self):
+        self.data = None
         self.make_chart()
         wx.FindWindowByName('main_frame').unit_choice.clear_unit()
         self.data_form.clear_data()
