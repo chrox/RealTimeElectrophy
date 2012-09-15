@@ -212,8 +212,11 @@ class STAPanel(wx.Panel):
                 wx.PostEvent(parent, evt)
     
     def update_chart(self,data=None):
-        if data is None and hasattr(self, 'data'):
+        if data is None and self.data is None:
+            return
+        elif data is None and self.data is not None:
             data = self.data
+            
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit:
             channel, unit = selected_unit

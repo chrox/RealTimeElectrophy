@@ -108,15 +108,16 @@ class PSTHAveragePanel(wx.Panel):
         self.fig.canvas.draw()
         
     def update_chart(self, data=None):
-        if data is None and self.data is not None:
+        if data is None and self.data is None:
+            return
+        elif data is None and self.data is not None:
             data = self.data
-        
+            
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit is not None:
             channel, unit = selected_unit
             if channel not in data or unit not in data[channel]:
                 return
-            
             #psth_data = data[channel][unit]['psth_data']
             bins = data[channel][unit]['bins']
             smoothed_psth = data[channel][unit]['smoothed_psth']
