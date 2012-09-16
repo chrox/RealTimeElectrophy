@@ -24,6 +24,8 @@ postframesweepSec = 1.0
 """Grid settings"""
 # grid dimension (x, y)
 p.griddim = (32, 32)
+# grid magnification factor relative to receptive field width
+p.gridmag = 2
 # noise magnification fator relative to grid cell size
 p.widthmag = 4
 p.heightmag = 1
@@ -48,7 +50,7 @@ contrast = [0,1]
 
 noise_sequence = SparseNoiseSeque(repeat=8, x_index=x_index, y_index=y_index, contrast=contrast, frame_duration=p.sweepSec, blank_duration=p.postsweepSec)
 
-stimulus_left = WhiteNoise(viewport='left', params=p, sweepseq=noise_sequence)
+stimulus_left = WhiteNoise(viewport='right', params=p, sweepseq=noise_sequence)
 
 sweep = FrameSweep()
 sweep.add_stimulus(stimulus_left)
