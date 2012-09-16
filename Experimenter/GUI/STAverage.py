@@ -131,7 +131,7 @@ class STAPanel(wx.Panel):
         self.dpi = 100
         self.fig = Figure((6.0, 6.0), dpi=self.dpi, facecolor='w')
         self.canvas = FigCanvas(self, -1, self.fig)
-        self.fig.subplots_adjust(bottom=0.05, left=0.05, right=0.95, top=0.95)
+        self.fig.subplots_adjust(bottom=0.06, left=0.06, right=0.95, top=0.95)
         
         # popup menu of cavas
         interpolations = ['none', 'nearest', 'bilinear', 'bicubic', 'spline16', 'spline36', 'hanning', 'hamming', 'hermite', \
@@ -186,10 +186,12 @@ class STAPanel(wx.Panel):
     def make_chart(self):
         self.fig.clear()
         self.axes = self.fig.add_subplot(111)
-        adjust_spines(self.axes,spines=[],spine_outward=[],xticks='none',yticks='none',tick_label=[])
-        img = np.zeros((64,64,3))
+        img = np.zeros((32,32,3))
         self.img_dim = img.shape
         self.im = self.axes.imshow(img,interpolation=self.interpolation)
+        adjust_spines(self.axes,spines=['left','bottom'],spine_outward=[],
+                      xticks='bottom',yticks='left',tick_label=['x','y'])
+        self.axes.autoscale_view(scalex=True, scaley=True)
         self.fig.canvas.draw()
         
     def set_data(self, data):
@@ -245,10 +247,10 @@ class STAPanel(wx.Panel):
                 if self.fitting_gaussian:
                     params,img = self.gauss_fitter.gaussfit2d(float_img,returnfitimage=True)
                 elif self.fitting_gabor:
-                    params,img = self.gabor_fitter.gaborfit2d(float_img,returnfitimage=True)
+                    params,img = self.gabor_fitter.gaborfit2d(float_img,returnfitimage=True)                
                 self.data_form.gen_results(self.peak_time, params, img, self.data_type)
                 img = self.sta_data.float_to_rgb(img,cmap='jet')
-            
+                
             self.im.set_data(img)
             #self.axes.set_title(self.title)
             self.im.autoscale()
