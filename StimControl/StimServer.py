@@ -16,8 +16,6 @@ from VisionEgg.PyroHelpers import PyroServer
 from VisionEgg.PyroApps.DropinServer import DropinMetaController
 from VisionEgg.PyroApps.DropinGUI import DropinMetaParameters
 
-server_modules = [VisionEgg.PyroApps.DropinServer]
-
 class MyDropinMetaController(DropinMetaController):
     def __init__(self,screen,presentation,stimuli):
         Pyro.core.ObjBase.__init__(self)
@@ -165,6 +163,7 @@ class NewPyroServer(PyroServer):
         
     def disconnect(self, _object):
         try:
+            # pylint: disable=E1101
             VERSION = Pyro.core.constants.VERSION
         except:
             VERSION = Pyro.constants.VERSION
@@ -179,8 +178,9 @@ class StimServer(object):
     def __init__(self):
         self.presentation = None
         self.ephys_server = None
+        self.server_modules = [VisionEgg.PyroApps.DropinServer]
         
-    def start_server(self, server_modules=server_modules, server_class=RTEPhysServer ):
+    def start_server(self):
         pyro_server = NewPyroServer()
         default_viewports = ['left','right']
         DefaultScreen(default_viewports)
@@ -188,11 +188,12 @@ class StimServer(object):
         
         perspective_viewport = VisionEgg.Core.Viewport(screen=screen)
         overlay2D_viewport = VisionEgg.Core.Viewport(screen=screen)
+        
         self.presentation = VisionEgg.FlowControl.Presentation(viewports=[perspective_viewport, overlay2D_viewport]) # 2D overlay on top
         self.presentation.parameters.handle_event_callbacks = [(pygame.locals.KEYDOWN, self.keydown_callback)]
         self.presentation.between_presentations() # draw wait_text
     
-        self.ephys_server = server_class(self.presentation, server_modules)
+        self.ephys_server = RTEPhysServer(self.presentation, self.server_modules)
         pyro_server.connect(self.ephys_server,"ephys_server")
     
         # get listener controller and register it
@@ -217,6 +218,5 @@ class StimServer(object):
             self.ephys_server.set_quit_server_status(True)
           
 if __name__ == '__main__':
-    #start_server(server_modules, server_class=RTEPhysServer)
     stim_server = StimServer()
     stim_server.start_server()
