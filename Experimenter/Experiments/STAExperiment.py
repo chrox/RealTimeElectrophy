@@ -99,7 +99,7 @@ class STAExperiment(Experiment):
             sta_app_path = os.path.dirname(__file__) + os.path.sep + 'app' + os.path.sep + self.pyro_source
             args = [sys.executable, sta_app_path, str(STAExperiment.STA_SERVER_PORT)]
             STAExperiment.STA_SERVER_PROCESS = subprocess.Popen(args)
-            time.sleep(3.0)                
+            time.sleep(3.0)
         else:
             self.logger.info('Psth app has been launched.')
         assert STAExperiment.STA_SERVER_PROCESS.poll() is None
@@ -109,7 +109,6 @@ class STAExperiment(Experiment):
     
     def pre_stim_setup(self):
         self.sta_server.set_title(self.exp_name)
-        self.sta_server.uncheck_fitting()
         
     def post_stim_setup(self):
         pass
@@ -141,7 +140,7 @@ class RFCMappingExp(STAExperiment):
         super(RFCMappingExp, self).pre_stim_setup()
         self.logger.info('Uncheck image fitting.')
         self.sta_server.uncheck_fitting()
-    
+        
     def post_stim_setup(self):
         super(RFCMappingExp, self).post_stim_setup()
         try:
@@ -181,6 +180,7 @@ class RFCMappingExp(STAExperiment):
             rf_x_pos = orig_pos[0] + cell_width * (data['rf_center'][0]-16)
             rf_y_pos = orig_pos[0] + cell_width * (16-data['rf_center'][1])
             rf_pos = (float(rf_x_pos), float(rf_y_pos))
+            self.logger.info('Original RF center: %.2f,%.2f' %orig_pos)
             self.logger.info('Get RF center from %s experiment: %.2f,%.2f' %(self.exp_name,rf_pos[0],rf_pos[1]))
             return rf_pos
         

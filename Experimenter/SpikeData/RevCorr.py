@@ -60,7 +60,7 @@ class RevCorrImg(object):
         def clamp(x): return max(0.0, min(x, 1.0))
         if color == 'jet':
             #code from Matt Stine's Blog
-            fourValue = 4 * value;
+            fourValue = 4 * value
             red   = min(fourValue - 1.5, -fourValue + 4.5)
             green = min(fourValue - 0.5, -fourValue + 3.5)
             blue  = min(fourValue + 0.5, -fourValue + 2.5)
@@ -112,10 +112,12 @@ class RevCorrImg(object):
 
     @staticmethod
     def get_float_img(data,channel,unit,dimension,tau,cmap):
+        # pylint: disable=W0613
         RuntimeError("Must override get_float_img method with RevCorrImg implementation!")
 
     @staticmethod
     def get_rgb_img(data,channel,unit,dimension,tau,cmap):
+        # pylint: disable=E1111
         img = RevCorrImg.get_float_img(data,channel,unit,dimension,tau,cmap)
         return RevCorrImg._process_img(img, cmap)
     
@@ -168,7 +170,7 @@ class STAData(RevCorrData):
         data['contrast'] = self.contrast
         return data
     
-    def get_img(self, data, channel, unit, dimension=(32,32), tau=0.085, img_format='rgb', cmap='jet'):
+    def get_img(self, data, channel, unit, tau=0.085, img_format='rgb', cmap='jet', dimension=(32,32)):
         if img_format == 'rgb':
             return STAImg.get_rgb_img(data, channel, unit, dimension, tau, cmap)
         elif img_format == 'float':
@@ -179,6 +181,19 @@ class STAImg(RevCorrImg):
     def get_float_img(data,channel,unit,dimension,tau,cmap='jet'):
         """ Take the time offset between spikes and the triggered stimulus.
         """
+        #   img format: img[y_index][x_index]  
+        #   pix format: pix(x_index, y_index) 
+        #   |     X
+        # --+-------------->
+        #   |0,0|1,0|2,0|
+        #   |___|___|___|
+        #   |0,1|1,1|2,1|
+        # Y |___|___|___|
+        #   |0,2|1,2|2,2|
+        #   |___|___|___|
+        #   |
+        #   v
+            
         spike_trains = data['spikes']
         cols = data['x_indices']
         rows = data['y_indices']
@@ -189,10 +204,10 @@ class STAImg(RevCorrImg):
         if len(timestamps)>1:
             spikes = spike_trains[channel][unit]
             triggered_stim = spikes - tau
-            #stim_times = np.zeros(timestamps.size-1, np.dtype('int'))
-            #for time in np.linspace(-0.40, 0.40, 5):
-                #stim_times += np.histogram(triggered_stim, timestamps+time)[0]
-            stim_times = np.histogram(triggered_stim, timestamps)[0]
+            stim_times = np.zeros(timestamps.size-1, np.dtype('int'))
+            for time in np.linspace(-0.01, 0.01, 3):
+                stim_times += np.histogram(triggered_stim, timestamps+time)[0]
+            #stim_times = np.histogram(triggered_stim, timestamps)[0]
             take = stim_times > 0
             triggered_times = stim_times[take]
             col = cols[take]
@@ -204,6 +219,7 @@ class STAImg(RevCorrImg):
                 row_index = row[index]
                 if row_index < dimension[0] and col_index < dimension[1]:
                     img[row_index][col_index] += times*ctr[index]
+
         return img
     
     @staticmethod
@@ -233,7 +249,7 @@ class ParamMapData(RevCorrData):
     def get_data(self,callback=None):
         data = super(ParamMapData,self).get_data(callback)
         return data
-    def get_img(self, data, channel, unit, dimension=(16,16), tau=0.085, img_format='rgb', cmap='jet'):
+    def get_img(self, data, channel, unit, tau=0.085, img_format='rgb', cmap='jet', dimension=(16,16)):
         if img_format == 'rgb':
             return ParamMapIMG.get_rgb_img(data, channel, unit, dimension, tau, cmap)
         elif img_format == 'float':

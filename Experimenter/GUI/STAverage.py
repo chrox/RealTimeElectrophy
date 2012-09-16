@@ -53,7 +53,7 @@ class OptionPanel(wx.Panel):
         wx.PostEvent(self.GetParent(), evt)
         
 class STADataPanel(DataPanel):
-    def gen_img_data(self,params,img,stim_type,peak_time):
+    def gen_results(self,peak_time,params=None,img=None,data_type=None):
         class IndexedParam(list):
             def __init__(self,parameter):
                 if parameter == 'orientation':
@@ -68,30 +68,28 @@ class STADataPanel(DataPanel):
                     super(IndexedParam, self).__init__([None])
                 else:
                     raise RuntimeError('Cannot understand parameter:%s' %str(parameter))
-        
-        dims = img.shape
-        self.data['peak_time'] = peak_time
         data = ''
-        data += '-'*18 + '\nPeak time(ms):\n'
-        data += '%.1f\n' %peak_time
         extremes = ''
-        if stim_type == 'white_noise':
-            self.data['rf_center'] = (params[2],params[3])
+        if peak_time is not None:
+            self.data['peak_time'] = peak_time
+            data += '-'*18 + '\nPeak time(ms):\n'
+            data += '%.1f\n' %peak_time
+        if data_type == 'white_noise':
+            # img format: img[y_index][x_index]
+            y_max,x_max = np.unravel_index(img.argmax(), img.shape)
+            self.data['rf_center'] = (x_max,y_max)
             data += '-'*18 + '\nRF center:\n'
-            data += 'Center position(x,y):\n'
-            data += '%.2f\t%.2f\n' %(params[2],params[3])
-        elif stim_type == 'param_mapping':
+            data += 'Center position index(x,y):\n'
+            data += '%.1f\t%.1f\n' %(x_max,y_max)
+        elif data_type == 'param_mapping':
             ori = IndexedParam('orientation_180')
             spf = IndexedParam('spatial_freq')
-            x_max,y_max = np.unravel_index(img.argmax(), dims)
-            x_min,y_min = np.unravel_index(img.argmin(), dims)
+            y_max,x_max = np.unravel_index(img.argmax(), img.shape)
             self.data['max_ori'] = ori[x_max]
-            self.data['max_spf'] = ori[y_max]
-            extremes += '\n' + '-'*18 + '\nMax/min values:\n'
-            extremes += 'Max: ' + '\tori' + '\tspf\n'
-            extremes += '\t%.2f\t%.2f\n' %(ori[x_max], spf[y_max])
-            extremes += 'Min: ' + '\tori' + '\tspf\n'
-            extremes += '\t%.2f\t%.2f\n' %(ori[x_min], spf[y_min])
+            self.data['max_spf'] = spf[y_max]
+            extremes += '\n' + '-'*18 + '\nMax values:\n'
+            extremes += 'ori(deg)\tspf(cpd)\n'
+            extremes += '%.2f\t%.2f\n' %(ori[x_max], spf[y_max])
         form = data + extremes
         self.results.SetValue(form)
 
@@ -113,8 +111,8 @@ class STAPanel(wx.Panel):
         self.data = None
         self.sta_data = None
         self.psth_data = None
+        self.data_type = None
         self.start_data()
-        self.stimulus = None
         self.update_sta_data_thread = None
         self.update_psth_data_thread = None
         
@@ -216,40 +214,43 @@ class STAPanel(wx.Panel):
             return
         elif data is None and self.data is not None:
             data = self.data
-            
+        
+        if isinstance(self.sta_data,RevCorr.STAData):
+            self.data_type = 'white_noise'
+        if isinstance(self.sta_data,RevCorr.ParamMapData):
+            self.data_type = 'param_mapping'
+        
         selected_unit = wx.FindWindowByName('unit_choice').get_selected_unit()
         if selected_unit:
             channel, unit = selected_unit
             img = self.sta_data.get_img(data, channel, unit, tau=self.time, img_format='rgb')
             if self.img_dim != img.shape or self.interpolation_changed or self.show_colorbar_changed:
+                self.interpolation_changed = False
+                self.show_colorbar_changed = False
                 self.make_chart()
                 self.im = self.axes.imshow(img,interpolation=self.interpolation)
                 self.img_dim = img.shape
-                self.interpolation_changed = False
-                self.show_colorbar_changed = False
+                
                 if self.showing_colorbar:
-                    self.fig.colorbar(self.im, shrink=1.0, fraction=0.045, pad=0.05, ticks=[0.0, 0.5, 1.0])
-                #===============================================================
-                # if isinstance(self.sta_data, RevCorr.STAData):
-                #    cbar.ax.set_yticklabels(["off", " ", "on"])
-                # if isinstance(self.sta_data, RevCorr.ParamMapData):
-                #    cbar.ax.set_yticklabels([" ", " ", "response"])
-                #===============================================================
+                    cbar = self.fig.colorbar(self.im, shrink=1.0, fraction=0.045, pad=0.05, ticks=[0, 0.5, 1])
+                    if isinstance(self.sta_data, RevCorr.STAData):
+                        cbar.set_ticklabels(["-1", "0", "1"])
+                    if isinstance(self.sta_data, RevCorr.ParamMapData):
+                        cbar.set_ticklabels(["0.0", "0.5", "1.0"])
+            
+            self.data_form.gen_results(self.peak_time)
+            
             if self.fitting_gaussian or self.fitting_gabor:
                 float_img = self.sta_data.get_img(data, channel, unit, tau=self.time, img_format='float')
                 if self.fitting_gaussian:
                     params,img = self.gauss_fitter.gaussfit2d(float_img,returnfitimage=True)
                 elif self.fitting_gabor:
                     params,img = self.gabor_fitter.gaborfit2d(float_img,returnfitimage=True)
-                self.data_form.gen_img_data(params, img, self.stimulus, self.peak_time)
+                self.data_form.gen_results(self.peak_time, params, img, self.data_type)
                 img = self.sta_data.float_to_rgb(img,cmap='jet')
-
+            
             self.im.set_data(img)
             #self.axes.set_title(self.title)
-            if isinstance(self.sta_data,RevCorr.STAData):
-                self.stimulus = 'white_noise'
-            if isinstance(self.sta_data,RevCorr.ParamMapData):
-                self.stimulus = 'param_mapping'
             self.im.autoscale()
             self.canvas.draw()
     
@@ -283,10 +284,6 @@ class STAPanel(wx.Panel):
         self.clear_data()
         self.sta_data = None
         self.psth_data = None
-        #if hasattr(self, 'update_sta_data_thread') and self.sta_data is not None:
-            #RenewDataThread(self, self.sta_data, self.update_sta_data_thread).start()
-        #if hasattr(self, 'update_psth_data_thread') and self.psth_data is not None:
-            #RenewDataThread(self, self.sta_data, self.update_psth_data_thread).start()
         
     def restart_data(self):
         self.stop_data()
@@ -339,7 +336,7 @@ class STAPanel(wx.Panel):
     
     def save_data(self):
         data_dict = {}
-        data_dict['stimulus'] = self.stimulus
+        data_dict['data_type'] = self.data_type
         data_dict['data'] = self.data
         return data_dict
         

@@ -34,8 +34,8 @@ class PSTHExperiment(Experiment):
             self.logger.error('Failed to start psth app. ' + str(e))
         
         try:
-            self.logger.info('Setting up psth app.')
-            self.psth_setup()
+            self.logger.info('Setting up psth app before stimulation.')
+            self.pre_stim_setup()
         except Exception,e:
             self.logger.error('Failed to setup psth app. ' + str(e))
         
@@ -44,6 +44,12 @@ class PSTHExperiment(Experiment):
         except Exception,e:
             self.logger.error('Failed to wait for stimulation. ' + str(e))
             
+        try:
+            self.logger.info('Setting up psth app after stimulation.')
+            self.post_stim_setup()
+        except Exception,e:
+            self.logger.error('Failed to setup psth app. ' + str(e))
+        
         try:
             data = self.psth_server.get_data()
         except Exception,e:
@@ -133,8 +139,11 @@ class PSTHExperiment(Experiment):
         Pyro.core.initClient()
         return Pyro.core.getProxyForURI(URI)
         
-    def psth_setup(self):
+    def pre_stim_setup(self):
         self.psth_server.set_title(self.exp_name)
+        
+    def post_stim_setup(self):
+        pass
         
     def extract_results(self, _data):
         raise RuntimeError("Must override extract_results method with exp implementation!")
@@ -159,8 +168,8 @@ class ORITunExp(PSTHExperiment):
         ori = self.psth_analysis()
         return ori
     
-    def psth_setup(self):
-        super(ORITunExp, self).psth_setup()
+    def pre_stim_setup(self):
+        super(ORITunExp, self).pre_stim_setup()
         self.logger.info('Uncheck curve fitting for this experiment.')
         self.psth_server.uncheck_fitting()
         
@@ -191,8 +200,8 @@ class SPFTunExp(PSTHExperiment):
         spf = self.psth_analysis()
         return spf
     
-    def psth_setup(self):
-        super(SPFTunExp, self).psth_setup()
+    def pre_stim_setup(self):
+        super(SPFTunExp, self).pre_stim_setup()
         self.logger.info('Choose Gaussian curve fitting.')
         self.psth_server.check_fitting('gauss')
         
@@ -223,8 +232,8 @@ class PHATunExp(PSTHExperiment):
         pha = self.psth_analysis()
         return pha
     
-    def psth_setup(self):
-        super(PHATunExp, self).psth_setup()
+    def pre_stim_setup(self):
+        super(PHATunExp, self).pre_stim_setup()
         self.logger.info('Uncheck curve fitting.')
         self.psth_server.uncheck_fitting()
         
@@ -254,8 +263,8 @@ class DSPTunExp(PSTHExperiment):
         pha = self.psth_analysis()
         return pha
     
-    def psth_setup(self):
-        super(DSPTunExp, self).psth_setup()
+    def pre_stim_setup(self):
+        super(DSPTunExp, self).pre_stim_setup()
         self.logger.info('Choose Sinusoid curve fitting.')
         self.psth_server.check_fitting('sin')
         
@@ -286,8 +295,8 @@ class SpikeLatencyExp(PSTHExperiment):
         latency = self.psth_analysis()
         return latency
     
-    def psth_setup(self):
-        super(SpikeLatencyExp, self).psth_setup()
+    def pre_stim_setup(self):
+        super(SpikeLatencyExp, self).pre_stim_setup()
         
     def extract_results(self, data):
         if 'maxima' not in data:

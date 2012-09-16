@@ -10,7 +10,9 @@ from Experimenter.Experiments.Experiment import ORITunExp,SPFTunExp,PHATunExp,DS
 
 ExperimentConfig(data_base_dir='data',stim_server_host='192.168.1.105',new_cell=False)
 
-p_left, p_right = Experiment().get_params()
+dummy_exp = Experiment()
+p_left = dummy_exp.get_stimulus_params(eye='left')
+p_right = dummy_exp.get_stimulus_params(eye='right')
 
 """
     Monocular tests

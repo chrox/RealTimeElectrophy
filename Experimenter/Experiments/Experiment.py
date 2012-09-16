@@ -99,8 +99,8 @@ class Experiment(object):
         self.stim_source = None
         self.logger = logging.getLogger('Experimenter.Experiments')
         
-    def get_params(self):
-        return self.stimulus.get_params()
+    def get_stimulus_params(self,eye):
+        return self.stimulus.get_params(eye)
     
     def run(self):
         # sleep for 5 seconds
@@ -143,7 +143,9 @@ class ManbarExp(Experiment):
         super(ManbarExp, self).run()
         self.run_stimulus()
         self.wait_for_stim()
-        return self.get_params()
+        left_params = self.get_stimulus_params('left')
+        right_params = self.get_stimulus_params('right')
+        return (left_params,right_params)
     
 class MangratingExp(Experiment):
     def __init__(self,left_params,right_params,*args,**kwargs):
@@ -155,7 +157,9 @@ class MangratingExp(Experiment):
         super(MangratingExp, self).run()
         self.run_stimulus()
         self.wait_for_stim()
-        return self.get_params()
+        left_params = self.get_stimulus_params('left')
+        right_params = self.get_stimulus_params('right')
+        return (left_params,right_params)
 
 class StimTimingExp(Experiment):
     def __init__(self,left_phase,right_phase,interval,duration,postfix,rand_phase=False,*args,**kwargs):
@@ -187,9 +191,6 @@ class RestingExp(Experiment):
 
 if __name__ == '__main__':
     ExperimentConfig(data_base_dir='data',exp_base_dir='.',stim_server_host='192.168.1.105',new_cell=True)
-    p_left, p_right = Experiment().get_params()
-    p_left.phase0 = 25.5
-    p_right.phase0 = 135.5
     exp_postfix = 'm24-opt'
     RestingExp(duration=5.0, postfix=exp_postfix).run()
     

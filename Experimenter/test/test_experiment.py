@@ -9,12 +9,14 @@ from Experimenter.Experiments.STAExperiment import RFCMappingExp
 
 ExperimentConfig(data_base_dir='data_test',stim_server_host='192.168.1.105',new_cell=True)
 
-p_left, p_right = Experiment().get_params()
+dummy_exp = Experiment()
+p_left = dummy_exp.get_stimulus_params(eye='left')
+p_right = dummy_exp.get_stimulus_params(eye='right')
 
 for eye in np.random.permutation(['left','right']):
     if eye == 'left':
-        RFCMappingExp(eye='left', params=p_left, postfix='', latency=0.063).run()
+        RFCMappingExp(eye='left', params=p_left, postfix='test').run()
         p_left.xorigDeg, p_left.yorigDeg = (-1.2, 1.5)
     if eye == 'right':
-        RFCMappingExp(eye='right', params=p_right, postfix='', latency=0.065).run()
+        RFCMappingExp(eye='right', params=p_right, postfix='test').run()
         p_right.xorigDeg, p_right.yorigDeg = (1.6, 1.8)

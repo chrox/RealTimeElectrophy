@@ -124,6 +124,7 @@ class TestDAQTriggerExp(Experiment):
     
 if __name__ == '__main__':
     ExperimentConfig(data_base_dir='data_test',stim_server_host='192.168.1.1',new_cell=True)
-    p_left, p_right = Experiment().get_params()
+    dummy_exp = Experiment()
+    p_left = dummy_exp.get_stimulus_params(eye='left')
     TestDAQTriggerExp(receiver_host='192.168.1.2',receiver_port=8118,params=p_left).run()
     
