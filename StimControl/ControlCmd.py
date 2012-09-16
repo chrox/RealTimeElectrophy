@@ -38,8 +38,8 @@ class StimCommand(object):
     def get_stimulus_log(self, exp_name):
         return self.ephys_server.get_stimulus_log(exp_name)
         
-    def get_params(self):
-        return self.ephys_server.get_stimulus_params()
+    def get_params(self,eye):
+        return self.ephys_server.get_stimulus_params(eye)
         
     def is_running(self):
         return self.ephys_server.is_running()

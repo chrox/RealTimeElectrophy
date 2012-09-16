@@ -97,14 +97,18 @@ class RTEPhysServer(server.EPhysServer):
     def set_AST_tree_to_build(self):
         self.AST_tree_completed = False
         
-    def get_stimulus_params(self):
-        left_params = dictattr()
-        right_params = dictattr()
+    def get_stimulus_params(self,eye,index=0):
+        logger = logging.getLogger('StimControl.StimServer')
+        params = dictattr()
         with open('stimulus_params.pkl','rb') as pkl_input:
-            params = pickle.load(pkl_input)
-            self._set_parameters(left_params, params['left'][0])
-            self._set_parameters(right_params, params['right'][0])
-        return (left_params, right_params)
+            pkl_params = pickle.load(pkl_input)
+            try:
+                self._set_parameters(params, pkl_params[eye][index])
+            except:
+                logger.error("Cannot get stimulus params for % eye." % eye)
+                return None
+            else:
+                return params
         
     def send_stimulus_params(self, eye, params):
         try:
