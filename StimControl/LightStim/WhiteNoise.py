@@ -77,10 +77,11 @@ class TargetController(SweepSequeStimulusController):
             |___|___|___|
         """
         x_index, y_index, contrast = param
+        #print x_index, y_index, contrast
         xposdeg = self.stimulus.parameters.xorigDeg - self.stimulus.parameters.gridsize/2 + \
-                    y_index*self.stimulus.gridcell[0]+self.stimulus.barsize[0]/2
+                    x_index*self.stimulus.gridcell[0]+self.stimulus.barsize[0]/2
         yposdeg = self.stimulus.parameters.yorigDeg + self.stimulus.parameters.gridsize/2 - \
-                    x_index*self.stimulus.gridcell[1]-self.stimulus.barsize[1]/2
+                    y_index*self.stimulus.gridcell[1]-self.stimulus.barsize[1]/2
         """Update target contrast, given sweep Seque index index"""
         if contrast == 0:
             self.tsp.color = (0.0, 0.0, 0.0, 1.0)
