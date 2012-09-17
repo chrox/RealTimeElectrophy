@@ -15,6 +15,8 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigCanvas
 
 from ..DataProcessing.Fitting.Fitters import GaussFit,GaborFit
+from ..DataProcessing.Fitting.gaussfitter import twodgaussian
+from ..DataProcessing.Fitting.gaborfitter import twodgabor
 from ..SpikeData import RevCorr,TimeHistogram
 from Base import UpdateDataThread,UpdateFileDataThread
 from Base import MainFrame,DataPanel,RCPanel,adjust_spines
@@ -99,9 +101,11 @@ class STAPanel(wx.Panel):
     def __init__(self, parent, label, name='sta_panel'):
         super(STAPanel, self).__init__(parent, -1, name=name)
         
-        self.interpolation_changed = False
-        self.show_colorbar_changed = False
+        self.interpolation_changed = True
+        self.show_colorbar_changed = True
+        self.show_contour_changed = True
         self.showing_colorbar = True
+        self.showing_contour = False
         self.image_fitting = None
         self.image_fitter = None
         
@@ -183,15 +187,18 @@ class STAPanel(wx.Panel):
         self.Bind(wx.EVT_TIMER, self.on_update_psth_data_timer, self.update_psth_data_timer)
         self.update_psth_data_timer.Start(3000)
                 
-    def make_chart(self):
+    def make_chart(self, img=None):
         self.fig.clear()
         self.axes = self.fig.add_subplot(111)
-        img = np.zeros((32,32,3))
+        if img is None:
+            img = np.zeros((32,32,3))
         self.img_dim = img.shape
         self.im = self.axes.imshow(img,interpolation=self.interpolation)
+        if self.showing_colorbar:
+            self.cbar = self.fig.colorbar(self.im, shrink=1.0, fraction=0.045, pad=0.05, ticks=[])
         adjust_spines(self.axes,spines=['left','bottom'],spine_outward=[],
                       xticks='bottom',yticks='left',tick_label=['x','y'])
-        self.axes.autoscale_view(scalex=True, scaley=True)
+        #self.axes.autoscale_view(scalex=True, scaley=True)
         self.fig.canvas.draw()
         
     def set_data(self, data):
@@ -226,31 +233,37 @@ class STAPanel(wx.Panel):
         if selected_unit:
             channel, unit = selected_unit
             img = self.sta_data.get_img(data, channel, unit, tau=self.time, img_format='rgb')
-            if self.img_dim != img.shape or self.interpolation_changed or self.show_colorbar_changed:
+            if self.img_dim != img.shape or self.interpolation_changed or self.show_colorbar_changed \
+            or self.showing_contour or self.show_contour_changed:
                 self.interpolation_changed = False
                 self.show_colorbar_changed = False
-                self.make_chart()
-                self.im = self.axes.imshow(img,interpolation=self.interpolation)
+                self.show_contour_changed = False
+                self.make_chart(img)
+                #self.im = self.axes.imshow(img,interpolation=self.interpolation)
                 self.img_dim = img.shape
-                                
+            
                 if self.showing_colorbar:
-                    cbar = self.fig.colorbar(self.im, shrink=1.0, fraction=0.045, pad=0.05, ticks=[0, 0.5, 1])
+                    self.cbar.set_ticks([0.0, 0.5, 1.0])
                     if isinstance(self.sta_data, RevCorr.STAData):
-                        cbar.set_ticklabels(["-1", "0", "1"])
+                        self.cbar.set_ticklabels(["-1", "0", "1"])
                     if isinstance(self.sta_data, RevCorr.ParamMapData):
-                        cbar.set_ticklabels(["0.0", "0.5", "1.0"])
-                        
+                        self.cbar.set_ticklabels(["0.0", "0.5", "1.0"])
+            
             self.data_form.gen_results(self.peak_time)
             
             if self.image_fitting is not None:
                 float_img = self.sta_data.get_img(data, channel, unit, tau=self.time, img_format='float')
                 if self.image_fitting == 'gauss':
                     params,img = self.image_fitter.gaussfit2d(float_img,returnfitimage=True)
+                    level = twodgaussian(params)(params[2]+params[4],params[3]+params[5])
                 elif self.image_fitting == 'gabor':
-                    params,img = self.image_fitter.gaborfit2d(float_img,returnfitimage=True)                
+                    params,img = self.image_fitter.gaborfit2d(float_img,returnfitimage=True)
+                    level = twodgabor(params)(params[2]+params[4],params[3]+params[5])  
+                if self.showing_contour:
+                    self.axes.contour(img, [level])
                 self.data_form.gen_results(self.peak_time, params, img, self.data_type)
                 img = self.sta_data.float_to_rgb(img,cmap='jet')
-            
+                
             self.im.set_data(img)
             #self.axes.set_title(self.title)
             self.im.autoscale()
@@ -313,6 +326,10 @@ class STAPanel(wx.Panel):
     def show_colorbar(self, checked):
         self.show_colorbar_changed = True
         self.showing_colorbar = checked
+        
+    def show_contour(self, checked):
+        self.show_contour_changed = True
+        self.showing_contour = checked
         
     def on_show_popup(self, event):
         pos = event.GetPosition()
@@ -395,6 +412,9 @@ class STAFrame(MainFrame):
         self.m_colorbar = self.menu_view.AppendCheckItem(-1, "&Colorbar\tCtrl-C", "Display colorbar")
         self.menu_view.Check(self.m_colorbar.GetId(), True)
         self.Bind(wx.EVT_MENU, self.on_check_colorbar, self.m_colorbar)
+        self.m_contour = self.menu_view.AppendCheckItem(-1, "Con&tour\tCtrl-T", "Display contour")
+        self.menu_view.Check(self.m_contour.GetId(), False)
+        self.Bind(wx.EVT_MENU, self.on_check_contour, self.m_contour)
         
         self.menubar.Append(self.menu_source, "&Source")
         self.menubar.Append(self.menu_fitting, "&Fitting")
@@ -447,6 +467,10 @@ class STAFrame(MainFrame):
         self.chart_panel.show_colorbar(self.m_colorbar.IsChecked())
         self.chart_panel.update_chart()
         
+    def on_check_contour(self, _event):
+        self.chart_panel.show_contour(self.m_contour.IsChecked())
+        self.chart_panel.update_chart()
+    
 class RCSTAPanel(STAPanel, RCPanel):
     """
         Remote controlled PSTH panel
