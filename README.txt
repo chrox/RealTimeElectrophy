@@ -15,10 +15,11 @@ HARDWARE REQUIREMENTS
 A recent stand-alone graphics card is required to draw stimuli fast enough for real 
 time control. In our lab, we use an nVIDIA Quadro NVS 440 card in MultiView mode to 
 horizontally span the screen over three or four monitors. And each monitor works at
-a refresh rate of 120Hz. Any recent nVIDIA GeForce card should be able to run smoothly 
-in DualView mode on two monitors. And we use a Data Translation Digital I/O board to 
-trigger the acquisition device in Windows platform. Compatible Comedi devices should 
-work in Linux platform. But currently only Data Translation DT340 is tested.
+a refresh rate of 120Hz. Any recent nVIDIA GeForce card should be able to run 
+smoothly in DualView mode on two monitors. And we use a Data Translation Digital I/O
+board to trigger the acquisition device in Windows platform. Compatible Comedi 
+devices should work in Linux platform. But currently only Data Translation DT340
+ is tested.
 
 INSTALLATION
 
