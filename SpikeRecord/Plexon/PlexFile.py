@@ -153,6 +153,10 @@ class PlexFile(object):
                                "The version of this file is %d." \
                                %(','.join([str(v) for v in TESTED_PLX_VERSIONS]),self.file_header.Version))
         
+        self.chan_headers = None
+        self.event_headers = None
+        self.slow_headers = None
+        
         self.single_wf_counts = sum([self.file_header.WFCounts[i][j] for i in xrange(5) for j in xrange(130)])
         self.ext_event_counts = sum([self.file_header.EVCounts[i] for i in xrange(300)])
         self.ad_data_counts = sum([self.file_header.EVCounts[i] for i in xrange(300,512)])
@@ -218,6 +222,7 @@ class PlexFile(object):
         db_size = ctypes.sizeof(PL_DataBlockHeader)
         try:
             while(True):
+                # pylint: disable=E1101
                 db = PL_DataBlockHeader.from_buffer_copy(mfile,current_pos)
                 nbs += 1
                 if db.Type == PL_SingleWFType or db.Type == PL_ExtEventType:
@@ -302,6 +307,7 @@ class PlexFile(object):
         db_size = ctypes.sizeof(PL_DataBlockHeader)
         try:
             while(True):
+                # pylint: disable=E1101
                 db = PL_DataBlockHeader.from_buffer_copy(mfile,current_pos)
                 waveform_size = db.NumberOfWaveforms * db.NumberOfWordsInWaveform * 2
                 current_pos += db_size
