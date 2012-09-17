@@ -138,7 +138,9 @@ class RFCMappingExp(STAExperiment):
     
     def pre_stim_setup(self):
         super(RFCMappingExp, self).pre_stim_setup()
-        self.logger.info('Choose no image fitting for this experiment.')
+        self.logger.info('Choose sparse noise data source.')
+        self.sta_server.choose_source('sparse_noise')
+        self.logger.info('Choose no image fitting.')
         self.sta_server.check_fitting('none')
         
     def post_stim_setup(self):
@@ -188,6 +190,80 @@ class RFCMappingExp(STAExperiment):
         data_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.csv'
         with open(data_file,'w') as data_output:
             if 'peak_time' in data:
-                data_output.writelines('peak time,%.1f' %data['peak_time'])
+                data_output.writelines('peak time,%.1f\n' %data['peak_time'])
             if 'rf_center' in data:
-                data_output.writelines('rf position index,%.2f,%.2f' %(data['rf_center'][0],data['rf_center'][1]))
+                data_output.writelines('rf position index,%.2f,%.2f\n' %(data['rf_center'][0],data['rf_center'][1]))
+                
+class ParamMappingExp(STAExperiment):
+    def __init__(self,eye,params,postfix,*args,**kwargs):
+        super(ParamMappingExp, self).__init__(*args,**kwargs)
+        self.pyro_source = 'pyro_sta.py'
+        self.stim_source = 'param_mapping.py'
+        self.exp_name = ExperimentConfig.CELLPREFIX + '-param-mapping-' + postfix + '-' + eye
+        self.exp_param = 'pm'
+        self.eye = eye
+        self.params = params
+        self.assignments = ["eye = '%s'" %eye]
+        
+    def run(self):
+        super(ParamMappingExp, self).run()
+        if self.eye == 'left':
+            self.run_stimulus(left_params=self.params, assignments=self.assignments)
+        elif self.eye == 'right':
+            self.run_stimulus(right_params=self.params, assignments=self.assignments)
+        position = self.sta_analysis()
+        return position
+    
+    def pre_stim_setup(self):
+        super(ParamMappingExp, self).pre_stim_setup()
+        self.logger.info('Choose param mapping data source.')
+        self.sta_server.choose_source('param_mapping')
+        self.logger.info('Choose no image fitting.')
+        self.sta_server.check_fitting('none')
+        
+    def post_stim_setup(self):
+        super(ParamMappingExp, self).post_stim_setup()
+        try:
+            chart_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '-raw.png'
+            self.logger.info('Exporting raw chart to: ' + chart_file)
+            self.sta_server.export_chart(chart_file)
+            # wait for asynchronized pyro operation to complete
+            time.sleep(0.5)
+        except Exception,e:
+            self.logger.error('Failed to export sta chart. ' + str(e))
+        
+        self.logger.info('Choose Gauss fitting.')
+        self.sta_server.check_fitting('gauss')
+        # wait for asynchronized pyro operation to complete
+        time.sleep(2.0)
+        
+        try:
+            chart_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '-fitted.png'
+            self.logger.info('Exporting fitted chart to: ' + chart_file)
+            self.sta_server.export_chart(chart_file)
+            # wait for asynchronized pyro operation to complete
+            time.sleep(0.5)
+        except Exception,e:
+            self.logger.error('Failed to export sta chart. ' + str(e))
+        
+    def extract_results(self, data):
+        if 'peak_time' not in data:
+            self.logger.error('Failed to get peak time data from %s experiment.' %self.exp_name)
+        else:
+            self.logger.info('Get peak response at %.1fms after stimulus onset.' %data['peak_time'])
+        if 'optimal_ori' not in data or 'optimal_spf' not in data:
+            self.logger.error('Failed to get optimal parameter from %s experiment.' %self.exp_name)
+        else:
+            self.logger.info('Get optimal ori: %.2f and optimal spf: %.2f from %s experiment.' 
+                             %(data['optimal_ori'], data['optimal_spf'], self.exp_name))
+            return data['optimal_ori'], data['optimal_spf']
+        
+    def log_sta_data(self, data):
+        data_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.csv'
+        with open(data_file,'w') as data_output:
+            if 'peak_time' in data:
+                data_output.writelines('peak time,%.1f\n' %data['peak_time'])
+            if 'optimal_ori' in data or 'optimal_spf' in data:
+                data_output.writelines('optimal ori,%.2f\n' % data['optimal_ori'])
+                data_output.writelines('optimal spf,%.2f\n' % data['optimal_ori'])
+            
