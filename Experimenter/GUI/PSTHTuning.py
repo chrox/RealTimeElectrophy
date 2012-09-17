@@ -119,10 +119,10 @@ class PSTHTuningPanel(wx.Panel):
         self.show_errbar_changed = False
         self.show_fitting_changed = False
         self.showing_errbar = False
+        
         self.log_fitting = False
-        self.fitting_gaussian = False
-        self.fitting_sinusoid = False
-        self.fitting_gabor = False
+        self.curve_fitting = None
+        self.curve_fitter = None
         self.append_data_curve = False
         self.polar_chart = False
         
@@ -331,22 +331,25 @@ class PSTHTuningPanel(wx.Panel):
                 self.fitting_x = np.logspace(np.log10(self.x[0]), np.log10(self.x[-1]), self.fitting_x.size, endpoint=True)
             else:
                 self.fitting_x = np.linspace(self.x[0], self.x[-1], self.fitting_x.size, endpoint=True)
+            
             model_fitting = np.zeros(self.fitting_x.size)
             model_xdata = np.zeros(self.x.size)
-            if self.fitting_gaussian:
+            if self.curve_fitting == 'gauss':
                 if self.log_fitting:
-                    model_xdata,model_fitting = self.gauss_fitter.loggaussfit1d(self.x, self.means, self.fitting_x)
+                    model_xdata,model_fitting = self.curve_fitter.loggaussfit1d(self.x, self.means, self.fitting_x)
                 else:
-                    model_xdata,model_fitting = self.gauss_fitter.gaussfit1d(self.x, self.means, self.fitting_x)
-            elif self.fitting_sinusoid:
-                model_xdata,model_fitting = self.sinusoid_fitter.sinusoid1d(self.x, self.means, self.fitting_x)
-            elif self.fitting_gabor:
-                model_xdata,model_fitting = self.gabor_fitter.gaborfit1d(self.x, self.means, self.fitting_x)
+                    model_xdata,model_fitting = self.curve_fitter.gaussfit1d(self.x, self.means, self.fitting_x)
+            elif self.curve_fitting == 'sin':
+                model_xdata,model_fitting = self.curve_fitter.sinusoid1d(self.x, self.means, self.fitting_x)
+            elif self.curve_fitting == 'gabor':
+                model_xdata,model_fitting = self.curve_fitter.gaborfit1d(self.x, self.means, self.fitting_x)
+                
             if self.append_data_curve:
                 self.curve_axes.plot(self.fitting_x, model_fitting, self.fitting_curve_styles[self.data_curves-1])
             else:
                 self.fitting_data.set_xdata(self.fitting_x)
                 self.fitting_data.set_ydata(model_fitting)
+                
             label = [self.parameter, 'rate', 'std']
             self.data_form.gen_curve_data(self.x, self.means, self.stds, self.fitting_x, model_fitting, model_xdata, label)
             if self.parameter == 'orientation':
@@ -384,24 +387,24 @@ class PSTHTuningPanel(wx.Panel):
         self.collecting_data = False
         self.clear_data()
         self.psth_data = None
-        #if hasattr(self, 'update_data_thread') and self.psth_data is not None:
-            #RenewDataThread(self, self.psth_data, self.update_data_thread).start()
         
     def restart_data(self):
         self.stop_data()
         self.start_data()
-    
-    def gaussianfit(self, checked):
-        self.gauss_fitter = GaussFit()
-        self.fitting_gaussian = checked
         
-    def sinusoidfit(self, checked):
-        self.sinusoid_fitter = SinusoidFit()
-        self.fitting_sinusoid = checked
-        
-    def gaborfit(self, checked):
-        self.gabor_fitter = GaborFit()
-        self.fitting_gabor = checked
+    def choose_fitting(self, fitting):
+        if fitting == 'none':
+            self.curve_fitting = None
+            self.curve_fitter = None
+        if fitting == 'gauss':
+            self.curve_fitting = 'gauss'
+            self.curve_fitter = GaussFit()
+        if fitting == 'sin':
+            self.curve_fitting = 'sin'
+            self.curve_fitter = SinusoidFit()
+        if fitting == 'gabor':
+            self.curve_fitting = 'gabor'
+            self.curve_fitter = GaborFit()
     
     def show_errbar(self, checked):
         self.show_errbar_changed = True
@@ -439,6 +442,7 @@ class PSTHTuningFrame(MainFrame):
     """
     def __init__(self):
         self.menu_fitting = None
+        self.m_nonefitter = None
         self.m_gaussfitter = None
         self.m_sinfitter = None
         self.m_gaborfitter = None
@@ -452,18 +456,18 @@ class PSTHTuningFrame(MainFrame):
         super(PSTHTuningFrame, self).create_menu()
         
         self.menu_fitting = wx.Menu()
-        self.m_gaussfitter = self.menu_fitting.AppendCheckItem(-1, "Ga&ussian\tCtrl-U", "Gaussian curve")
+        self.m_nonefitter = self.menu_fitting.AppendRadioItem(-1, "&None\tCtrl-N", "No fitting")
+        self.menu_fitting.Check(self.m_nonefitter.GetId(), True)
+        self.Bind(wx.EVT_MENU, self.on_check_nonefitter, self.m_nonefitter)
+        self.m_gaussfitter = self.menu_fitting.AppendRadioItem(-1, "Ga&ussian\tCtrl-U", "Gaussian curve")
         self.menu_fitting.Check(self.m_gaussfitter.GetId(), False)
         self.Bind(wx.EVT_MENU, self.on_check_gaussfitter, self.m_gaussfitter)
-        self.m_sinfitter = self.menu_fitting.AppendCheckItem(-1, "&Sinusoidal\tCtrl-S", "Sinusoidal curve")
+        self.m_sinfitter = self.menu_fitting.AppendRadioItem(-1, "&Sinusoidal\tCtrl-S", "Sinusoidal curve")
         self.menu_fitting.Check(self.m_sinfitter.GetId(), False)
         self.Bind(wx.EVT_MENU, self.on_check_sinfitter, self.m_sinfitter)
-        self.m_gaborfitter = self.menu_fitting.AppendCheckItem(-1, "Ga&bor\tCtrl-B", "Gabor curve")
+        self.m_gaborfitter = self.menu_fitting.AppendRadioItem(-1, "Ga&bor\tCtrl-B", "Gabor curve")
         self.menu_fitting.Check(self.m_gaborfitter.GetId(), False)
         self.Bind(wx.EVT_MENU, self.on_check_gaborfitter, self.m_gaborfitter)
-        self.menu_uncheck_binds = {self.m_gaussfitter.GetId():self.uncheck_gaussfitter,\
-                                   self.m_sinfitter.GetId():self.uncheck_sinfitter,\
-                                   self.m_gaborfitter.GetId():self.uncheck_gaborfitter}
         
         self.menu_view = wx.Menu()
         self.m_errbar = self.menu_view.AppendCheckItem(-1, "&Errorbar\tCtrl-E", "Display errorbar")
@@ -482,50 +486,25 @@ class PSTHTuningFrame(MainFrame):
         self.unit_choice.update_units(data)
         self.chart_panel.set_data(data)
         self.chart_panel.update_chart(data)
+    
+    def on_check_nonefitter(self, _event):
+        self.flash_status_message("Using no fitting")
+        self.chart_panel.choose_fitting("none")
+        self.chart_panel.update_chart()
         
     def on_check_gaussfitter(self, _event):
-        if self.m_gaussfitter.IsChecked():
-            for item in self.menu_fitting.GetMenuItems():
-                if item.GetId() != self.m_gaussfitter.GetId() and item.IsChecked():
-                    self.menu_fitting.Check(item.GetId(), False)
-                    self.menu_uncheck_binds[item.GetId()]()
-            self.flash_status_message("Using gaussian fitting")
-        self.chart_panel.gaussianfit(self.m_gaussfitter.IsChecked())
+        self.flash_status_message("Using gaussian fitting")
+        self.chart_panel.choose_fitting("gauss")
         self.chart_panel.update_chart()
-        
-    def uncheck_gaussfitter(self):
-        self.chart_panel.gaussianfit(False)
         
     def on_check_sinfitter(self, _event):
-        if self.m_sinfitter.IsChecked():
-            for item in self.menu_fitting.GetMenuItems():
-                if item.GetId() != self.m_sinfitter.GetId() and item.IsChecked():
-                    self.menu_fitting.Check(item.GetId(), False)
-                    self.menu_uncheck_binds[item.GetId()]()
-            self.flash_status_message("Using sinusoidal fitting")
-        self.chart_panel.sinusoidfit(self.m_sinfitter.IsChecked())
+        self.flash_status_message("Using sinusoidal fitting")
+        self.chart_panel.choose_fitting("sin")
         self.chart_panel.update_chart()
-        
-    def uncheck_sinfitter(self):
-        self.chart_panel.sinusoidfit(False)
         
     def on_check_gaborfitter(self, _event):
-        if self.m_gaborfitter.IsChecked():
-            for item in self.menu_fitting.GetMenuItems():
-                if item.GetId() != self.m_gaborfitter.GetId() and item.IsChecked():
-                    self.menu_fitting.Check(item.GetId(), False)
-                    self.menu_uncheck_binds[item.GetId()]()
-            self.flash_status_message("Using gabor fitting")
-        self.chart_panel.gaborfit(self.m_gaborfitter.IsChecked())
-        self.chart_panel.update_chart()
-        
-    def uncheck_gaborfitter(self):
-        self.chart_panel.gaborfit(False)
-        
-    def uncheck_fitting(self):
-        for item in self.menu_fitting.GetMenuItems():
-            self.menu_fitting.Check(item.GetId(), False)
-            self.menu_uncheck_binds[item.GetId()]()
+        self.flash_status_message("Using gabor fitting")
+        self.chart_panel.choose_fitting("gabor")
         self.chart_panel.update_chart()
         
     def on_check_errbar(self, _event):
@@ -545,6 +524,10 @@ class RCPSTHTuningPanel(PSTHTuningPanel, RCPanel):
     def check_fitting(self, fitting):
         evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
         parent = wx.FindWindowByName('main_frame')
+        if fitting == 'none':
+            parent.menu_fitting.Check(parent.m_nonefitter.GetId(), True)
+            evt.SetId(parent.m_nonefitter.GetId())
+            wx.PostEvent(parent, evt)
         if fitting == 'gauss':
             parent.menu_fitting.Check(parent.m_gaussfitter.GetId(), True)
             evt.SetId(parent.m_gaussfitter.GetId())
@@ -557,10 +540,6 @@ class RCPSTHTuningPanel(PSTHTuningPanel, RCPanel):
             parent.menu_fitting.Check(parent.m_gaborfitter.GetId(), True)
             evt.SetId(parent.m_gaborfitter.GetId()) 
             wx.PostEvent(parent, evt)
-    
-    def uncheck_fitting(self):
-        parent = wx.FindWindowByName('main_frame')
-        parent.uncheck_fitting()
         
     def check_errbar(self, checked):
         evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)

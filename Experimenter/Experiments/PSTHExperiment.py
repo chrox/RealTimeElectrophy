@@ -170,8 +170,8 @@ class ORITunExp(PSTHExperiment):
     
     def pre_stim_setup(self):
         super(ORITunExp, self).pre_stim_setup()
-        self.logger.info('Uncheck curve fitting for this experiment.')
-        self.psth_server.uncheck_fitting()
+        self.logger.info('Choose no curve fitting for this experiment.')
+        self.psth_server.check_fitting('none')
         
     def extract_results(self, data):
         if 'max_param' not in data:
@@ -234,8 +234,8 @@ class PHATunExp(PSTHExperiment):
     
     def pre_stim_setup(self):
         super(PHATunExp, self).pre_stim_setup()
-        self.logger.info('Uncheck curve fitting.')
-        self.psth_server.uncheck_fitting()
+        self.logger.info('Choose no curve fitting for this experiment.')
+        self.psth_server.check_fitting('none')
         
     def extract_results(self, data):
         if 'max_param' not in data:
