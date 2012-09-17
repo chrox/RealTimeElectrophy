@@ -123,6 +123,7 @@ class STAPanel(wx.Panel):
         self.axes = None
         self.im = None
         self.img_dim = None
+        self.cbar = None
         
         self.gauss_fitter = None
         self.gabor_fitter = None
@@ -239,7 +240,6 @@ class STAPanel(wx.Panel):
                 self.show_colorbar_changed = False
                 self.show_contour_changed = False
                 self.make_chart(img)
-                #self.im = self.axes.imshow(img,interpolation=self.interpolation)
                 self.img_dim = img.shape
             
                 if self.showing_colorbar:
@@ -258,14 +258,13 @@ class STAPanel(wx.Panel):
                     level = twodgaussian(params)(params[2]+params[4],params[3]+params[5])
                 elif self.image_fitting == 'gabor':
                     params,img = self.image_fitter.gaborfit2d(float_img,returnfitimage=True)
-                    level = twodgabor(params)(params[2]+params[4],params[3]+params[5])  
+                    level = twodgabor(params)(params[2]+params[4],params[3]+params[5])
                 if self.showing_contour:
                     self.axes.contour(img, [level])
                 self.data_form.gen_results(self.peak_time, params, img, self.data_type)
                 img = self.sta_data.float_to_rgb(img,cmap='jet')
                 
             self.im.set_data(img)
-            #self.axes.set_title(self.title)
             self.im.autoscale()
             self.canvas.draw()
     
