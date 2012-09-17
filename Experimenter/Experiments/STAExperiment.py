@@ -138,8 +138,8 @@ class RFCMappingExp(STAExperiment):
     
     def pre_stim_setup(self):
         super(RFCMappingExp, self).pre_stim_setup()
-        self.logger.info('Uncheck image fitting.')
-        self.sta_server.uncheck_fitting()
+        self.logger.info('Choose no image fitting for this experiment.')
+        self.sta_server.check_fitting('none')
         
     def post_stim_setup(self):
         super(RFCMappingExp, self).post_stim_setup()
@@ -191,4 +191,3 @@ class RFCMappingExp(STAExperiment):
                 data_output.writelines('peak time,%.1f' %data['peak_time'])
             if 'rf_center' in data:
                 data_output.writelines('rf position index,%.2f,%.2f' %(data['rf_center'][0],data['rf_center'][1]))
-        

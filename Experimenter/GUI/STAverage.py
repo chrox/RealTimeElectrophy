@@ -85,11 +85,11 @@ class STADataPanel(DataPanel):
             ori = IndexedParam('orientation_180')
             spf = IndexedParam('spatial_freq')
             y_max,x_max = np.unravel_index(img.argmax(), img.shape)
-            self.data['max_ori'] = ori[x_max]
-            self.data['max_spf'] = spf[y_max]
-            extremes += '\n' + '-'*18 + '\nMax values:\n'
-            extremes += 'ori(deg)\tspf(cpd)\n'
-            extremes += '%.2f\t%.2f\n' %(ori[x_max], spf[y_max])
+            self.data['optimal_ori'] = ori[x_max]
+            self.data['optimal_spf'] = spf[y_max]
+            extremes += '\n' + '-'*18 + '\n'
+            extremes += 'optimal ori: %.2f deg\n' %ori[x_max]
+            extremes += 'optimal spf: %.2f cpd\n' %spf[y_max]
         form = data + extremes
         self.results.SetValue(form)
 
@@ -102,8 +102,8 @@ class STAPanel(wx.Panel):
         self.interpolation_changed = False
         self.show_colorbar_changed = False
         self.showing_colorbar = True
-        self.fitting_gaussian = False
-        self.fitting_gabor = False
+        self.image_fitting = None
+        self.image_fitter = None
         
         # default data type
         self.collecting_data = True
@@ -232,25 +232,25 @@ class STAPanel(wx.Panel):
                 self.make_chart()
                 self.im = self.axes.imshow(img,interpolation=self.interpolation)
                 self.img_dim = img.shape
-                
+                                
                 if self.showing_colorbar:
                     cbar = self.fig.colorbar(self.im, shrink=1.0, fraction=0.045, pad=0.05, ticks=[0, 0.5, 1])
                     if isinstance(self.sta_data, RevCorr.STAData):
                         cbar.set_ticklabels(["-1", "0", "1"])
                     if isinstance(self.sta_data, RevCorr.ParamMapData):
                         cbar.set_ticklabels(["0.0", "0.5", "1.0"])
-            
+                        
             self.data_form.gen_results(self.peak_time)
             
-            if self.fitting_gaussian or self.fitting_gabor:
+            if self.image_fitting is not None:
                 float_img = self.sta_data.get_img(data, channel, unit, tau=self.time, img_format='float')
-                if self.fitting_gaussian:
-                    params,img = self.gauss_fitter.gaussfit2d(float_img,returnfitimage=True)
-                elif self.fitting_gabor:
-                    params,img = self.gabor_fitter.gaborfit2d(float_img,returnfitimage=True)                
+                if self.image_fitting == 'gauss':
+                    params,img = self.image_fitter.gaussfit2d(float_img,returnfitimage=True)
+                elif self.image_fitting == 'gabor':
+                    params,img = self.image_fitter.gaborfit2d(float_img,returnfitimage=True)                
                 self.data_form.gen_results(self.peak_time, params, img, self.data_type)
                 img = self.sta_data.float_to_rgb(img,cmap='jet')
-                
+            
             self.im.set_data(img)
             #self.axes.set_title(self.title)
             self.im.autoscale()
@@ -298,14 +298,17 @@ class STAPanel(wx.Panel):
     def param_mapping_data(self):
         self.sta_data = RevCorr.ParamMapData()
         self.restart_data()
-            
-    def gaussianfit(self, checked):
-        self.gauss_fitter = GaussFit()
-        self.fitting_gaussian = checked
-        
-    def gaborfit(self, checked):
-        self.gabor_fitter = GaborFit()
-        self.fitting_gabor = checked
+    
+    def choose_fitting(self, fitting):
+        if fitting == 'none':
+            self.image_fitting = None
+            self.image_fitter = None
+        if fitting == 'gauss':
+            self.image_fitting = 'gauss'
+            self.image_fitter = GaussFit()
+        if fitting == 'gabor':
+            self.image_fitting = 'gabor'
+            self.image_fitter = GaborFit()
         
     def show_colorbar(self, checked):
         self.show_colorbar_changed = True
@@ -355,9 +358,11 @@ class STAFrame(MainFrame):
     """ The main frame of the application
     """
     def __init__(self):
+        self.menu_source = None
         self.m_sparse_noise = None
         self.m_param_mapping = None
         self.menu_fitting = None
+        self.m_nonefitter = None
         self.m_gaussfitter = None
         self.m_gaborfitter = None
         self.menu_uncheck_binds = None
@@ -369,27 +374,29 @@ class STAFrame(MainFrame):
     def create_menu(self):
         super(STAFrame, self).create_menu()
         
-        menu_source = wx.Menu()
-        self.m_sparse_noise = menu_source.AppendRadioItem(-1, "Sparse &Noise\tCtrl-N", "Sparse noise data")
+        self.menu_source = wx.Menu()
+        self.m_sparse_noise = self.menu_source.AppendRadioItem(-1, "Sparse &Noise\tCtrl-N", "Sparse noise data")
         self.Bind(wx.EVT_MENU, self.on_sparse_noise_data, self.m_sparse_noise)
-        self.m_param_mapping = menu_source.AppendRadioItem(-1, "Param &Mapping\tCtrl-M", "Parameter mapping data")
+        self.m_param_mapping = self.menu_source.AppendRadioItem(-1, "Param &Mapping\tCtrl-M", "Parameter mapping data")
         self.Bind(wx.EVT_MENU, self.on_param_mapping_data, self.m_param_mapping)
         
         self.menu_fitting = wx.Menu()
-        self.m_gaussfitter = self.menu_fitting.AppendCheckItem(-1, "Ga&ussian\tCtrl-U", "Gaussian fitting")
+        self.m_nonefitter = self.menu_fitting.AppendRadioItem(-1, "&None\tCtrl-N", "No fitting")
+        self.menu_fitting.Check(self.m_nonefitter.GetId(), True)
+        self.Bind(wx.EVT_MENU, self.on_check_nonefitter, self.m_nonefitter)
+        self.m_gaussfitter = self.menu_fitting.AppendRadioItem(-1, "Ga&ussian\tCtrl-U", "Gaussian fitting")
         self.menu_fitting.Check(self.m_gaussfitter.GetId(), False)
         self.Bind(wx.EVT_MENU, self.on_check_gaussfitter, self.m_gaussfitter)
-        self.m_gaborfitter = self.menu_fitting.AppendCheckItem(-1, "Ga&bor\tCtrl-B", "Gabor fitting")
+        self.m_gaborfitter = self.menu_fitting.AppendRadioItem(-1, "Ga&bor\tCtrl-B", "Gabor fitting")
         self.menu_fitting.Check(self.m_gaborfitter.GetId(), False)
         self.Bind(wx.EVT_MENU, self.on_check_gaborfitter, self.m_gaborfitter)
-        self.menu_uncheck_binds = {self.m_gaussfitter.GetId():self.uncheck_gaussfitter, self.m_gaborfitter.GetId():self.uncheck_gaborfitter} 
         
         self.menu_view = wx.Menu()
         self.m_colorbar = self.menu_view.AppendCheckItem(-1, "&Colorbar\tCtrl-C", "Display colorbar")
         self.menu_view.Check(self.m_colorbar.GetId(), True)
         self.Bind(wx.EVT_MENU, self.on_check_colorbar, self.m_colorbar)
         
-        self.menubar.Append(menu_source, "&Source")
+        self.menubar.Append(self.menu_source, "&Source")
         self.menubar.Append(self.menu_fitting, "&Fitting")
         self.menubar.Append(self.menu_view, "&View")
         self.SetMenuBar(self.menubar)
@@ -421,36 +428,19 @@ class STAFrame(MainFrame):
         elif self.m_param_mapping.IsChecked():
             return 'param_map'
         
-    def on_check_gaussfitter(self, _event):
-        if self.m_gaussfitter.IsChecked():
-            for item in self.menu_fitting.GetMenuItems():
-                if item.GetId() != self.m_gaussfitter.GetId() and item.IsChecked():
-                    self.menu_fitting.Check(item.GetId(), False)
-                    self.menu_uncheck_binds[item.GetId()]()
-            self.flash_status_message("Using gaussian fitting")
-        self.chart_panel.gaussianfit(self.m_gaussfitter.IsChecked())
+    def on_check_nonefitter(self, _event):
+        self.flash_status_message("Using no fitting")
+        self.chart_panel.choose_fitting("none")
         self.chart_panel.update_chart()
         
-    def uncheck_gaussfitter(self):
-        self.chart_panel.gaussianfit(False)
+    def on_check_gaussfitter(self, _event):
+        self.flash_status_message("Using gaussian fitting")
+        self.chart_panel.choose_fitting("gauss")
+        self.chart_panel.update_chart()
         
     def on_check_gaborfitter(self, _event):
-        if self.m_gaborfitter.IsChecked():
-            for item in self.menu_fitting.GetMenuItems():
-                if item.GetId() != self.m_gaborfitter.GetId() and item.IsChecked():
-                    self.menu_fitting.Check(item.GetId(), False)
-                    self.menu_uncheck_binds[item.GetId()]()
-            self.flash_status_message("Using gabor fitting")
-        self.chart_panel.gaborfit(self.m_gaborfitter.IsChecked())
-        self.chart_panel.update_chart()
-        
-    def uncheck_gaborfitter(self):
-        self.chart_panel.gaborfit(False)
-        
-    def uncheck_fitting(self):
-        for item in self.menu_fitting.GetMenuItems():
-            self.menu_fitting.Check(item.GetId(), False)
-            self.menu_uncheck_binds[item.GetId()]()
+        self.flash_status_message("Using gabor fitting")
+        self.chart_panel.choose_fitting("gabor")
         self.chart_panel.update_chart()
     
     def on_check_colorbar(self, _event):
@@ -465,9 +455,25 @@ class RCSTAPanel(STAPanel, RCPanel):
         STAPanel.__init__(self,*args,**kwargs)
         RCPanel.__init__(self)
         
+    def choose_source(self, source):
+        evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
+        parent = wx.FindWindowByName('main_frame')
+        if source == 'sparse_noise':
+            parent.menu_source.Check(parent.m_sparse_noise.GetId(), True)
+            evt.SetId(parent.m_sparse_noise.GetId())
+            wx.PostEvent(parent, evt)
+        if source == 'param_mapping':
+            parent.menu_source.Check(parent.m_param_mapping.GetId(), True)
+            evt.SetId(parent.m_param_mapping.GetId())
+            wx.PostEvent(parent, evt)
+        
     def check_fitting(self, fitting):
         evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
         parent = wx.FindWindowByName('main_frame')
+        if fitting == 'none':
+            parent.menu_fitting.Check(parent.m_nonefitter.GetId(), True)
+            evt.SetId(parent.m_nonefitter.GetId())
+            wx.PostEvent(parent, evt)
         if fitting == 'gauss':
             parent.menu_fitting.Check(parent.m_gaussfitter.GetId(), True)
             evt.SetId(parent.m_gaussfitter.GetId())
@@ -476,10 +482,6 @@ class RCSTAPanel(STAPanel, RCPanel):
             parent.menu_fitting.Check(parent.m_gaborfitter.GetId(), True)
             evt.SetId(parent.m_gaborfitter.GetId()) 
             wx.PostEvent(parent, evt)
-    
-    def uncheck_fitting(self):
-        parent = wx.FindWindowByName('main_frame')
-        parent.uncheck_fitting()
         
     def check_colorbar(self, checked):
         evt = wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED)
