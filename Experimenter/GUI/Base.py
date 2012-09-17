@@ -177,6 +177,7 @@ class MainFrame(wx.Frame):
         self.panel = None
         self.unit_choice = None
         
+        self.opened_file = None
         self.currentOpenDir = ''
         self.currentSaveDir = ''
         self.title = title
@@ -322,8 +323,11 @@ class MainFrame(wx.Frame):
             defaultDir=self.currentOpenDir,
             wildcard=file_choices,
             style=wx.OPEN|wx.CHANGE_DIR)
+        if self.opened_file is not None:
+            dlg.SetFilename(self.opened_file)
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
+            self.opened_file = os.path.basename(path)
             self.currentOpenDir = os.path.dirname(path)
             self.flash_status_message("Opening file %s ..." % path, flash_len_ms=1000)
             self.chart_panel.open_file(path,self.progress_bar_on_update)
@@ -356,6 +360,8 @@ class MainFrame(wx.Frame):
             defaultDir=self.currentSaveDir,
             wildcard=file_choices,
             style=wx.SAVE|wx.CHANGE_DIR)
+        if self.opened_file is not None:
+            dlg.SetFilename(os.path.splitext(self.opened_file)[0]+'.pkl')
         if dlg.ShowModal() == wx.ID_OK:
             import pickle
             pkl_file = dlg.GetPath()
@@ -370,10 +376,14 @@ class MainFrame(wx.Frame):
         dlg = wx.FileDialog(
             self,
             message="Save chart as...",
+            defaultDir=self.currentSaveDir,
             wildcard=file_choices,
             style=wx.SAVE|wx.CHANGE_DIR)
+        if self.opened_file is not None:
+            dlg.SetFilename(os.path.splitext(self.opened_file)[0]+'.png')
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
+            self.currentSaveDir = os.path.dirname(path)
             self.chart_panel.save_chart(path)
             self.flash_status_message("Saved to %s" % path)
     
