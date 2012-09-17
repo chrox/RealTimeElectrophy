@@ -4,7 +4,7 @@ OVERVIEW
 
 The RealTimeElectrophy is a collection of useful programs designed to simplify visual 
 neurophysiology research. The Experimenter package lies in the central position of 
-the routines. A experimenter controls the visual stimulator via StimControl and 
+the routines. An experimenter controls the visual stimulator via StimControl and 
 receives spikes data from SpikeRecord.  Precise frame timing is done by StimControl 
 which sends a sweepstamp trigger to the acquisition system for each screen sweep. 
 Once the visual stimuli is synchronized with the spikes via Experimenter, preliminary 
@@ -14,10 +14,11 @@ HARDWARE REQUIREMENTS
 
 A recent stand-alone graphics card is required to draw stimuli fast enough for real 
 time control. In our lab, we use an nVIDIA Quadro NVS 440 card in MultiView mode to 
-horizontally span the screen over three or four monitors. Any recent nVIDIA GeForce 
-card should be able to run smoothly in DualView mode on two monitors. And we use a 
-Data Translation Digital I/O board to trigger the acquisition device. Currently only 
-Data Translation DT340 is tested.
+horizontally span the screen over three or four monitors. And each monitor works at
+a refresh rate of 120Hz. Any recent nVIDIA GeForce card should be able to run smoothly 
+in DualView mode on two monitors. And we use a Data Translation Digital I/O board to 
+trigger the acquisition device in Windows platform. Compatible Comedi devices should 
+work in Linux platform. But currently only Data Translation DT340 is tested.
 
 INSTALLATION
 
@@ -31,8 +32,9 @@ First, download and install these dependencies:
 	- scipy (version >= 0.4.8)
 	- matplotlib (version >= 1.01)
 	- wxPython (version >= 2.8)
-	- VisionEgg (version == 1.2.1)
+	- VisionEgg (version >= 1.2.1)
 	- setuptools (version >= 0.6)
+	- pycomedi (version >= 0.5, Linux only)
 
 To install RealTimeElectrophy from source, download the latest source code packages,
 and extract the files into your home directory. Type this from a command line from 
