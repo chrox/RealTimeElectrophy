@@ -19,7 +19,7 @@ a refresh rate of 120Hz. Any recent nVIDIA GeForce card should be able to run
 smoothly in DualView mode on two monitors. And we use a Data Translation Digital I/O
 board to trigger the acquisition device in Windows platform. Compatible Comedi 
 devices should work in Linux platform. But currently only Data Translation DT340
- is tested.
+is tested.
 
 INSTALLATION
 
