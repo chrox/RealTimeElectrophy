@@ -74,14 +74,12 @@ class TimingStampController(SweepSequeTriggerController):
         self.logger = logging.getLogger('LightStim.Grating')
     def during_go_eval(self):
         stimulus_on = self.next_param()
-        """ 
-            16-bits stimulus representation code will be posted to DT port
-            00 1 1 0000 0000 0000 
-            |  | |   |-----------------phase_at_t0 index (0.0, 360.0, 16)
-            |  | |---------------------stimulus onset
-            |  |-----------------------stimulus viewport
-            |--------------------------reserved
-        """
+        #   16-bits stimulus representation code will be posted to DAQ port
+        #   00 1 1 0000 0000 0000 
+        #   |  | |   |-----------------phase_at_t0 index (0.0, 360.0, 16)
+        #   |  | |---------------------stimulus onset
+        #   |  |-----------------------stimulus viewport
+        #   |--------------------------reserved
         if self.viewport.get_name() == 'left':
             viewport = 1
         elif self.viewport.get_name() == 'right':
@@ -151,17 +149,16 @@ class ParamStampController(SweepSequeTriggerController):
             #else: self.logger.error('Cannot post param index for spatial freqency parameter: %s' %str(spatial_freq))
             if phase_at_t0 in self.indexed_pha:
                 pha_index = self.indexed_pha.index(phase_at_t0)
-            #else: self.logger.error('Cannot post param index for phase parameter: %s' %str(phase_at_t0))
-            """ 
-            16-bits stimulus representation code will be posted to DT port
-            00 0  1 0101 0001 0011 
-            |  |  |   |    |    |------------orientation index (0.0, 180.0, 16)/(0.0, 360.0, 16)
-            |  |  |   |    |-----------------spatial_freq index (0.05, 1.0, 16)
-            |  |  |   |----------------------phase_at_t0 index (0.0, 360.0, 16)
-            |  |  |--------------------------stimulus onset
-            |  |-----------------------------stimulus offset
-            |--------------------------------reserved
-            """
+            #else: self.logger.error('Cannot post param index for phase parameter: %s' %str(phase_at_t0)) 
+            # 16-bits stimulus representation code will be posted to DT port
+            #   00 0  1 0101 0001 0011
+            #   |  |  |   |    |    | 
+            #   |  |  |   |    |    +------------orientation index (0.0, 180.0, 16)/(0.0, 360.0, 16)
+            #   |  |  |   |    +-----------------spatial_freq index (0.05, 1.0, 16)
+            #   |  |  |   +----------------------phase_at_t0 index (0.0, 360.0, 16)
+            #   |  |  +--------------------------stimulus onset
+            #   |  +-----------------------------stimulus offset
+            #   +--------------------------------reserved
             onset = 1
             post_val = ori_index + (spf_index<<4) + (pha_index<<8) + (onset<<12)
             return post_val

@@ -40,12 +40,14 @@ class WhiteNoiseSweepStampController(SweepSequeTriggerController):
     def during_go_eval(self):
         param = self.next_param()
         if param == None: return
-        #   16-bits stimuli representation code will be posted to DT port
-        #       001 1 111111 111111
-        #        |  |    |      |-----x index  
-        #        |  |    |------------y index
-        #        |  |-----------------contrast
-        #        |--------------------reserved 
+        #   16-bits stimuli representation code will be posted to DAQ port
+        #      00 1 1 111111 111111
+        #       | | |    |      |
+        #       | | |    |      +-----x index  
+        #       | | |    +------------y index
+        #       | | +-----------------contrast
+        #       | +-------------------onset
+        #       +---------------------reserved 
         x_index, y_index, contrast = param
         postval = (1<<13) + (contrast<<12) + (y_index<<6) + x_index
         self.post_stamp(postval)
