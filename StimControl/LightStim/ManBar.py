@@ -137,6 +137,11 @@ class ManBar(ManStimulus):
         self.name = 'manbar'
         self.perpend_to_dir = False
         self.restored_on = self.on
+        self.defalut_preference = {'xorigDeg':0.0,
+                                   'yorigDeg':0.0,
+                                   'widthDeg':5.0,
+                                   'bheightDeg':2.0,
+                                   'ori': 0.0}
         self.register_controllers()
         self.load_preference(0)
         self.set_parameters(params)
@@ -208,11 +213,6 @@ class ManBar(ManStimulus):
         logger = logging.getLogger('LightStim.ManBar')
         if self.viewport.get_name() != 'control':   # make control viewport like a passive viewport
             logger.info('Load preference for ' + info)
-        self.defalut_preference = {'xorigDeg':0.0,
-                                   'yorigDeg':0.0,
-                                   'widthDeg':8.0,
-                                   'bheightDeg':2.0,
-                                   'ori': 0.0}
         try:
             with open('stimulus_params.pkl','rb') as pkl_input:
                 preferences_dict = pickle.load(pkl_input)[name][index]

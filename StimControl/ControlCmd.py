@@ -51,5 +51,5 @@ class StimCommand(object):
             
 if __name__ == '__main__':
     command = StimCommand()
-    command.run('manbar.py', assignments=['p.flash = True'])
+    command.run('manbar', 'manbar.py', assignments=['p.flash = True'])
     #command.quit_server()

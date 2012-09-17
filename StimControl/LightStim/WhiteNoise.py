@@ -40,14 +40,12 @@ class WhiteNoiseSweepStampController(SweepSequeTriggerController):
     def during_go_eval(self):
         param = self.next_param()
         if param == None: return
-        """ 
-            16-bits stimuli representation code will be posted to DT port
-                001 1 111111 111111
-                 |  |    |      |-----x index  
-                 |  |    |------------y index
-                 |  |-----------------contrast
-                 |--------------------reserved 
-        """
+        #   16-bits stimuli representation code will be posted to DT port
+        #       001 1 111111 111111
+        #        |  |    |      |-----x index  
+        #        |  |    |------------y index
+        #        |  |-----------------contrast
+        #        |--------------------reserved 
         x_index, y_index, contrast = param
         postval = (1<<13) + (contrast<<12) + (y_index<<6) + x_index
         self.post_stamp(postval)
@@ -59,30 +57,29 @@ class TargetController(SweepSequeStimulusController):
         self.tsp = self.stimulus.tsp
     def during_go_eval(self):
         param = self.next_param()
-        """Whether draw the target""" 
+        # Whether draw the target
         if param == None:
             self.tsp.on = False
             return
         else:
             self.tsp.on = True
-        """Update target position, given sweep Seque index index"""
-        """
-        grid index diagram posindex
-             ___________
-            |0,0|1,0|2,0|
-            |___|___|___|
-            |0,1|1,1|2,1|
-            |___|___|___|
-            |0,2|1,2|2,2|
-            |___|___|___|
-        """
+        # Update target position, given sweep Seque index index
+        # grid index diagram posindex(x_index, y_index)
+        #    ___________
+        #   |0,0|1,0|2,0|
+        #   |___|___|___|
+        #   |0,1|1,1|2,1|
+        #   |___|___|___|
+        #   |0,2|1,2|2,2|
+        #   |___|___|___|
+        #
         x_index, y_index, contrast = param
         #print x_index, y_index, contrast
         xposdeg = self.stimulus.parameters.xorigDeg - self.stimulus.parameters.gridsize/2 + \
                     x_index*self.stimulus.gridcell[0]+self.stimulus.barsize[0]/2
         yposdeg = self.stimulus.parameters.yorigDeg + self.stimulus.parameters.gridsize/2 - \
                     y_index*self.stimulus.gridcell[1]-self.stimulus.barsize[1]/2
-        """Update target contrast, given sweep Seque index index"""
+        # Update target contrast, given sweep Seque index index
         if contrast == 0:
             self.tsp.color = (0.0, 0.0, 0.0, 1.0)
         else:
@@ -218,24 +215,25 @@ class WhiteNoise(Stimulus):
         name = self.viewport.name
         info = self.name + str(index) + ' in ' + name + ' viewport.'
         logger = logging.getLogger('LightStim.WhiteNoise')
-        if self.viewport.get_name() != 'control':   # make control viewport like a passive viewport
-            logger.info('Load preference for ' + info)
-        self.defalut_preference = {'xorigDeg':0.0,
+        defalut_preference = {'xorigDeg':0.0,
                                    'yorigDeg':0.0,
                                    'widthDeg':3.0,
                                    'barheightDeg':1.0,
                                    'ori': 0.0}
+        if self.viewport.get_name() != 'control':   # make control viewport like a passive viewport
+            logger.info('Load preference for ' + info)
         try:
             with open('stimulus_params.pkl','rb') as pkl_input:
                 preferences_dict = pickle.load(pkl_input)
-                self.defalut_preference.update(preferences_dict[name][index])
-                self.preference = self.defalut_preference
+                defalut_preference.update(preferences_dict[name][index])
+                preference = defalut_preference
         except:
             if self.viewport.get_name() != 'control':
                 logger.warning('Cannot load preference for ' + info + ' Use the default preference.')
-            self.preference = self.defalut_preference
+            preference = defalut_preference
 
-        parameters.xorigDeg = self.preference['xorigDeg']
-        parameters.yorigDeg = self.preference['yorigDeg']
-        parameters.rfsize = self.preference['widthDeg']
-        parameters.ori = self.preference['ori']
+        parameters.xorigDeg = preference['xorigDeg']
+        parameters.yorigDeg = preference['yorigDeg']
+        parameters.rfsize = preference['widthDeg']
+        parameters.ori = preference['ori']
+        

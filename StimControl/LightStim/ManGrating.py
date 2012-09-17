@@ -170,6 +170,15 @@ class ManGrating(ManStimulus):
         self.name = 'mangrating'
         self.COMMA, self.PERIOD = False,False
         self.LEFTBRACKET, self.RIGHTBRACKET = False,False
+        self.defalut_preference = {'xorigDeg':0.0,
+                                   'yorigDeg':0.0,
+                                   'widthDeg':5.0,
+                                   'gheightDeg':5.0, # gheightDeg for grating stimulus
+                                   'mask':'circle',
+                                   'maskDiameterDeg':5.0,
+                                   'sfreqCycDeg':0.3,
+                                   'tfreqCycSec':2.0,
+                                   'ori': 0.0}
 
         self.register_controllers()
         #self.register_event_handlers()
@@ -273,15 +282,6 @@ class ManGrating(ManStimulus):
         logger = logging.getLogger('LightStim.ManGrating')
         if self.viewport.get_name() != 'control':   # make control viewport like a passive viewport
             logger.info('Load preference for ' + info)
-        self.defalut_preference = {'xorigDeg':0.0,
-                                   'yorigDeg':0.0,
-                                   'widthDeg':15.0,
-                                   'gheightDeg':15.0, # gheightDeg for grating stimulus
-                                   'mask':'circle',
-                                   'maskDiameterDeg':10.0,
-                                   'sfreqCycDeg':0.5,
-                                   'tfreqCycSec':2.0,
-                                   'ori': 0.0}
         try:
             with open('stimulus_params.pkl','rb') as pkl_input:
                 preferences_dict = pickle.load(pkl_input)[name][index]
