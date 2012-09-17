@@ -95,7 +95,8 @@ class GaussFit(object):
         limitedmax = [False,False,True,True,True,True,True]
         minpars = [0.0, 0.0, 0, 0, x_dim*0.1, y_dim*0.1, 0.0]
         maxpars = [0.0, 0.0, x_dim, y_dim, x_dim*0.8, y_dim*0.8, 360.0]
-        usemoment= np.array([True,True,True,True,True,True,True],dtype='bool')
+        #usemoment= np.array([True,True,True,True,True,True,True],dtype='bool')
+        usemoment=np.array([],dtype='bool')
         params = [0.0, 0.0, x_dim/2, y_dim/2, x_dim/3, y_dim/3, 0.0]
         img = nd.filters.gaussian_filter(img,0.2)
         
