@@ -232,7 +232,7 @@ class MainFrame(wx.Frame):
     def create_status_bar(self):
         self.statusbar = self.CreateStatusBar(name='status_bar')
         self.statusbar.SetFieldsCount(4) 
-        self.statusbar.SetStatusWidths([-7, -2, -1, 143])
+        self.statusbar.SetStatusWidths([-6, -2, -1, 145])
         self.progress_bar = wx.Gauge(self.statusbar, -1, 100, style=wx.GA_HORIZONTAL|wx.GA_SMOOTH)
         self.progress_bar.Hide()
         
@@ -389,10 +389,12 @@ class MainFrame(wx.Frame):
     
     def on_stop_data(self, _event):
         self.chart_panel.stop_data()
+        self.statusbar.SetStatusText('', 2)
         self.flash_status_message("Data collecting stopped")
     
     def on_restart_data(self, _event):
         self.chart_panel.restart_data()
+        self.statusbar.SetStatusText('', 2)
         self.flash_status_message("Data collecting restarted")
     
     def flash_status_message(self, msg, flash_len_ms=1500):
@@ -402,7 +404,7 @@ class MainFrame(wx.Frame):
         self.status_msg_offtimer.Start(flash_len_ms, oneShot=True)
 
     def on_flash_status_off(self, _event):
-        self.statusbar.SetStatusText('')
+        self.statusbar.SetStatusText('', 0)
         
 class RCPanel(Pyro.core.ObjBase):
     """
