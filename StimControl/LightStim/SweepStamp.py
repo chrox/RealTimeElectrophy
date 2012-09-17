@@ -24,6 +24,7 @@ if DT340_INSTALLED:
     if sys.platform != 'win32':
         raise RuntimeError('DT340 driver not supported on this platform.')
     try:
+        # pylint: disable=F0401
         import DT # only importable if DT board is installed
     except ImportError:
         raise RuntimeError('Cannot import DT module.')
@@ -75,6 +76,7 @@ class ComediChannel(VisionEgg.Daq.Channel):
         'num_channels' : (16,ve_types.UnsignedInteger),
         }
     def __init__(self,**kw):
+        # pylint: disable=E1101
         if not 'comedi' in globals().keys():
             raise RuntimeError("Comedi input/output not supported on this platform.")
         VisionEgg.Daq.Channel.__init__(self,**kw)
@@ -155,6 +157,7 @@ class DAQTrigger:
         raise RuntimeError("Must override trigger_in method with daq implementation!")
     
 class ComediDAQOUT(DAQTrigger):
+    # pylint: disable=E1101
     def __init__(self):
         self.device = ComediDevice('/dev/comedi0')
         first_channel = LightStim.config.LIGHTSTIM_DAQBOARD_COMEDI_BASE_CHAN
