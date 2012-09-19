@@ -180,7 +180,7 @@ class RFCMappingExp(STAExperiment):
             cell_width = self.params['widthDeg']*2.0/32.0
             
             rf_x_pos = orig_pos[0] + cell_width * (data['rf_center'][0]-16)
-            rf_y_pos = orig_pos[0] + cell_width * (16-data['rf_center'][1])
+            rf_y_pos = orig_pos[1] + cell_width * (16-data['rf_center'][1])
             rf_pos = (float(rf_x_pos), float(rf_y_pos))
             self.logger.info('Original RF center: %.2f,%.2f' %orig_pos)
             self.logger.info('Get RF center from %s experiment: %.2f,%.2f' %(self.exp_name,rf_pos[0],rf_pos[1]))
