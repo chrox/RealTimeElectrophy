@@ -17,12 +17,20 @@ p_right = dummy_exp.get_stimulus_params(eye='right')
 """
     Monocular tests
 """
+# receptive field mapping experiments find precise RFC for each eye
+for eye in np.random.permutation(['left','right']):
+    if eye == 'left':
+        p_left.xorigDeg, p_left.yorigDeg = RFCMappingExp(eye='left', params=p_left, 
+                                                         postfix='adjust').run()
+    if eye == 'right':
+        p_right.xorigDeg, p_right.yorigDeg = RFCMappingExp(eye='right', params=p_right, 
+                                                           postfix='adjust').run()
 # orientation tuning experiments find the optimal orientation for each eye
 for eye in np.random.permutation(['left','right']):
     if eye == 'left':
-        p_left.ori = ORITunExp(eye='left', params=None).run()
+        p_left.ori = ORITunExp(eye='left', params=p_left).run()
     if eye == 'right':
-        p_right.ori = ORITunExp(eye='right', params=None).run()
+        p_right.ori = ORITunExp(eye='right', params=p_right).run()
         
 # spatial frequency tuning experiments find the optimal spatial frequency
 for eye in np.random.permutation(['left','right']):
@@ -55,11 +63,9 @@ for index,interval in enumerate(intervals_rectified):
     exp_postfix = interval_str + '-' + phase_str + '-pre'
     for eye in np.random.permutation(['left','right']):
         if eye == 'left':
-            p_left.xorigDeg, p_left.yorigDeg = RFCMappingExp(eye='left', params=p_left, 
-                                                             postfix=exp_postfix).run()
+            RFCMappingExp(eye='left', params=p_left, postfix=exp_postfix).run()
         if eye == 'right':
-            p_right.xorigDeg, p_right.yorigDeg = RFCMappingExp(eye='right', params=p_right, 
-                                                               postfix=exp_postfix).run()
+            RFCMappingExp(eye='right', params=p_right, postfix=exp_postfix).run()
     # disparity tuning experiment before induction
     exp_postfix = interval_str + '-' + phase_str + '-pre'
     pre_dsp = DSPTunExp(left_params=p_left,right_params=p_right,
@@ -85,11 +91,9 @@ for index,interval in enumerate(intervals_rectified):
     exp_postfix = interval_str + '-' + phase_str + '-post'
     for eye in np.random.permutation(['left','right']):
         if eye == 'left':
-            p_left.xorigDeg, p_left.yorigDeg = RFCMappingExp(eye='left', params=p_left, 
-															 postfix=exp_postfix).run()
+            RFCMappingExp(eye='left', params=p_left, postfix=exp_postfix).run()
         if eye == 'right':
-            p_right.xorigDeg, p_right.yorigDeg = RFCMappingExp(eye='right', params=p_right, 
-                                                               postfix=exp_postfix).run()
+            RFCMappingExp(eye='right', params=p_right, postfix=exp_postfix).run()
     
     for times in range(5):
         # resting experiment for 5min
