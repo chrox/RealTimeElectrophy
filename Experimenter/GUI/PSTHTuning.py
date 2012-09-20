@@ -550,9 +550,6 @@ class RCPSTHTuningPanel(PSTHTuningPanel, RCPanel):
         
     def get_data(self):
         return self.data_form.get_data()
-    
-    def export_chart(self, path):
-        self.save_chart(path)
         
 class PyroPSTHTuningFrame(PSTHTuningFrame):
     """

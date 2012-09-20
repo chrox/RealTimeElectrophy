@@ -18,6 +18,8 @@ EVT_DATA_STOP_TYPE = wx.NewEventType()
 EVT_DATA_STOP = wx.PyEventBinder(EVT_DATA_STOP_TYPE, 1)
 EVT_DATA_RESTART_TYPE = wx.NewEventType()
 EVT_DATA_RESTART = wx.PyEventBinder(EVT_DATA_RESTART_TYPE, 1)
+EVT_EXPORT_CHART_TYPE = wx.NewEventType()
+EVT_EXPORT_CHART = wx.PyEventBinder(EVT_EXPORT_CHART_TYPE, 1)
 EVT_UNIT_SELECTED_TYPE = wx.NewEventType()
 EVT_UNIT_SELECTED = wx.PyEventBinder(EVT_UNIT_SELECTED_TYPE, 1)
 EVT_PROG_BAR_HIDE_TYPE = wx.NewEventType()
@@ -36,6 +38,13 @@ class DataUpdatedEvent(wx.PyCommandEvent):
         return self._data
     def get_data_type(self):
         return self._data_type
+
+class ExportChartEvent(wx.PyCommandEvent):
+    def __init__(self, etype, eid, path):
+        wx.PyCommandEvent.__init__(self, etype, eid)
+        self._path = path
+    def get_path(self):
+        return self._path
 
 class UpdateDataThread(threading.Thread):
     def __init__(self, parent, source):
@@ -406,6 +415,11 @@ class MainFrame(wx.Frame):
         self.chart_panel.restart_data()
         self.statusbar.SetStatusText('', 2)
         self.flash_status_message("Data collecting restarted")
+        
+    def on_export_chart(self, event):
+        path = event.get_path()
+        self.chart_panel.save_chart(path)
+        self.flash_status_message("Exporting chart to %s" %path)
     
     def flash_status_message(self, msg, flash_len_ms=1500):
         self.statusbar.SetStatusText(msg, 0)
@@ -449,6 +463,11 @@ class RCPanel(Pyro.core.ObjBase):
         #self.restart_request = True
         parent = wx.FindWindowByName('main_frame')
         evt = wx.CommandEvent(EVT_DATA_RESTART_TYPE)
+        wx.PostEvent(parent, evt)
+        
+    def export_chart(self, path):
+        parent = wx.FindWindowByName('main_frame')
+        evt = ExportChartEvent(EVT_EXPORT_CHART_TYPE, -1, path)
         wx.PostEvent(parent, evt)
         
     def close(self):

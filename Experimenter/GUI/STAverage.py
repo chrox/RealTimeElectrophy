@@ -381,9 +381,9 @@ class STAFrame(MainFrame):
         self.m_nonefitter = None
         self.m_gaussfitter = None
         self.m_gaborfitter = None
-        self.menu_uncheck_binds = None
         self.menu_view = None
         self.m_colorbar = None
+        self.m_contour = None
         super(STAFrame, self).__init__('Spike Triggered Average(STA)')
     
     # invoked when MainFrame is initiated
@@ -523,9 +523,6 @@ class RCSTAPanel(STAPanel, RCPanel):
     
     def get_data(self):
         return self.data_form.get_data()
-    
-    def export_chart(self, path):
-        self.save_chart(path)
 
 class PyroSTAFrame(STAFrame):
     """

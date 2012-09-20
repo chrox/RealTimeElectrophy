@@ -157,8 +157,6 @@ class PSTHAveragePanel(wx.Panel):
         self.collecting_data = False
         self.clear_data()
         self.psth_data = None
-        #if hasattr(self, 'update_data_thread') and self.psth_data is not None:
-            #RenewDataThread(self, self.psth_data, self.update_data_thread).start()
         
     def restart_data(self):
         self.stop_data()
@@ -244,9 +242,6 @@ class RCPSTHAveragePanel(PSTHAveragePanel, RCPanel):
     
     def get_data(self):
         return self.data_form.get_data()
-    
-    def export_chart(self, path):
-        self.save_chart(path)
 
 class PyroPSTHAverageFrame(PSTHAverageFrame):
     """
