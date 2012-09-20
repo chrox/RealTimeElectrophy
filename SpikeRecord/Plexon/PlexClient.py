@@ -32,7 +32,7 @@ class PlexClient(object):
     def __enter__(self):
         self.InitClient()
         return self
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback):
         self.CloseClient()
     def __getattr__(self, name):
         try: return getattr(self.library, name)

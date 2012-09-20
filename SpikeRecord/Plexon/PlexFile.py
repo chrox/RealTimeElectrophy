@@ -167,12 +167,15 @@ class PlexFile(object):
                            self.file_header.NumDSPChannels * ctypes.sizeof(PL_ChanHeader) + \
                            self.file_header.NumEventChannels * ctypes.sizeof(PL_EventHeader) + \
                            self.file_header.NumSlowChannels * ctypes.sizeof(PL_SlowChannelHeader)
-                           
-    def __enter__(self):
-        return self
-    def __exit__(self, _type, value, traceback):
+    def __del__(self):
         if self.file:
             self.file.close()
+            
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
             
     def _get_header(self,Header):
         header = Header()
