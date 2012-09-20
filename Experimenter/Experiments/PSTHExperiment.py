@@ -312,8 +312,8 @@ class SpikeLatencyExp(PSTHExperiment):
         data = ''
         if 'time' in data and 'psth' in data:
             data += 'Time,Value\n'
-            for index in data['time']:
-                data += '{0},{1:.2f}\n'.format(data['time'][index],data['psth'][index])
+            for psth_time, psth_value in zip(data['time'], data['psth']):
+                data += '{0},{1:.2f}\n'.format(psth_time, psth_value)
         extrima = ''
         if 'maxima_indices' in data and 'maxima' in data:
             extrima += 'Maxima,Value\n'

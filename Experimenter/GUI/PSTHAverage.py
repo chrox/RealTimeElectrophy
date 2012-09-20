@@ -22,8 +22,8 @@ class PSTHAverageDataPanel(DataPanel):
     def gen_curve_data(self, bins, psth_data, maxima_indices, minima_indices):
         self.data['time'] = bins
         self.data['psth'] = psth_data
-        self.data['maxima_index'] = maxima_indices
-        self.data['minima_index'] = minima_indices
+        self.data['maxima_indices'] = maxima_indices
+        self.data['minima_indices'] = minima_indices
         self.data['maxima'] = psth_data[maxima_indices]
         self.data['minima'] = psth_data[minima_indices]
         extrema = ''
