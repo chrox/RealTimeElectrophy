@@ -309,20 +309,20 @@ class SpikeLatencyExp(PSTHExperiment):
         
     def log_psth_data(self, data):
         data_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.csv'
-        data = ''
+        data_lines = ''
         if 'time' in data and 'psth' in data:
-            data += 'Time,Value\n'
+            data_lines += 'Time,Value\n'
             for psth_time, psth_value in zip(data['time'], data['psth']):
-                data += '{0},{1:.2f}\n'.format(psth_time, psth_value)
-        extrima = ''
+                data_lines += '{0},{1:.2f}\n'.format(psth_time, psth_value)
+        extrima_lines = ''
         if 'maxima_indices' in data and 'maxima' in data:
-            extrima += 'Maxima,Value\n'
+            extrima_lines += 'Maxima,Value\n'
             for maxima_time,maxima_value in zip(data['maxima_indices'],data['maxima']):
-                extrima += '{0},{1:.2f}\n'.format(maxima_time,maxima_value)
+                extrima_lines += '{0},{1:.2f}\n'.format(maxima_time,maxima_value)
         if 'minima_indices' in data and 'minima' in data:
-            extrima += 'Minima,Value\n'
+            extrima_lines += 'Minima,Value\n'
             for minima_time,minima_value in zip(data['minima_indices'],data['minima']):
-                extrima += '{0},{1:.2f}\n'.format(minima_time,minima_value)
+                extrima_lines += '{0},{1:.2f}\n'.format(minima_time,minima_value)
         with open(data_file,'w') as data_output:
-            data_output.writelines(data + extrima)
+            data_output.writelines(data_lines + extrima_lines)
             
