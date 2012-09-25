@@ -302,10 +302,9 @@ class SpikeLatencyExp(PSTHExperiment):
         if 'maxima' not in data:
             self.logger.error('Failed to get spike latency from %s experiment.' %self.exp_name)
         else:
-            index = data['maxima'].argmax()
-            maximum = data['maxima_index'][index]
-            self.logger.info('Get spike latency from %s experiment: %f' %(self.exp_name, maximum))
-            return maximum/1000.0
+            first_peak = data['maxima_index'][0]
+            self.logger.info('Get spike latency from %s experiment: %f' %(self.exp_name, first_peak))
+            return first_peak/1000.0
         
     def log_psth_data(self, data):
         data_file = ExperimentConfig.CELLDIR + os.path.sep + self.exp_name + '.csv'
@@ -324,5 +323,5 @@ class SpikeLatencyExp(PSTHExperiment):
             for minima_time,minima_value in zip(data['minima_indices'],data['minima']):
                 extrima_lines += '{0},{1:.2f}\n'.format(minima_time,minima_value)
         with open(data_file,'w') as data_output:
-            data_output.writelines(data_lines + extrima_lines)
+            data_output.writelines(extrima_lines + data_lines)
             
