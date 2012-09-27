@@ -53,7 +53,7 @@ class PSTHTuningDataPanel(DataPanel):
         self.data['param'] = label[0]
         ###########################
         ##### data
-        data = '-'*18 + '\nData:\n' + "\t".join(label) + '\n'
+        data = '-'*18 + '\nData:\n' + "\t".join(str(label)) + '\n'
         for line in zip(x,means,stds):
             dataline = '\t'.join('%.2f' %value for value in line)
             data += dataline + '\n'
