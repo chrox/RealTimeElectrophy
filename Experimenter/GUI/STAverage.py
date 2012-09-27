@@ -55,7 +55,7 @@ class OptionPanel(wx.Panel):
         wx.PostEvent(self.GetParent(), evt)
         
 class STADataPanel(DataPanel):
-    def gen_results(self,peak_time,params=None,img=None,data_type=None):
+    def gen_results(self,peak_time,params=None,img=None,data_type=None,fitting_type=None):
         class IndexedParam(list):
             def __init__(self,parameter):
                 if parameter == 'orientation':
@@ -77,8 +77,11 @@ class STADataPanel(DataPanel):
             data += '-'*18 + '\nPeak time(ms):\n'
             data += '%.1f\n' %peak_time
         if data_type == 'white_noise':
-            # img format: img[y_index][x_index]
-            y_max,x_max = np.unravel_index(img.argmax(), img.shape)
+            if fitting_type == 'gauss':
+                x_max,y_max = params[2],params[3]
+            if fitting_type == 'gabor':
+                # img format: img[y_index][x_index]
+                y_max,x_max = np.unravel_index(img.argmax(), img.shape)
             self.data['rf_center'] = (x_max,y_max)
             data += '-'*18 + '\nRF center:\n'
             data += 'Center position index(x,y):\n'
@@ -86,7 +89,11 @@ class STADataPanel(DataPanel):
         elif data_type == 'param_mapping':
             ori = IndexedParam('orientation_180')
             spf = IndexedParam('spatial_freq')
-            y_max,x_max = np.unravel_index(img.argmax(), img.shape)
+            if fitting_type == 'gauss':
+                x_max,y_max = int(round(params[2])),int(round(params[3]))
+            if fitting_type == 'gabor':
+                # img format: img[y_index][x_index]
+                y_max,x_max = np.unravel_index(img.argmax(), img.shape)
             self.data['optimal_ori'] = ori[x_max]
             self.data['optimal_spf'] = spf[y_max]
             extremes += '\n' + '-'*18 + '\n'
@@ -129,6 +136,7 @@ class STAPanel(wx.Panel):
         self.gabor_fitter = None
         
         self.peak_time = None
+        self.cmap = 'jet'
         # reverse time in ms
         time_slider = 85
         self.time = time_slider/1000
@@ -192,7 +200,8 @@ class STAPanel(wx.Panel):
         self.fig.clear()
         self.axes = self.fig.add_subplot(111)
         if img is None:
-            img = np.zeros((32,32,3))
+            img = np.zeros((32,32)) + 0.5
+            img = self.sta_data.float_to_rgb(img,cmap=self.cmap)
         self.img_dim = img.shape
         self.im = self.axes.imshow(img,interpolation=self.interpolation)
         if self.showing_colorbar:
@@ -255,14 +264,14 @@ class STAPanel(wx.Panel):
                 float_img = self.sta_data.get_img(data, channel, unit, tau=self.time, img_format='float')
                 if self.image_fitting == 'gauss':
                     params,img = self.image_fitter.gaussfit2d(float_img,returnfitimage=True)
-                    level = twodgaussian(params)(params[2]+params[4],params[3]+params[5])
+                    level = twodgaussian(params)(params[3]+params[5],params[2]+params[4])
                 elif self.image_fitting == 'gabor':
                     params,img = self.image_fitter.gaborfit2d(float_img,returnfitimage=True)
-                    level = twodgabor(params)(params[2]+params[4],params[3]+params[5])
+                    level = twodgabor(params)(params[3]+params[5],params[2]+params[4])
                 if self.showing_contour:
                     self.axes.contour(img, [level])
-                self.data_form.gen_results(self.peak_time, params, img, self.data_type)
-                img = self.sta_data.float_to_rgb(img,cmap='jet')
+                self.data_form.gen_results(self.peak_time, params, img, self.data_type, self.image_fitting)
+                img = self.sta_data.float_to_rgb(img,cmap=self.cmap)
                 
             self.im.set_data(img)
             self.im.autoscale()
