@@ -39,18 +39,23 @@ class OptionPanel(wx.Panel):
         self.time = time
         
         time_text = wx.StaticText(self, -1, 'Time:', style=wx.ALIGN_LEFT)
-        self.slider = wx.Slider(self, -1, self.time, 0, 200, None, (250, 50), style=wx.SL_HORIZONTAL | wx.SL_LABELS)
+        self.time_slider = wx.Slider(self, -1, self.time, 0, 200, None, (230, 50), style=wx.SL_HORIZONTAL | wx.SL_LABELS)
+        self.autotime_cb = wx.CheckBox(self, -1, 'Auto', (50, 50))
+        self.autotime_cb.SetValue(True)
         self.Bind(wx.EVT_SLIDER, self.on_slider_update)
 
         box = wx.StaticBox(self, -1, label)
         sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        sizer.Add(time_text, 0, flag=wx.ALL, border=5)
-        sizer.Add(self.slider, 0, flag=wx.ALIGN_LEFT, border=5)
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        hbox.Add(time_text, 0, flag=wx.ALIGN_LEFT|wx.TOP, border=25)
+        hbox.Add(self.time_slider, 0, flag=wx.ALIGN_RIGHT, border=5)
+        sizer.Add(hbox, 0, flag=wx.ALIGN_LEFT|wx.TOP|wx.LEFT, border=5)
+        sizer.Add(self.autotime_cb, 0, flag=wx.ALIGN_LEFT|wx.LEFT, border=15)
         self.SetSizer(sizer)
         sizer.Fit(self)
     def on_slider_update(self, _event):
         # reverse time in ms
-        time = self.slider.GetValue() / 1000
+        time = self.time_slider.GetValue() / 1000
         evt = TimeUpdatedEvent(EVT_TIME_UPDATED_TYPE, -1, time)
         wx.PostEvent(self.GetParent(), evt)
         
@@ -219,13 +224,15 @@ class STAPanel(wx.Panel):
         if selected_unit:
             channel, unit = selected_unit
             peak_time = data[channel][unit]['peak_time'] if channel in data and unit in data[channel] else None
-            if peak_time is not None:
+            parent = wx.FindWindowByName('main_frame')
+            options_panel = parent.chart_panel.options
+            auto_time = options_panel.autotime_cb.GetValue()
+            if auto_time and peak_time is not None:
                 self.peak_time = peak_time
-                parent = wx.FindWindowByName('main_frame')
-                parent.chart_panel.options.slider.SetValue(peak_time)
+                options_panel.time_slider.SetValue(peak_time)
                 evt = wx.CommandEvent(wx.wxEVT_COMMAND_SLIDER_UPDATED)
-                evt.SetId(parent.chart_panel.options.slider.GetId())
-                parent.chart_panel.options.on_slider_update(evt)
+                evt.SetId(options_panel.time_slider.GetId())
+                options_panel.on_slider_update(evt)
                 wx.PostEvent(parent, evt)
     
     def update_chart(self,data=None):
@@ -526,8 +533,8 @@ class RCSTAPanel(STAPanel, RCPanel):
         evt = wx.CommandEvent(wx.wxEVT_COMMAND_SLIDER_UPDATED)
         parent = wx.FindWindowByName('main_frame')
         value = latency*1000
-        parent.chart_panel.options.slider.SetValue(value)
-        evt.SetId(parent.chart_panel.options.slider.GetId())
+        parent.chart_panel.options.time_slider.SetValue(value)
+        evt.SetId(parent.chart_panel.options.time_slider.GetId())
         wx.PostEvent(parent, evt)
     
     def get_data(self):
