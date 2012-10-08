@@ -350,8 +350,11 @@ class MainFrame(wx.Frame):
             defaultDir=self.currentOpenDir,
             wildcard=file_choices,
             style=wx.OPEN|wx.CHANGE_DIR)
+        if self.opened_file is not None:
+            dlg.SetFilename(self.opened_file)
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
+            self.opened_file = os.path.basename(path)
             self.currentOpenDir = os.path.dirname(path)
             self.flash_status_message("Opening file %s ..." % path, flash_len_ms=1000)
             self.chart_panel.append_data(path,self.progress_bar_on_update)
