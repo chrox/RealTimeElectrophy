@@ -38,9 +38,7 @@ class ManSED(ManGrating):
     def __init__(self, params, subject, **kwargs):
         super(ManSED, self).__init__(params=params, subject=subject, **kwargs)
         self.name = 'mansed'
-        self.param_names = ['xorigDeg','yorigDeg','widthDeg','gheightDeg',
-                            'ori','mask','maskDiameterDeg','sfreqCycDeg','tfreqCycSec',
-                            'posDeg','radius']
+        self.param_names += ['posDeg','radius']
         self.defalut_parameters.update({'posDeg':0.0,
                                         'radius':2.0,})
         """ load parameters from stimulus_params file """
