@@ -3,21 +3,24 @@
 # Copyright (C) 2010-2013 Huang Xin
 # 
 # See LICENSE.TXT that came with this file.
-import pickle
 from VisionEgg.MoreStimuli import Target2D
 from VisionEgg.Core import FixationSpot
-from LightData import dictattr
 from Core import Stimulus
 
 class Fixation(Stimulus):
     def __init__(self, params, subject, **kwargs):
         super(Fixation, self).__init__(subject=subject, **kwargs)
         self.name = 'fixation'
-        self.parameters = dictattr()
+        self.param_names += ['xorigDeg','yorigDeg']
+        self.defalut_parameters.update({'xorigDeg':0.0,
+                                        'yorigDeg':0.0,})
+        """ load parameters from stimulus_params file """
         self.load_params()
+        """ override params from script """
         self.set_parameters(self.parameters, params)
         
         self.make_stimuli()
+        
     def make_stimuli(self):
         position = self.viewport.deg2pix(self.parameters.xorigDeg) + self.viewport.xorig ,\
                    self.viewport.deg2pix(self.parameters.yorigDeg) + self.viewport.yorig
@@ -28,21 +31,15 @@ class Fixation(Stimulus):
                                      anchor='center',
                                      on=True)
         self.stimuli = [self.fixation]
-    def load_params(self, index=0):
-        name = self.viewport.name
-        with open(self.param_file,'rb') as pkl_input:
-            preferences_dict = pickle.load(pkl_input)[name][index]
-            self.parameters.xorigDeg = preferences_dict['xorigDeg']
-            self.parameters.yorigDeg = preferences_dict['yorigDeg']
-        
+
 class Nonius(Stimulus):
     def __init__(self, params, **kwargs):
         super(Nonius, self).__init__(**kwargs)
         self.name = 'nonius'
-        self.parameters = dictattr()
         self.set_parameters(self.parameters, params)
         
         self.make_stimuli()
+        
     def make_stimuli(self):
         width = self.viewport.deg2pix(self.parameters.width)
         thickness = self.viewport.deg2pix(self.parameters.thickness)
