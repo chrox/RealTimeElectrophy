@@ -127,9 +127,13 @@ class UnitChoice(wx.Panel):
     
     def on_select(self,_event):
         index = self.unit_list.GetSelection()
-        unit = self.items[index]
-        evt = UnitSelectedEvent(EVT_UNIT_SELECTED_TYPE, -1, unit)
-        wx.PostEvent(self.GetParent(), evt)
+        try:
+            unit = self.items[index]
+        except IndexError:
+            pass
+        else:
+            evt = UnitSelectedEvent(EVT_UNIT_SELECTED_TYPE, -1, unit)
+            wx.PostEvent(self.GetParent(), evt)
         
     def update_units(self,data):
         selected_unit = self.get_selected_unit()
