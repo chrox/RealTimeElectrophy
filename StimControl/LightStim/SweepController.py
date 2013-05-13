@@ -22,6 +22,8 @@ class StimulusController(VisionEgg.FlowControl.Controller):
                                            eval_frequency=eval_frequency)
         self.stimulus = stimulus
         self.viewport = stimulus.viewport
+        
+        self.p = stimulus.parameters
     def set_viewport(self, viewport):
         self.viewport = viewport
     def during_go_eval(self):

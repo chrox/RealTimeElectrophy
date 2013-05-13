@@ -108,23 +108,19 @@ class ViewportEventHandlerController(StimulusController):
 
 class ManStimulus(Stimulus):
     __slots__ = ('complete_stimuli','essential_stimuli')
-    def __init__(self, params, viewport, disp_info=False, **kwargs):
+    def __init__(self, viewport, subject=None, disp_info=False, **kwargs):
+        super(ManStimulus, self).__init__(viewport=viewport, subject=subject, **kwargs)
         logger = logging.getLogger('LightStim.ManStimulus')
         if disp_info and viewport is not 'control':
             logger.warning('Viewport ' + viewport +' may display incomplete stimulus information.')
-        for paramname, paramval in params.items():
-            setattr(self, paramname, paramval) # bind all parameter names to self
-        if hasattr(self,'bgbrightness'):
-            bgcolor = (self.bgbrightness, self.bgbrightness, self.bgbrightness)
-        else:
-            bgcolor = (0.0,0.0,0.0)
-        super(ManStimulus, self).__init__(**kwargs)
+        
+        """ override viewport defined in base stimulus """
         if viewport == 'control':
-            self.viewport = ControlViewport(name=viewport, bgcolor=bgcolor) # use viewport
+            self.viewport = ControlViewport(name=viewport, bgcolor=self.bgcolor) # use viewport
         else:
-            self.viewport = ManViewport(name=viewport, bgcolor=bgcolor) # use viewport
+            self.viewport = ManViewport(name=viewport, bgcolor=self.bgcolor) # use viewport
 
-        self.on = True
+        self.parameters.on = True
         
         self.squarelock, self.brightenText = False, False
         self.UP, self.DOWN, self.LEFT, self.RIGHT = False, False, False, False
@@ -133,15 +129,10 @@ class ManStimulus(Stimulus):
         self.orthogonalize_ori = False
         self.reverse_direction = False
 
-        self.make_screen_info()
-        self.info = (self.upperbar, self.squarelocktext, self.viewportinfotext, self.screentext,
-                     self.lvpindicatortext, self.rvpindicatortext,
-                     self.lowerbar, self.stimulusparamtext)
-        self.make_stimuli()
-        self.stimuli = self.complete_stimuli if disp_info else self.essential_stimuli
         self.register_event_handlers()
         
-    def make_screen_info(self):
+    def make_stimuli(self):
+        self.p = self.parameters
         size = self.viewport.get_size()
         self.background = Target2D(position=(size[0]/2, size[1]/2),
                                    anchor='center',
@@ -150,7 +141,7 @@ class ManStimulus(Stimulus):
 
         self.bgp = self.background.parameters # synonym
         #set background color before real sweep
-        bgb = self.bgbrightness # get it for sweep table index 0
+        bgb = self.p.bgbrightness # get it for sweep table index 0
         self.bgp.color = bgb, bgb, bgb, 1.0 # set bg colour, do this now so it's correct for the pre-exp delay
         
         self.screenstring = 'screen (w, h, d) = (%.1f, %.1f, %.1f) cm' % \
@@ -160,9 +151,13 @@ class ManStimulus(Stimulus):
 
         self.squarelocktext = BitmapText(text='SQUARELOCK', color=(0.0, 1.0, 1.0, 1.0), on=False) # leave it off for now
         self.sltp = self.squarelocktext.parameters
-        self.upperbar = Target2D(anchor='upperleft', anti_aliasing=self.antialiase, color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0), on=False)
+        self.upperbar = Target2D(anchor='upperleft', anti_aliasing=self.p.antialiase, \
+                                 color=(self.p.bgbrightness, self.p.bgbrightness, self.p.bgbrightness, 1.0), \
+                                 on=False)
         self.upbp = self.upperbar.parameters
-        self.lowerbar = Target2D(anchor='lowerleft', anti_aliasing=self.antialiase, color=(self.bgbrightness, self.bgbrightness, self.bgbrightness, 1.0), on=False)
+        self.lowerbar = Target2D(anchor='lowerleft', anti_aliasing=self.p.antialiase, \
+                                 color=(self.p.bgbrightness, self.p.bgbrightness, self.p.bgbrightness, 1.0), \
+                                 on=False)
         self.lwbp = self.lowerbar.parameters
         
         self.stimulusparamtext = BitmapText(color=(0.0, 1.0, 0.0, 1.0), on=False)
@@ -177,8 +172,9 @@ class ManStimulus(Stimulus):
         
         self.viewport_indicators = (self.lvpindicatortext.parameters,self.rvpindicatortext.parameters)
 
-    def make_stimuli(self):
-        raise RuntimeError("%s: Definition of make_stimuli() in abstract base class ManStimulus must be overriden."%(str(self),))
+        self.info = (self.upperbar, self.squarelocktext, self.viewportinfotext, self.screentext,
+                     self.lvpindicatortext, self.rvpindicatortext,
+                     self.lowerbar, self.stimulusparamtext)
         
     def register_controllers(self):
         self.controllers = []
@@ -206,6 +202,7 @@ class ManStimulus(Stimulus):
                                (pygame.locals.MOUSEMOTION, self.mousemotion_callback),
                                (pygame.locals.MOUSEBUTTONDOWN, self.mousebuttondown_callback),
                                (pygame.locals.MOUSEBUTTONUP, self.mousebuttonup_callback)]
+        
     def keydown_callback(self,event):
         mods = pygame.key.get_mods()
         key = event.key
@@ -226,15 +223,15 @@ class ManStimulus(Stimulus):
         elif key in [K_0, K_KP0]: # set pos and ori to 0
             self.x = self.viewport.xorig
             self.y = self.viewport.yorig
-            self.ori = 0
+            self.parameters.ori = 0
         elif key in [K_SPACE, K_RETURN, K_KP_ENTER] or mods & KMOD_CTRL and key in [K_1, K_KP1]:
-            self.save_preference(0)  # save  Manbar state 0
+            self.save_params(0)  # save  Manbar state 0
         elif mods & KMOD_CTRL and key in [K_2, K_KP2]:
-            self.save_preference(1)  # save  Manbar state 1
+            self.save_params(1)  # save  Manbar state 1
         elif not mods & KMOD_CTRL and key in [K_1, K_KP1]:
-            self.load_preference(0) # load Manbar state 0
+            self.load_params(0) # load Manbar state 0
         elif not mods & KMOD_CTRL and key in [K_2, K_KP2]:
-            self.load_preference(1) # load Manbar state 1
+            self.load_params(1) # load Manbar state 1
         elif key == K_t: # add 90 degrees to orientation
             self.orthogonalize_ori = True
         elif key == K_u: # add 180 degrees to orientation
@@ -270,8 +267,8 @@ class ManStimulus(Stimulus):
             x = self.viewport.width_pix
             pygame.mouse.set_pos([x,y])
         y = self.viewport.height_pix - y
-        self.xorigDeg = self.viewport.pix2deg(x - self.viewport.xorig)
-        self.yorigDeg = self.viewport.pix2deg(y - self.viewport.yorig)
+        self.parameters.xorigDeg = self.viewport.pix2deg(x - self.viewport.xorig)
+        self.parameters.yorigDeg = self.viewport.pix2deg(y - self.viewport.yorig)
         self.x = x
         self.y = y
         self.viewport.save_mouse_pos((self.x, self.viewport.height_pix - y))

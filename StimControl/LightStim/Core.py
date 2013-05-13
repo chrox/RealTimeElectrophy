@@ -71,11 +71,11 @@ class Stimulus(VisionEgg.Core.Stimulus):
             self.param_file = "stimulus_params.pkl"
             
         if hasattr(params,'bgbrightness'):
-            bgcolor = (params.bgbrightness, params.bgbrightness, params.bgbrightness)
+            self.bgcolor = (params.bgbrightness, params.bgbrightness, params.bgbrightness)
         else:
-            bgcolor = (0.0,0.0,0.0)
+            self.bgcolor = (0.0,0.0,0.0)
         if viewport:
-            self.viewport = Viewport(name=viewport, bgcolor=bgcolor)
+            self.viewport = Viewport(name=viewport, bgcolor=self.bgcolor)
             
         """ store stimulus parameters """
         self.parameters = dictattr()

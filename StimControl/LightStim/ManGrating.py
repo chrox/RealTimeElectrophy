@@ -8,7 +8,6 @@
 from __future__ import division
 import numpy as np
 np.seterr(all='raise')
-import pickle
 import logging
 
 import pygame
@@ -26,70 +25,70 @@ class ManGratingController(StimulusController):
     def __init__(self,*args,**kwargs):
         super(ManGratingController, self).__init__(*args,**kwargs)
         self.gp = self.stimulus.gp
-        if self.stimulus.mask:
+        if self.p.mask:
             self.gmp = self.stimulus.gmp
         self.bgp = self.stimulus.bgp
         self.cp = self.stimulus.cp
         self.fp = self.stimulus.fp
     def during_go_eval(self):
-        self.cp.on = self.stimulus.on
-        self.cp.position = self.viewport.deg2pix(self.stimulus.xorigDeg) + self.viewport.xorig ,\
-                           self.viewport.deg2pix(self.stimulus.yorigDeg) + self.viewport.yorig # update center spot position
+        self.cp.on = self.p.on
+        self.cp.position = self.viewport.deg2pix(self.p.xorigDeg) + self.viewport.xorig ,\
+                           self.viewport.deg2pix(self.p.yorigDeg) + self.viewport.yorig # update center spot position
         
         self.fp.on = True
-        self.gp.on = self.stimulus.on
+        self.gp.on = self.p.on
         self.gp.position = self.cp.position
         
-        if self.stimulus.mask and self.stimulus.mask_on:
-            radius = self.viewport.deg2pix(self.stimulus.maskDiameterDeg) / 2.0
-            if self.stimulus.mask == 'gaussian':
+        if self.p.mask and self.stimulus.mask_on:
+            radius = self.viewport.deg2pix(self.p.maskDiameterDeg) / 2.0
+            if self.p.mask == 'gaussian':
                 self.gp.size = [max(self.viewport.width_pix,self.viewport.height_pix) * 1.415] * 2
             else:
                 self.gp.size = [radius * 2] * 2
             samplesperpix = self.stimulus.nmasksamples / self.gp.size[0]
             if self.gp.mask: # mask is on in last sweep 
                 old_params = self.gp.mask.constant_parameters
-                if not radius*samplesperpix == old_params.radius_parameter or not self.stimulus.mask == old_params.function:
-                    new_mask = Mask2D(function=self.stimulus.mask,
+                if not radius*samplesperpix == old_params.radius_parameter or not self.p.mask == old_params.function:
+                    new_mask = Mask2D(function=self.p.mask,
                                       radius_parameter=radius*samplesperpix,
                                       num_samples=old_params.num_samples)
                     self.gp.mask = new_mask
             # mask is not on in last sweep find last mask
-            elif self.stimulus.mask == 'circle' and hasattr(self.stimulus,'last_circle_mask'):
+            elif self.p.mask == 'circle' and hasattr(self.stimulus,'last_circle_mask'):
                 self.gp.mask = self.stimulus.last_circle_mask
-            elif self.stimulus.mask == 'gaussian' and hasattr(self.stimulus,'last_gaussian_mask'):
+            elif self.p.mask == 'gaussian' and hasattr(self.stimulus,'last_gaussian_mask'):
                 self.gp.mask = self.stimulus.last_gaussian_mask 
             else: # first sweep
-                new_mask = Mask2D(function=self.stimulus.mask,
+                new_mask = Mask2D(function=self.p.mask,
                                   radius_parameter=radius*samplesperpix,
                                   num_samples=self.stimulus.grating_mask.constant_parameters.num_samples)
                 self.gp.mask = new_mask
-            if self.stimulus.mask == 'circle':
+            if self.p.mask == 'circle':
                 self.stimulus.last_circle_mask = self.gp.mask
-            if self.stimulus.mask == 'gaussian':
+            if self.p.mask == 'gaussian':
                 self.stimulus.last_gaussian_mask = self.gp.mask
         else:
-            self.gp.size = self.viewport.deg2pix(self.stimulus.gheightDeg), self.viewport.deg2pix(self.stimulus.widthDeg) # convert to pix
+            self.gp.size = self.viewport.deg2pix(self.p.gheightDeg), self.viewport.deg2pix(self.p.widthDeg) # convert to pix
             self.gp.mask = None
-        self.gp.spatial_freq = self.viewport.cycDeg2cycPix(self.stimulus.sfreqCycDeg)
-        self.gp.temporal_freq_hz = self.stimulus.tfreqCycSec
+        self.gp.spatial_freq = self.viewport.cycDeg2cycPix(self.p.sfreqCycDeg)
+        self.gp.temporal_freq_hz = self.p.tfreqCycSec
         
         # customize the drifting process so that when changing the grating size the drifting keeps smooth
         # have some hacks to rectify phase_at_t0
         try:
             self.last_heightDeg
         except AttributeError:
-            self.last_heightDeg = self.stimulus.gheightDeg
-        delta_height = max((self.stimulus.gheightDeg - self.last_heightDeg) / 2, 0)
-        phase_rect = (delta_height / self.stimulus.sfreqCycDeg * 360.0 / self.viewport.refresh_rate ) % 360.0
-        self.last_heightDeg = self.stimulus.gheightDeg
-        deltaphase = self.viewport.cycSec2cycVsync(self.stimulus.tfreqCycSec) * 360
-        self.stimulus.phase0 = (self.stimulus.phase0 - phase_rect - deltaphase) % 360.0
-        self.gp.phase_at_t0 = self.stimulus.phase0
+            self.last_heightDeg = self.p.gheightDeg
+        delta_height = max((self.p.gheightDeg - self.last_heightDeg) / 2, 0)
+        phase_rect = (delta_height / self.p.sfreqCycDeg * 360.0 / self.viewport.refresh_rate ) % 360.0
+        self.last_heightDeg = self.p.gheightDeg
+        deltaphase = self.viewport.cycSec2cycVsync(self.p.tfreqCycSec) * 360
+        self.p.phase0 = (self.p.phase0 - phase_rect - deltaphase) % 360.0
+        self.gp.phase_at_t0 = self.p.phase0
         
-        self.gp.orientation = (self.stimulus.ori + 90) % 360.0
-        self.gp.contrast = self.stimulus.contrast
-        self.bgp.color = (self.stimulus.bgbrightness, self.stimulus.bgbrightness, self.stimulus.bgbrightness, 1.0)                         
+        self.gp.orientation = (self.p.ori + 90) % 360.0
+        self.gp.contrast = self.p.contrast
+        self.bgp.color = (self.p.bgbrightness, self.p.bgbrightness, self.p.bgbrightness, 1.0)                         
 
 class GratingInfoController(StimulusController):
     """ update stimulus info """
@@ -99,41 +98,41 @@ class GratingInfoController(StimulusController):
     def during_go_eval(self):
         if not self.stimulus.mask_on:                     
             self.sptp.text = u'pos:(%5.1f,%5.1f)º| size:(%4.1f,%4.1f)º| ori:%5.1fº| tfreq:%.2fcyc/s| sfreq:%.2f cyc/º| contrast:%.2f' \
-                            % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
-                                self.stimulus.widthDeg, self.stimulus.gheightDeg,
-                                self.stimulus.ori, self.stimulus.tfreqCycSec, self.stimulus.sfreqCycDeg, self.stimulus.contrast)
+                            % ( self.p.xorigDeg, self.p.yorigDeg,
+                                self.p.widthDeg, self.p.gheightDeg,
+                                self.p.ori, self.p.tfreqCycSec, self.p.sfreqCycDeg, self.p.contrast)
         else:
             self.sptp.text = u'pos:(%5.1f,%5.1f)º | diameter:%5.1fº | ori:%5.1fº| tfreq:%.2fcyc/s| sfreq:%.2f cyc/º| contrast:%.2f' \
-                            % ( self.stimulus.xorigDeg, self.stimulus.yorigDeg,
-                                self.stimulus.maskDiameterDeg,
-                                self.stimulus.ori, self.stimulus.tfreqCycSec, self.stimulus.sfreqCycDeg, self.stimulus.contrast)
+                            % ( self.p.xorigDeg, self.p.yorigDeg,
+                                self.p.maskDiameterDeg,
+                                self.p.ori, self.p.tfreqCycSec, self.p.sfreqCycDeg, self.p.contrast)
                  
 class SpatialFrequencyController(StimulusController):
     def __init__(self,*args,**kwargs):
         super(SpatialFrequencyController, self).__init__(*args,**kwargs)
     def during_go_eval(self):
         if self.stimulus.COMMA:
-            self.stimulus.sfreqCycDeg /= self.stimulus.sfreqmultiplier
+            self.p.sfreqCycDeg /= self.p.sfreqmultiplier
         elif self.stimulus.PERIOD:
-            self.stimulus.sfreqCycDeg *= self.stimulus.sfreqmultiplier
+            self.p.sfreqCycDeg *= self.p.sfreqmultiplier
             
 class TemporalFrequencyController(StimulusController):
     def __init__(self,*args,**kwargs):
         super(TemporalFrequencyController, self).__init__(*args,**kwargs)
     def during_go_eval(self):
         if self.stimulus.LEFTBRACKET:
-            self.stimulus.tfreqCycSec /= self.stimulus.tfreqmultiplier
+            self.p.tfreqCycSec /= self.p.tfreqmultiplier
         elif self.stimulus.RIGHTBRACKET:
-            self.stimulus.tfreqCycSec *= self.stimulus.tfreqmultiplier
+            self.p.tfreqCycSec *= self.p.tfreqmultiplier
 
 class ContrastController(StimulusController):
     def __init__(self,*args,**kwargs):
         super(ContrastController, self).__init__(*args,**kwargs)
     def during_go_eval(self):
         if self.stimulus.PLUS:
-            self.stimulus.contrast *= self.stimulus.contrastmultiplier
+            self.p.contrast *= self.p.contrastmultiplier
         elif self.stimulus.MINUS:
-            self.stimulus.contrast /= self.stimulus.contrastmultiplier
+            self.p.contrast /= self.p.contrastmultiplier
 #        self.stimulus.contrast = max(self.stimulus.contrast, 0) # keep it >= 0
 #        self.stimulus.contrast = min(self.stimulus.contrast, 1) # keep it <= 1
 
@@ -141,17 +140,17 @@ class GratingSizeController(SizeController):
     def __init__(self,*args,**kwargs):
         super(GratingSizeController, self).__init__(*args,**kwargs)
     def during_go_eval(self):
-        if self.stimulus.mask and self.stimulus.mask_on:
+        if self.p.mask and self.stimulus.mask_on:
             if self.stimulus.UP or self.stimulus.RIGHT:
-                self.stimulus.maskDiameterDeg += self.stimulus.maskSizeStepDeg
-                self.stimulus.widthDeg = self.stimulus.maskDiameterDeg
+                self.p.maskDiameterDeg += self.p.maskSizeStepDeg
+                self.p.widthDeg = self.p.maskDiameterDeg
             elif self.stimulus.DOWN or self.stimulus.LEFT:
-                self.stimulus.maskDiameterDeg = max(self.stimulus.maskDiameterDeg - self.stimulus.maskSizeStepDeg, 0.1)
-                self.stimulus.widthDeg = self.stimulus.maskDiameterDeg
-            if self.stimulus.widthDeg < self.stimulus.gheightDeg: # set smaller value of grating width and height to maskDiameter 
-                self.stimulus.widthDeg = self.stimulus.maskDiameterDeg
+                self.p.maskDiameterDeg = max(self.p.maskDiameterDeg - self.p.maskSizeStepDeg, 0.1)
+                self.p.widthDeg = self.p.maskDiameterDeg
+            if self.p.widthDeg < self.p.gheightDeg: # set smaller value of grating width and height to maskDiameter 
+                self.p.widthDeg = self.p.maskDiameterDeg
             else:
-                self.stimulus.gheightDeg = self.stimulus.maskDiameterDeg
+                self.p.gheightDeg = self.p.maskDiameterDeg
         else:
             super(GratingSizeController, self).during_go_eval()
 
@@ -160,44 +159,60 @@ class GratingOriController(OrientationController):
         super(GratingOriController, self).__init__(*args,**kwargs)
     def during_go_eval(self):
         super(GratingOriController, self).during_go_eval()
-        self.stimulus.ori += self.stimulus.reverse_direction * 180.0
-        self.stimulus.reverse_direction = False
-        self.stimulus.ori = self.stimulus.ori % 360 # keep it in [0, 360)
+        self.p.ori += self.stimulus.reverse_direction * 180.0
+        self.p.reverse_direction = False
+        self.p.ori = self.p.ori % 360 # keep it in [0, 360)
 
 class ManGrating(ManStimulus):
-    def __init__(self, params, **kwargs):
-        super(ManGrating, self).__init__(params=params, **kwargs)
+    def __init__(self, params, disp_info=False, **kwargs):
+        super(ManGrating, self).__init__(params=params, disp_info=disp_info, **kwargs)
+        """ Class specific data """
         self.name = 'mangrating'
-        self.COMMA, self.PERIOD = False,False
-        self.LEFTBRACKET, self.RIGHTBRACKET = False,False
-        self.defalut_preference = {'xorigDeg':0.0,
+        self.logger = logging.getLogger('LightStim.ManGrating')
+        self.param_names = ['xorigDeg','yorigDeg','widthDeg','gheightDeg','ori','mask',\
+                            'maskDiameterDeg','sfreqCycDeg','tfreqCycSec']
+        self.defalut_parameters = {'xorigDeg':0.0,
                                    'yorigDeg':0.0,
                                    'widthDeg':5.0,
                                    'gheightDeg':5.0, # gheightDeg for grating stimulus
+                                   'ori': 0.0,
                                    'mask':'circle',
                                    'maskDiameterDeg':5.0,
                                    'sfreqCycDeg':0.3,
-                                   'tfreqCycSec':2.0,
-                                   'ori': 0.0}
-
+                                   'tfreqCycSec':2.0,}
+        """ load parameters from stimulus_params file """
+        self.load_params()
+        """ override params from script """
+        self.set_parameters(self.parameters, params)
+        
+        """ set special parameters """
+        self.restored_on = self.parameters.on
+        
+        """ set special states """
+        self.COMMA, self.PERIOD = False,False
+        self.LEFTBRACKET, self.RIGHTBRACKET = False,False
+        
+        self.make_stimuli()
+        self.stimuli = self.complete_stimuli if disp_info else self.essential_stimuli
+        """ register controllers """
         self.register_controllers()
-        #self.register_event_handlers()
-        # load preference from saved file
-        self.load_preference(0)
-        self.set_parameters(params)
+        
+        self.restore_pos()
+        
     def make_stimuli(self):
-        nsinsamples = 1024
+        super(ManGrating, self).make_stimuli()
+        nsinsamples = 512
         self.grating = SinGrating2D(anchor='center',
-                                    pedestal=self.ml,
+                                    pedestal=self.parameters.ml,
                                     ignore_time=True,
                                     num_samples=nsinsamples,
                                     max_alpha=1.0,
                                     on=False) # opaque
         self.gp = self.grating.parameters
-        self.nmasksamples = 512
+        self.nmasksamples = 256
         self.grating_mask = Mask2D(function='circle', num_samples=(self.nmasksamples, self.nmasksamples)) # size of mask texture data (# of texels)
         self.gmp = self.grating_mask.parameters
-        if self.mask:
+        if self.parameters.mask:
             self.mask_on = True
         else:
             self.mask_on = False
@@ -214,14 +229,6 @@ class ManGrating(ManStimulus):
         self.complete_stimuli = (self.background, self.grating, self.fixationspot, self.centerspot) + self.info
         self.essential_stimuli = (self.background, self.grating)
     
-    def get_parameters(self):
-        param_names = ['xorigDeg','yorigDeg','widthDeg','gheightDeg','ori','mask','maskDiameterDeg','sfreqCycDeg','tfreqCycSec']
-        return dict((paramname,getattr(self,paramname)) for paramname in param_names)
-
-    def set_parameters(self,parameters):
-        for paramname, paramval in parameters.items():
-            setattr(self, paramname, paramval)
-    
     def register_stimulus_controller(self):
         self.controllers.append(GratingSizeController(self))
         self.controllers.append(SpatialFrequencyController(self))
@@ -234,12 +241,24 @@ class ManGrating(ManStimulus):
     def register_info_controller(self):
         super(ManGrating,self).register_info_controller()
         self.controllers.append(GratingInfoController(self))
+    
+    def restore_pos(self):
+        # changes only after load/save a new preference
+        self.x  = int(round(self.viewport.deg2pix(self.parameters.xorigDeg) + self.viewport.xorig))
+        self.y  = int(round(self.viewport.deg2pix(self.parameters.yorigDeg) + self.viewport.yorig))
+        self.fp.position = self.x, self.y
+        self.viewport.save_mouse_pos((self.x, self.viewport.height_pix - self.y))
+    
+    def load_params(self, index=0):
+        super(ManGrating,self).load_params(index)
+        self.parameters.maskDiameterDeg = self.parameters['widthDeg']
+        if self.parameters.mask:
+            self.mask_on = True
         
-    def register_event_handlers(self):
-        super(ManGrating,self).register_event_handlers()
-        
-    def rebuild_event_handlers(self):
-        super(ManGrating,self).rebuild_event_handlers()
+    def save_params(self, index):
+        super(ManGrating,self).save_params(index)
+        self.fp.position = self.x, self.y
+        self.brightenText = "Index" + str(index)  # brighten the text for feedback
         
     def keydown_callback(self,event):
         super(ManGrating,self).keydown_callback(event)
@@ -256,12 +275,12 @@ class ManGrating(ManStimulus):
         elif key == K_m:
             self.mask_on = not self.mask_on
         elif key == K_c and not mods & KMOD_CTRL:
-            self.mask = 'circle'
+            self.parameters.mask = 'circle'
             self.mask_on = True
         elif key == K_f:
-            self.flash = not self.flash
+            self.parameters.flash = not self.parameters.flash
         elif key == K_g and not mods & KMOD_CTRL:
-            self.mask = 'gaussian'
+            self.parameters.mask = 'gaussian'
             self.mask_on = True
             
     def keyup_callback(self,event):
@@ -275,61 +294,4 @@ class ManGrating(ManStimulus):
             self.LEFTBRACKET = False
         elif key == K_RIGHTBRACKET:
             self.RIGHTBRACKET = False
-            
-    def load_preference(self, index):
-        name = self.viewport.name
-        info = self.name + str(index) + ' in ' + name + ' viewport.'
-        logger = logging.getLogger('LightStim.ManGrating')
-        if self.viewport.get_name() != 'control':   # make control viewport like a passive viewport
-            logger.info('Load preference for ' + info)
-        try:
-            with open('stimulus_params.pkl','rb') as pkl_input:
-                preferences_dict = pickle.load(pkl_input)[name][index]
-                for key in preferences_dict:
-                    if key in self.defalut_preference and \
-                              type(preferences_dict[key]) != type(self.defalut_preference[key]):
-                        preferences_dict[key] = self.defalut_preference[key]
-                        logger.warning("Found corrupted parameter '%s' for " %key + info + 
-                                       ' Use the default value %s.'%str(self.defalut_preference[key]))
-                self.defalut_preference.update(preferences_dict)
-                self.preference = self.defalut_preference
-        except:
-            if self.viewport.get_name() != 'control':
-                logger.warning('Cannot load preference for ' + info + ' Use the default preference.')
-            self.preference = self.defalut_preference
-            
-        self.set_parameters(self.preference)
-        self.maskDiameterDeg = self.preference['widthDeg']
-        if self.mask:
-            self.mask_on = True
-
-        # changes only after load/save a new preference
-        self.x  = int(round(self.viewport.deg2pix(self.xorigDeg) + self.viewport.xorig))
-        self.y  = int(round(self.viewport.deg2pix(self.yorigDeg) + self.viewport.yorig))
-        self.fp.position = self.x, self.y
-        self.viewport.save_mouse_pos((self.x, self.viewport.height_pix - self.y))
-         
-    def save_preference(self, index):
-        name = self.viewport.name
-        info = self.name + str(index) + ' in ' + name + ' viewport.'
-        logger = logging.getLogger('LightStim.ManGrating')
-        logger.info('Save preference for ' + info)
-        preferences_dict = {}
-        try:
-            try:
-                with open('stimulus_params.pkl','rb') as pkl_input:
-                    preferences_dict = pickle.load(pkl_input)
-            except:
-                logger.warning('Cannot load previous preferences.'+ ' Use the default preference.')
-            if name not in preferences_dict:
-                    preferences_dict[name] = [self.defalut_preference] * 2
-            with open('stimulus_params.pkl','wb') as pkl_output:
-                preferences_dict[name][index].update(self.get_parameters())
-                pickle.dump(preferences_dict, pkl_output)
-            logger.info('Saved parameters:\n' + str(self.get_parameters()))
-        except:
-            logger.warning('Cannot save preference ' + info)
-            
-        self.fp.position = self.x, self.y
-        self.brightenText = "Index" + str(index)  # brighten the text for feedback
         

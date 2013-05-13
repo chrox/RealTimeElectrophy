@@ -208,14 +208,14 @@ class ControlViewport(ManViewport):
     def __copy_stimparams(self):
         current_viewport = [viewport for viewport in Viewport.registered_viewports if viewport.is_current()][0]
         for stimulus in current_viewport.parameters.stimuli:  # save stimuli parameters in control viewport
-            if hasattr(stimulus,'get_parameters'):
-                self.copied_parameters[type(stimulus).__name__] = stimulus.get_parameters()
+            if hasattr(stimulus,'get_all_parameters'):
+                self.copied_parameters[type(stimulus).__name__] = stimulus.get_all_parameters()
                 
     def __paste_stimparams(self):
         current_viewport = [viewport for viewport in Viewport.registered_viewports if viewport.is_current()][0]
         for stimulus in current_viewport.parameters.stimuli:
-            if hasattr(stimulus,'set_parameters') and type(stimulus).__name__ in self.copied_parameters:
-                stimulus.set_parameters(self.copied_parameters[type(stimulus).__name__])
+            if hasattr(stimulus,'set_all_parameters') and type(stimulus).__name__ in self.copied_parameters:
+                stimulus.set_all_parameters(self.copied_parameters[type(stimulus).__name__])
     
     def keydown_callback(self,event):
         mods = pygame.key.get_mods()

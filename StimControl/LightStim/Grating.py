@@ -9,7 +9,6 @@ from __future__ import division
 import numpy as np
 np.seterr(all='raise')
 import random
-import pickle
 import logging
 
 from VisionEgg.Gratings import SinGrating2D
@@ -17,7 +16,6 @@ from VisionEgg.Textures import Mask2D
 from VisionEgg.MoreStimuli import Target2D
 
 from LightUtil import TimeFormat
-from LightData import dictattr
 from Core import Stimulus
 
 from SweepController import StimulusController,SweepSequeStimulusController,SweepSequeTriggerController
@@ -62,9 +60,17 @@ class RandPhaseController(SweepSequeStimulusController):
     def __init__(self,*args,**kwargs):
         super(RandPhaseController, self).__init__(*args,**kwargs)
         self.gp = self.stimulus.gp
-        self.phase = np.linspace(0.0, 360.0, 4, endpoint=False)
+        self.phase = np.linspace(0.0, 360.0, 16, endpoint=False)
     def during_go_eval(self):
         self.gp.phase_at_t0 = random.choice(self.phase)
+        
+class RandOriController(SweepSequeStimulusController):
+    def __init__(self,*args,**kwargs):
+        super(RandOriController, self).__init__(*args,**kwargs)
+        self.gp = self.stimulus.gp
+        self.ori = np.linspace(0.0, 360.0, 16, endpoint=False)
+    def during_go_eval(self):
+        self.gp.orientation = random.choice(self.ori)
 
 class TimingStampController(SweepSequeTriggerController):
     def __init__(self,*args,**kwargs):
@@ -184,12 +190,27 @@ class PhaTunStamp(ParamStampController):
         return post_val
         
 class Grating(Stimulus):
-    def __init__(self, params, sweepseq, trigger=True, **kwargs):
-        super(Grating, self).__init__(**kwargs)
+    def __init__(self, params, subject=None, sweepseq=None, trigger=True, **kwargs):
+        super(Grating, self).__init__(subject=subject, params=params, **kwargs)
         self.name = 'grating'
-        self.parameters = dictattr()
+        self.logger = logging.getLogger('LightStim.Grating')
+        self.param_names = ['on','xorigDeg','yorigDeg','widthDeg','gheightDeg','ori', \
+                            'mask','maskDiameterDeg','sfreqCycDeg','tfreqCycSec']
+        self.defalut_parameters = {'xorigDeg':0.0,
+                                   'yorigDeg':0.0,
+                                   'widthDeg':15.0,
+                                   'gheightDeg':15.0, # gheightDeg for grating stimulus
+                                   'ori': 0.0,
+                                   'mask':'circle',
+                                   'maskDiameterDeg':10.0,
+                                   'sfreqCycDeg':0.5,
+                                   'tfreqCycSec':2.0,}
+        """ load parameters from stimulus_params file """
         self.load_params()
+        """ override params from script """
         self.set_parameters(self.parameters, params)
+        self.parameters.on = False
+    
         self.sweepseq = sweepseq
         self.trigger = trigger
         
@@ -207,9 +228,11 @@ class Grating(Stimulus):
         #set background color before real sweep
         bgb = self.parameters.bgbrightness
         self.bgp.color = bgb, bgb, bgb, 1.0
+        
         nsinsamples = 1024
         self.grating = SinGrating2D(anchor='center',
                                     pedestal=self.parameters.ml,
+                                    contrast=self.parameters.contrast,
                                     ignore_time=True,
                                     num_samples=nsinsamples,
                                     max_alpha=1.0,
@@ -226,10 +249,6 @@ class Grating(Stimulus):
         self.gp.mask = self.grating_mask
         self.gmp = self.grating_mask.parameters
         self.stimuli = (self.background, self.grating)
-
-    def get_parameters(self):
-        param_names = ['on','xorigDeg','yorigDeg','widthDeg','gheightDeg','ori','mask','maskDiameterDeg','sfreqCycDeg','tfreqCycSec']
-        return dict((paramname,self.parameters[paramname]) for paramname in param_names)
     
     def register_controllers(self):
         self.logger = logging.getLogger('LightStim.Grating')
@@ -241,30 +260,6 @@ class Grating(Stimulus):
             estimated_duration = controller.get_estimated_duration()
             sweep_num = controller.get_sweeps_num()
             self.logger.info('Estimated stimulus duration: %s for %d sweeps.' %(str(TimeFormat(estimated_duration)), sweep_num))
-            
-    def load_params(self, index=0):
-        name = self.viewport.name
-        info = self.name + str(index) + ' in ' + name + ' viewport.'
-        logger = logging.getLogger('LightStim.Grating')
-        logger.info('Load preference for ' + info)
-        defalut_preference = {'xorigDeg':0.0,
-                                   'yorigDeg':0.0,
-                                   'widthDeg':15.0,
-                                   'gheightDeg':15.0, # gheightDeg for grating stimulus
-                                   'mask':'circle',
-                                   'maskDiameterDeg':10.0,
-                                   'sfreqCycDeg':0.5,
-                                   'tfreqCycSec':2.0,
-                                   'ori': 0.0}
-        with open('stimulus_params.pkl','rb') as pkl_input:
-            preferences_dict = pickle.load(pkl_input)[name][index]
-            for key in preferences_dict:
-                if key in defalut_preference and \
-                          type(preferences_dict[key]) != type(defalut_preference[key]):
-                    preferences_dict[key] = defalut_preference[key]
-                    logger.error("Found corrupted parameter '%s' for " %key + info + 'You should update your parameter file.')
-                    raise RuntimeError("Found corrupted parameter '%s' for " %key + info)
-            self.set_parameters(self.parameters, preferences_dict)
             
 class TimingSetGrating(Grating):
     def register_controllers(self):
