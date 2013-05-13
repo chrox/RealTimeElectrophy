@@ -13,6 +13,8 @@ from __future__ import division
 import os
 import sys
 import math
+import pickle
+import logging
 import numpy as np
 #import logging
 import OpenGL
@@ -26,10 +28,12 @@ import VisionEgg.GL as gl
 import VisionEgg.Core
 from .. import LightStim
 
+from LightData import dictattr
+
 class Screen(VisionEgg.Core.Screen):
     """ Large screen occupies multiply displays
     """
-    def __init__(self, viewports_list, bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8, **kw):
+    def __init__(self, viewports_list, bgcolor, frameless=True, hide_mouse=True, alpha_bits=8, **kw):
         # Make sure that SDL_VIDEO_WINDOW_POS takes effect.
         VisionEgg.config.VISIONEGG_FRAMELESS_WINDOW = 0
         screen_offset = min([LightStim.config.get_viewport_offset(viewport) for viewport in LightStim.config.get_known_viewports() if viewport in viewports_list])
@@ -39,29 +43,49 @@ class Screen(VisionEgg.Core.Screen):
             os.environ['SDL_VIDEODRIVER']='windib'
         self.screen_width = LightStim.config.get_screen_width_pix(viewports_list)
         self.screen_height = LightStim.config.get_screen_height_pix(viewports_list)
-        super(Screen,self).__init__(size=(self.screen_width, self.screen_height), bgcolor=(0.0,0.0,0.0), frameless=True, hide_mouse=True, alpha_bits=8, **kw)
+        super(Screen,self).__init__(size=(self.screen_width, self.screen_height), bgcolor=bgcolor, frameless=True, hide_mouse=True, alpha_bits=8, **kw)
 
 class DefaultScreen(Screen):
     """ Specified before stimulus definition.
     """
     screen = None
     viewports = None
-    def __init__(self,viewports_list):
-        DefaultScreen.screen = Screen(viewports_list)
+    def __init__(self,viewports_list,bgcolor=(0.0,0.0,0.0)):
+        DefaultScreen.screen = Screen(viewports_list,bgcolor)
         DefaultScreen.viewports = viewports_list
 
 class Stimulus(VisionEgg.Core.Stimulus):
     """ One stimulus has one and only one viewport to make things not so hard."""
     # __slot__ specifies which attributes are copied when copy.copy is called.
     __slots__ = ('controllers','sweep_completed')
-    def __init__(self, viewport=None, **kwargs):
+    def __init__(self, subject=None, params=None, viewport=None, **kwargs):
         super(Stimulus, self).__init__(**kwargs)
+        self.name = "stimulus"
+        self.logger = logging.getLogger('LightStim.Stimulus')
+        self.param_names = []
+        self.defalut_parameters = {}
+        
+        if subject is not None:
+            self.param_file = "stimulus_params." + subject + ".pkl"
+        else:
+            self.param_file = "stimulus_params.pkl"
+            
+        if hasattr(params,'bgbrightness'):
+            bgcolor = (params.bgbrightness, params.bgbrightness, params.bgbrightness)
+        else:
+            bgcolor = (0.0,0.0,0.0)
         if viewport:
-            self.viewport = Viewport(name=viewport)
+            self.viewport = Viewport(name=viewport, bgcolor=bgcolor)
+            
+        """ store stimulus parameters """
+        self.parameters = dictattr()
+        
         self.sweep_completed = False
         self.stimuli = []
         self.controllers = []
         self.event_handlers = []
+    def get_parameters(self, params, param_names):
+        return dict((paramname,getattr(params,paramname)) for paramname in param_names)
     def set_parameters(self, dest_params, source_params):
         for paramname, paramval in source_params.items():
             setattr(dest_params, paramname, paramval)
@@ -69,12 +93,53 @@ class Stimulus(VisionEgg.Core.Stimulus):
         for stimulus in self.stimuli:
             stimulus.draw()
     def make_stimuli(self):
-        pass    
+        raise RuntimeError("Must override make_stimuli method with stimulus implementation!")    
     def register_controllers(self):
-        pass
+        raise RuntimeError("Must override register_controllers method with stimulus implementation!")
     def register_event_handlers(self):
-        pass
-
+        raise RuntimeError("Must override register_event_handlers method with stimulus implementation!")
+    
+    def load_params(self, index=0):
+        name = self.viewport.name
+        info = self.name + str(index) + ' in ' + name + ' viewport.'
+        if self.viewport.get_name() != 'control':   # make control viewport like a passive viewport
+            self.logger.info('Load parameters for ' + info)
+        try:
+            with open(self.param_file,'rb') as pkl_input:
+                params_dict = pickle.load(pkl_input)[name][index]
+                for key in params_dict:
+                    if key in self.defalut_parameters and \
+                              type(params_dict[key]) != type(self.defalut_parameters[key]):
+                        params_dict[key] = self.defalut_parameters[key]
+                        self.logger.warning("Found corrupted parameter '%s' for " %key + info + 
+                                       ' Use the default value %s.'%str(self.defalut_parameters[key]))
+                self.defalut_parameters.update(params_dict)
+        except:
+            if self.viewport.get_name() != 'control':
+                self.logger.warning('Cannot load parameters for ' + info + ' Use the default parameter.')
+        
+        self.set_parameters(self.parameters, self.defalut_parameters)
+    
+    def save_params(self, index):
+        name = self.viewport.name
+        info = self.name + str(index) + ' in ' + name + ' viewport.'
+        self.logger.info('Save preference for ' + info)
+        params_dict = {}
+        try:
+            try:
+                with open(self.param_file,'rb') as pkl_input:
+                    params_dict = pickle.load(pkl_input)
+            except:
+                self.logger.warning('Cannot load params.'+ ' Use the default preference.')
+            if name not in params_dict:
+                params_dict[name] = [self.defalut_preference] * 2
+            with open(self.param_file,'wb') as pkl_output:
+                params_dict[name][index].update(self.get_parameters(self.parameters, self.param_names))
+                pickle.dump(params_dict, pkl_output)
+            self.logger.info('Saved parameters:\n' + str(self.get_parameters(self.parameters, self.param_names)))
+        except:
+            self.logger.warning('Cannot save preference ' + info)
+    
 class Dummy_Stimulus(Stimulus):
     """ To keep the framesweep running """
     def __init__(self, viewport='left', **kwargs):
@@ -103,7 +168,7 @@ class Viewport(VisionEgg.Core.Viewport):
     """
     defined_viewports = []    # defined viewports in stimulus. Updated when stimulus is defined.
     registered_viewports = [] # registered viewports in screen. Updated when stimulus is added. And viewport is deleted.
-    def __init__(self, name, bgcolor=(0.0,0.0,0.0), **kw):
+    def __init__(self, name, bgcolor=None, **kw):
         if name not in Viewport.defined_viewports:
             Viewport.defined_viewports.append(name)
         self.name = name
@@ -126,7 +191,8 @@ class Viewport(VisionEgg.Core.Viewport):
         mirror_view = HorizontalMirrorView(width=self.width_pix) if self.mirrored else None
         
         screen = DefaultScreen.screen if DefaultScreen.screen is not None else Screen(Viewport.defined_viewports)
-        screen.parameters.bgcolor = bgcolor
+        if bgcolor is not None:
+            screen.parameters.bgcolor = bgcolor
         super(Viewport,self).__init__(anchor='upperleft', size=self.size, camera_matrix=mirror_view, screen=screen, **kw)
     
     def update_viewport(self):
