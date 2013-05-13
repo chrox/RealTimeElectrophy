@@ -108,8 +108,8 @@ class ViewportEventHandlerController(StimulusController):
 
 class ManStimulus(Stimulus):
     __slots__ = ('complete_stimuli','essential_stimuli')
-    def __init__(self, viewport, subject=None, disp_info=False, **kwargs):
-        super(ManStimulus, self).__init__(viewport=viewport, subject=subject, **kwargs)
+    def __init__(self, viewport, disp_info=False, **kwargs):
+        super(ManStimulus, self).__init__(viewport=viewport, **kwargs)
         logger = logging.getLogger('LightStim.ManStimulus')
         if disp_info and viewport is not 'control':
             logger.warning('Viewport ' + viewport +' may display incomplete stimulus information.')

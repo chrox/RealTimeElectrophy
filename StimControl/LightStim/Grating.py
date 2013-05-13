@@ -31,19 +31,19 @@ class GratingController(StimulusController):
             self.gmp = self.stimulus.gmp
         self.bgp = self.stimulus.bgp
     def during_go_eval(self):
-        self.params = self.stimulus.parameters
-        self.gp.position  = self.viewport.deg2pix(self.params.xorigDeg) + self.viewport.xorig ,\
-                           self.viewport.deg2pix(self.params.yorigDeg) + self.viewport.yorig
-        self.gp.spatial_freq = self.viewport.cycDeg2cycPix(self.params.sfreqCycDeg)
-        self.gp.temporal_freq_hz = self.params.tfreqCycSec
+        self.gp.on = self.p.on
+        self.gp.position  = self.viewport.deg2pix(self.p.xorigDeg) + self.viewport.xorig ,\
+                           self.viewport.deg2pix(self.p.yorigDeg) + self.viewport.yorig
+        self.gp.spatial_freq = self.viewport.cycDeg2cycPix(self.p.sfreqCycDeg)
+        self.gp.temporal_freq_hz = self.p.tfreqCycSec
 
-        deltaphase = self.viewport.cycSec2cycVsync(self.params.tfreqCycSec) * 360
-        self.params.phase0 = (self.params.phase0 - deltaphase) % 360.0
-        self.gp.phase_at_t0 = self.params.phase0
+        deltaphase = self.viewport.cycSec2cycVsync(self.p.tfreqCycSec) * 360
+        self.p.phase0 = (self.p.phase0 - deltaphase) % 360.0
+        self.gp.phase_at_t0 = self.p.phase0
         
-        self.gp.orientation = (self.params.ori + 90) % 360.0
-        self.gp.contrast = self.params.contrast
-        self.bgp.color = (self.params.bgbrightness, self.params.bgbrightness, self.params.bgbrightness, 1.0)
+        self.gp.orientation = (self.p.ori + 90) % 360.0
+        self.gp.contrast = self.p.contrast
+        self.bgp.color = (self.p.bgbrightness, self.p.bgbrightness, self.p.bgbrightness, 1.0)
 
 class TimingController(SweepSequeStimulusController):
     def __init__(self,*args,**kwargs):

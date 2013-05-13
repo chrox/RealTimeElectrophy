@@ -79,6 +79,8 @@ class Stimulus(VisionEgg.Core.Stimulus):
             
         """ store stimulus parameters """
         self.parameters = dictattr()
+        if params is not None:
+            self.set_parameters(self.parameters, params)
         
         self.sweep_completed = False
         self.stimuli = []
