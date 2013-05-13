@@ -102,6 +102,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
                     viewport.parameters.stimuli.append(stimulus)
     
     def remove_stimuli(self):
+        self.stimulus_pool = []
         p = self.parameters
         for viewport in p.viewports:
             viewport.parameters.stimuli = []
@@ -128,7 +129,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         Viewport.registered_viewports = []
         self.parameters.go_duration = (0,'frames')
 
-    def go(self,prestim=None,poststim=None,RSTART=False):
+    def go(self,duration=None,prestim=None,poststim=None,RSTART=False):
         logger = logging.getLogger('LightStim.FrameControl')
         orig_go_duration = self.parameters.go_duration
         # pre stimulation go
@@ -142,7 +143,10 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
                 self.remove_controller(None,None,remote_start_controller)
         
         # stimulation go
-        self.parameters.go_duration = orig_go_duration
+        if duration is not None:
+            self.parameters.go_duration = duration
+        else:
+            self.parameters.go_duration = orig_go_duration
         self.add_controllers()
         # use VisionEgg timing function which handles platform specific problems
         sweep_begin = VisionEgg.true_time_func()
