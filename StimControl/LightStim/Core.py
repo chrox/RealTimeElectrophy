@@ -134,12 +134,13 @@ class Stimulus(VisionEgg.Core.Stimulus):
             except:
                 self.logger.warning('Cannot load params.'+ ' Use the default preference.')
             if name not in params_dict:
-                params_dict[name] = [self.defalut_preference] * 2
+                params_dict[name] = [self.defalut_parameters] * 2
             with open(self.param_file,'wb') as pkl_output:
                 params_dict[name][index].update(self.get_parameters(self.parameters, self.param_names))
                 pickle.dump(params_dict, pkl_output)
             self.logger.info('Saved parameters:\n' + str(self.get_parameters(self.parameters, self.param_names)))
-        except:
+        except Exception, e:
+            self.logger.error(e)
             self.logger.warning('Cannot save preference ' + info)
     
 class Dummy_Stimulus(Stimulus):
