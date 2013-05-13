@@ -17,7 +17,7 @@ p = dictattr()
 # bar brightness (0-1)
 p.brightness = 1
 # background brightness (0-1)
-p.bgbrightness = 0
+p.bgbrightness = 0.5
 # antialiase the bar?
 p.antialiase = True
 # flash the bar?

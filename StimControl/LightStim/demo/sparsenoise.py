@@ -54,4 +54,4 @@ stimulus_left = WhiteNoise(viewport='right', params=p, sweepseq=noise_sequence)
 
 sweep = FrameSweep()
 sweep.add_stimulus(stimulus_left)
-sweep.go(preframesweepSec, postframesweepSec)
+sweep.go(prestim=preframesweepSec, poststim=postframesweepSec)
