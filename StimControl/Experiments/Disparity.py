@@ -88,14 +88,17 @@ class Disparity(object):
         dp.bgbrightness = 0.5
         dp.antialiase = True
         
-        dp.dotsNumber = 2000
         dp.dotSquareWidth = 7.5
+        dp.dotsNumber = 2000
         dp.randomSeed = 0
+        dp.dotColor = (0.8, 0.8, 0.8)
+        dp.dotSize = 3
         dp.discDistDeg = 2.5
         dp.discDiameter = 1.25
         dp.disparity = 0
-        dp.discsize = 1.5
         
+        self.dp = dp
+        self.subject = subject
         self.disc_left = StereoDisc(viewport='left', subject=subject, params=dp)
         self.disc_right = StereoDisc(viewport='right', subject=subject, params=dp)
         
@@ -104,10 +107,13 @@ class Disparity(object):
         mp.bgbrightness = 0.5
         mp.antialiase = True
         
-        mp.dotsNumber = 3000
         mp.dotSquareWidth = 7.5
+        mp.dotsNumber = 4500
         mp.randomSeed = 1
+        mp.dotColor = (1, 1, 1)
+        mp.dotSize = 2
         
+        self.mp = mp
         self.mask_left = RandomDots(viewport='left', subject=subject, params=mp)
         self.mask_right = RandomDots(viewport='right', subject=subject, params=mp)
         
@@ -144,6 +150,13 @@ class Disparity(object):
     def run(self):
         random.seed()
         self.cross_interval = random.choice([1,2])
+        """ Randomize dots """
+        self.dp.randomSeed = random.randint(0,1000)
+        self.disc_left = StereoDisc(viewport='left', subject=self.subject, params=self.dp)
+        self.disc_right = StereoDisc(viewport='right', subject=self.subject, params=self.dp)
+        self.mp.randomSeed = random.randint(0,1000)
+        self.mask_left = RandomDots(viewport='left', subject=self.subject, params=self.mp)
+        self.mask_right = RandomDots(viewport='right', subject=self.subject, params=self.mp)
         """ Fixation """
         self.sweep.add_stimulus(self.fixation_left)
         self.sweep.add_stimulus(self.fixation_right)
