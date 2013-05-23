@@ -162,11 +162,11 @@ class QuestObject:
             betaSd=math.sqrt(num.sum(p2*beta2**2)/p-(num.sum(p2*beta2)/p)**2)
             iBetaMean=num.sum(p2/beta2)/p
             iBetaSd=math.sqrt(num.sum(p2/beta2**2)/p-(num.sum(p2/beta2)/p)**2)
-            stream.write('%5.2f	%5.2f	%4.1f	%4.1f	%6.3f\n'%(t,sd,1/iBetaMean,betaSd,self.gamma))
+            stream.write('%5.2f	%5.2f	%5.2f	%4.1f	%4.1f	%6.3f\n'%(t,10**t,sd,1/iBetaMean,betaSd,self.gamma))
         print 'Now re-analyzing with beta as a free parameter. . . .'
         if stream is None:
             stream=sys.stdout
-        stream.write('logC 	 sd 	 beta	 sd	 gamma\n');
+        stream.write('logC	 C	 sd	 beta	 sd	 gamma\n');
         beta_analysis1(stream)
 
     def mean(self):
