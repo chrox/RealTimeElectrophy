@@ -1,8 +1,11 @@
-
 /build
 /dist
+/deb_dist
 /data
-/.gitignore
-/.project
-/.pydevproject
-/.settings
+*.pyc
+*.log
+*.pkl
+*.plx
+.project
+.pydevproject
+.settings
