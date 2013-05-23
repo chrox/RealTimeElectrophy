@@ -55,8 +55,9 @@ class RandomDots(Stimulus):
                                      size=(int(width), int(width)),
                                      bgcolor=(0.5,0.5,0.5),
                                      num_dots=self.parameters.dotsNumber,
+                                     dot_color=self.parameters.dotColor,
                                      seed=self.parameters.randomSeed,
-                                     dot_size=3,
+                                     dot_size=self.parameters.dotSize,
                                      mask_on=False)
         self.rp = self.randomdots.parameters
         self.fixationspot = FixationSpot(anchor='center',
@@ -128,16 +129,20 @@ class StereoDisc(Stimulus):
                                      size=(int(width), int(width)),
                                      bgcolor=(0.5,0.5,0.5),
                                      num_dots=self.parameters.dotsNumber,
+                                     dot_color=self.parameters.dotColor,
                                      seed=self.parameters.randomSeed,
-                                     dot_size=3,
+                                     dot_size=self.parameters.dotSize,
                                      mask_on=False)
         self.rp = self.randomdots.parameters
+        disc_diameter = self.viewport.deg2pix(self.parameters.discDiameter)
         self.disc = TextureDots(on=True,
                                size=(int(width), int(width)),
                                bgcolor=(0.5,0.5,0.5),
                                num_dots=self.parameters.dotsNumber,
+                               dot_color=self.parameters.dotColor,
                                seed=self.parameters.randomSeed,
-                               dot_size=3,
+                               dot_size=self.parameters.dotSize,
+                               mask_diameter=disc_diameter,
                                mask_on=True)
         self.dp = self.disc.parameters
         self.fixationspot = FixationSpot(anchor='center',
