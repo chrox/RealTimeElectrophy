@@ -47,10 +47,16 @@ class SweepSequeStimulusController(StimulusController):
         repeat = int(self.sweepseq.sweep_duration * self.viewport.refresh_rate) 
         # frame and sweep are confusing names sometimes. Most of the time a sweep corresponse a vsync in screen sweeping.
         # but in this line sweep means a frame defined in sweepseque.
-        vsyncseque = [vsync for sweep in self.sweepseq.sequence_list for vsync in itertools.repeat(sweep,repeat)]
-        self.vsync_list = list(itertools.chain.from_iterable(vsyncseque))
-        self.sequence_iter = itertools.chain.from_iterable(vsyncseque)
-        self.sequence_indices = iter(range(len(self.vsync_list)))
+        if self.sweepseq.sequence_list is not None:
+            vsyncseque = [vsync for sweep in self.sweepseq.sequence_list for vsync in itertools.repeat(sweep,repeat)]
+            self.vsync_list = list(itertools.chain.from_iterable(vsyncseque))
+            self.sequence_iter = itertools.chain.from_iterable(vsyncseque)
+            self.sequence_indices = iter(range(len(self.vsync_list)))
+        elif self.sweepseq.sequence_iter is not None:
+            self.vsync_list = None
+            self.sequence_iter = self.sweepseq.sequence_iter
+            self.sequence_indices = None
+            
     def next_param(self):
         try:
             return self.sequence_iter.next()
@@ -63,9 +69,15 @@ class SweepSequeStimulusController(StimulusController):
         except StopIteration:
             return None
     def get_sweeps_num(self):
-        return len(self.vsync_list)
+        if self.vsync_list is None:
+            return float('nan')
+        else:
+            return len(self.vsync_list)
     def get_estimated_duration(self):
-        return len(self.vsync_list) / self.viewport.refresh_rate
+        if self.vsync_list is None:
+            return float('nan')
+        else:
+            return len(self.vsync_list) / self.viewport.refresh_rate
         
 class SweepSequeTriggerController(SweepSequeStimulusController):
     """ DAQStampTrigger for SweepSeque stimulus

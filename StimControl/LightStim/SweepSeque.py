@@ -43,11 +43,16 @@ class TimingSeque(SweepSeque):
                            "They will be set to nearest supported value: %s." \
                            %(' %.4f' %warned_duration, ' %.4f' %actual_duration))
         
-        interval = [0]*int(self.block.interval // self.sweep_duration)
         cycles = [[0]*pre_sweep_counts+[1]*stim_sweep_counts+[0]*post_sweep_counts] * repeat
-        random.shuffle(cycles)
-        self.sequence_list = [cycle * self.block.repeat + interval for cycle in cycles]
-        #self.sequence = itertools.chain.from_iterable(self.sequence_list)
+        if shuffle:
+            random.shuffle(cycles)
+        if self.block.repeat is not None:
+            interval = [0]*int(self.block.interval // self.sweep_duration)
+            self.sequence_list = [cycle * self.block.repeat + interval for cycle in cycles]
+            self.sequence_iter = None
+        else:
+            self.sequence_iter = itertools.cycle(cycles[0])
+            self.sequence_list = None
 
 class RandParam(SweepSeque):
     """ base class for generating random parameter sequence from input """
