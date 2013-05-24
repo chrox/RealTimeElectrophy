@@ -21,16 +21,39 @@ from Core import Stimulus
 from SweepController import StimulusController,SweepSequeStimulusController
 
 class MovieController(StimulusController):
-    """ update mangrating parameters """
+    """ update movie from pygame surface """
     def __init__(self,*args,**kwargs):
         super(MovieController, self).__init__(*args,**kwargs)
+        
         self.surface = self.stimulus.surface
         self.texture = self.stimulus.texture
         self.texture_obj = self.texture.get_texture_object()
+        
+        width, height = self.surface.get_size()
+        viewport = self.viewport.get_name()
+        if self.p.layout == "2D":
+            self.crop_box = (0, 0, width, height)
+            self.offset = (0, 0)
+        elif self.p.layout == "LR":
+            if viewport == "left":
+                self.crop_box = (0, 0, width//2, height)
+            elif viewport == "right":
+                self.crop_box = (width//2, 0, width, height)
+            self.offset = (width//4, 0)
+        elif self.p.layout == "TB":
+            if viewport == "left":
+                self.crop_box = (0, 0, width, height//2)
+            elif viewport == "right":
+                self.crop_box = (0, height//2, width, height)
+            self.offset = (0, height//4)
+        else:
+            self.logger.error("Cannot support layout: %s" %self.p.layout)
+        print self.crop_box, self.offset
     def during_go_eval(self):
         image = self.texture.get_texels_as_image()
         image = ImageEnhance.Contrast(image).enhance(self.p.contrast)
-        self.texture_obj.put_sub_image(image.transpose(Image.FLIP_TOP_BOTTOM))
+        self.texture_obj.put_sub_image(image.crop(self.crop_box).transpose(Image.FLIP_TOP_BOTTOM), \
+                                       offset_tuple=self.offset)
 
 class Movie(Stimulus):
     def __init__(self, params, surface, subject=None, sweepseq=None, trigger=True, **kwargs):

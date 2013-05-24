@@ -40,6 +40,12 @@ stim_interval = interval
 pre_left = 0.0 if stim_interval > 0 else abs(stim_interval)
 pre_right = 0.0 if stim_interval <= 0 else stim_interval
 
+layout = None
+if len(argv) >= 4:
+    layout = argv[3]
+if layout not in ("LR", "TB"):
+    layout = "2D"
+
 filename = argv[-1]
 movie = pygame.movie.Movie(filename)
 width, height = movie.get_size()
@@ -47,10 +53,12 @@ pygame_surface = pygame.surface.Surface((width,height))
 movie.set_display(pygame_surface)
 
 p_left = dictattr()
+p_left.layout = layout
 p_left.bgbrightness = 0.0
 p_left.contrast = 1.0
 
 p_right = dictattr()
+p_right.layout = layout
 p_right.bgbrightness = 0.0
 p_right.contrast = 0.5
 
