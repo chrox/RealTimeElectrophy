@@ -5,6 +5,8 @@
 # See LICENSE.TXT that came with this file.
 
 import itertools
+import logging
+
 import VisionEgg.FlowControl
 import VisionEgg.ParameterTypes as ve_types
 from VisionEgg.FlowControl import ONCE,TRANSITIONS,NOT_DURING_GO,NOT_BETWEEN_GO
@@ -20,6 +22,7 @@ class StimulusController(VisionEgg.FlowControl.Controller):
         VisionEgg.FlowControl.Controller.__init__(self,
                                            return_type=return_type,
                                            eval_frequency=eval_frequency)
+        self.logger = logging.getLogger('LightStim.SweepController')
         self.stimulus = stimulus
         self.viewport = stimulus.viewport
         
