@@ -60,6 +60,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         and screen. And it takes the responsibility for keeping proper order of these objects for VisionEgg presentation go method.
     """
     def __init__(self):
+        self.logger = logging.getLogger('LightStim.FrameControl')
         # buffer is used to add delayed controllers so that presweep go don't call the controllers.
         self.stimulus_pool = []
         
@@ -67,6 +68,9 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.quit = False
         self.paused = False
         self.interrupted = False
+        
+        # quit callback list
+        self.quit_callbacks = []
         
         super(FrameSweep, self).__init__(go_duration=('forever',''))
         self.event_handlers = [(pygame.locals.QUIT, self.quit_callback),
@@ -116,6 +120,9 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
                 for controller in stimulus.controllers:
                     if controller not in self.controllers:
                         self.controllers.append((None,None,controller))
+                        
+    def add_quit_callback(self, callback):
+        self.quit_callbacks.append(callback)
         
     def keydown_callback(self,event):
         if event.key == pygame.locals.K_ESCAPE:
@@ -124,13 +131,17 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
             
     def keyup_callback(self,event):
         pass
-            
+    
     def quit_callback(self,event):
+        for callback in self.quit_callbacks:
+            try:
+                callback()
+            except TypeError:
+                self.logger.error('Cannot callback: %s' %str(callback))
         Viewport.registered_viewports = []
         self.parameters.go_duration = (0,'frames')
 
     def go(self,duration=None,prestim=None,poststim=None,RSTART=False):
-        logger = logging.getLogger('LightStim.FrameControl')
         orig_go_duration = self.parameters.go_duration
         # pre stimulation go
         if prestim is not None:
@@ -166,7 +177,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
             super(FrameSweep, self).go()
         
         if self.interrupted:
-            logger.warning('Stimulation was interrupted before completion.')
+            self.logger.warning('Stimulation was interrupted before completion.')
         else:
-            logger.info('Stimulation completes successfully.')
-        logger.info('Actual stimulus duration: %s' %str(TimeFormat(sweep_duration)))
+            self.logger.info('Stimulation completes successfully.')
+        self.logger.info('Actual stimulus duration: %s' %str(TimeFormat(sweep_duration)))
