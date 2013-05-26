@@ -10,16 +10,118 @@ import numpy as np
 np.seterr(all='raise')
 import logging
 
-import VisionEgg.GL as gl
-from VisionEgg.Textures import Texture, TextureStimulus
-from VisionEgg.MoreStimuli import Target2D
+import pygame
+from OpenGL.GL.shaders import compileProgram, compileShader
 
-import Image
-import ImageEnhance
+import VisionEgg.GL as gl
+from VisionEgg.Textures import Texture, TextureObject, TextureStimulus
+from VisionEgg.MoreStimuli import Target2D
 
 from Core import Stimulus
 from SweepController import StimulusController,SweepSequeStimulusController
 
+class SurfaceTexture(Texture):
+    def __init__(self,contrast=1.0,*args,**kwargs):
+        super(SurfaceTexture, self).__init__(*args,**kwargs)
+        """
+        This contrast program comes from atduskgreg's shader example.
+        See https://github.com/atduskgreg/Processing-Shader-Examples/
+        """
+        self.contrast_program = compileProgram(
+            compileShader('''
+                uniform sampler2D src_tex_unit0;
+                uniform float contrast;
+                void main() {
+                    vec3 color = vec3(texture2D(src_tex_unit0, gl_TexCoord[0].st));
+                    const vec3 LumCoeff = vec3(0.2125, 0.7154, 0.0721);
+            
+                    vec3 AvgLumin = vec3(0.5, 0.5, 0.5);
+            
+                    vec3 intensity = vec3(dot(color, LumCoeff));
+            
+                    // could substitute a uniform for this 1. and have variable saturation
+                    vec3 satColor = mix(intensity, color, 1.);
+                    vec3 conColor = mix(AvgLumin, satColor, contrast);
+            
+                    gl_FragColor = vec4(conColor, 1);
+                }
+            ''',gl.GL_FRAGMENT_SHADER))
+        self.texture_loc = gl.glGetUniformLocation(self.contrast_program, "src_tex_unit0")
+        self.contrast_loc = gl.glGetUniformLocation(self.contrast_program, "contrast")
+        self.contrast = contrast
+    
+    def set_contrast(self, contrast):
+        self.contrast = contrast
+    
+    def update(self):
+        # install pixel shader for adjusting texture contrast
+        gl.glUseProgram(self.contrast_program)
+        gl.glUniform1i(self.texture_loc, 0)
+        gl.glUniform1f(self.contrast_loc, self.contrast)
+
+class SurfaceTextureObject(TextureObject):     
+    def update_sub_surface( self,
+                            texel_data,
+                            sub_surface_size, # updated region size
+                            unpack_offset = None, # crop offset 
+                            update_offset = None, # update offset
+                            mipmap_level = 0,
+                            data_format = None, # automatic guess unless set explicitly
+                            data_type = None, # automatic guess unless set explicitly
+                            ):
+        # make myself the active texture
+        gl.glBindTexture(self.target, self.gl_id)
+
+        if data_format is None: # guess the format of the data
+            if isinstance(texel_data,pygame.surface.Surface):
+                if texel_data.get_alpha():
+                    data_format = gl.GL_RGBA
+                else:
+                    data_format = gl.GL_RGB
+
+        data_type = gl.GL_UNSIGNED_BYTE
+        target = gl.GL_TEXTURE_2D
+        if unpack_offset is None:
+            unpack_offset = (0, 0)
+        if update_offset is None:
+            update_offset = (0, 0)
+        if isinstance(texel_data,pygame.surface.Surface):
+            width, _height = texel_data.get_size()
+            if texel_data.get_alpha():
+                raw_data = pygame.image.tostring(texel_data,'RGBA',1)
+            else:
+                raw_data = pygame.image.tostring(texel_data,'RGB',1)
+        
+        gl.glPixelStorei( gl.GL_UNPACK_ROW_LENGTH, width)
+        gl.glPixelStorei( gl.GL_UNPACK_SKIP_PIXELS, unpack_offset[0])
+        gl.glPixelStorei( gl.GL_UNPACK_SKIP_ROWS, unpack_offset[1])
+        gl.glTexSubImage2D(target,
+                           mipmap_level,
+                           update_offset[0],
+                           update_offset[1],
+                           sub_surface_size[0],
+                           sub_surface_size[1],
+                           data_format,
+                           data_type,
+                           raw_data)
+        gl.glPixelStorei( gl.GL_UNPACK_ROW_LENGTH, 0)
+        gl.glPixelStorei( gl.GL_UNPACK_SKIP_PIXELS, 0)
+        gl.glPixelStorei( gl.GL_UNPACK_SKIP_ROWS, 0)        
+
+class SurfaceTextureStimulus(TextureStimulus):
+    def __init__(self,*args,**kwargs):
+        super(SurfaceTextureStimulus, self).__init__(*args,**kwargs)
+        # Recreate an OpenGL texture object this instance "owns"
+        self.texture_object = SurfaceTextureObject(dimensions=2)
+        self.parameters.texture.load(self.texture_object,
+                                     internal_format=gl.GL_RGB,
+                                     build_mipmaps=False)
+        
+    def draw(self):
+        super(SurfaceTextureStimulus, self).draw()
+        # uninstall shader program
+        gl.glUseProgram(0)
+                
 class MovieController(StimulusController):
     """ update movie from pygame surface """
     def __init__(self,*args,**kwargs):
@@ -32,28 +134,32 @@ class MovieController(StimulusController):
         width, height = self.surface.get_size()
         viewport = self.viewport.get_name()
         if self.p.layout == "2D":
-            self.crop_box = (0, 0, width, height)
-            self.offset = (0, 0)
+            self.crop_offset = (0, 0)
+            self.size = (width, height)
+            self.update_offset = (0, 0)
         elif self.p.layout == "LR":
             if viewport == "left":
-                self.crop_box = (0, 0, width//2, height)
+                self.crop_offset = (0, 0)
             elif viewport == "right":
-                self.crop_box = (width//2, 0, width, height)
-            self.offset = (width//4, 0)
+                self.crop_offset = (width//2, 0)
+            self.size = (width//2, height)
+            self.update_offset = (width//4, 0)
         elif self.p.layout == "TB":
             if viewport == "left":
-                self.crop_box = (0, 0, width, height//2)
+                self.crop_offset = (0, 0)
             elif viewport == "right":
-                self.crop_box = (0, height//2, width, height)
-            self.offset = (0, height//4)
+                self.crop_offset = (0, height//2)
+            self.size = (width, height//2)
+            self.update_offset = (0, height//4)
         else:
             self.logger.error("Cannot support layout: %s" %self.p.layout)
-        print self.crop_box, self.offset
+        
     def during_go_eval(self):
-        image = self.texture.get_texels_as_image()
-        image = ImageEnhance.Contrast(image).enhance(self.p.contrast)
-        self.texture_obj.put_sub_image(image.crop(self.crop_box).transpose(Image.FLIP_TOP_BOTTOM), \
-                                       offset_tuple=self.offset)
+        self.texture.set_contrast(self.p.contrast)
+        self.texture_obj.update_sub_surface(self.surface,
+                                            sub_surface_size=self.size,
+                                            unpack_offset=self.crop_offset,
+                                            update_offset=self.update_offset)
 
 class Movie(Stimulus):
     def __init__(self, params, surface, subject=None, sweepseq=None, trigger=True, **kwargs):
@@ -90,8 +196,9 @@ class Movie(Stimulus):
         bgb = self.parameters.bgbrightness
         self.bgp.color = bgb, bgb, bgb, 1.0
         
-        self.texture = Texture(self.surface)
-        self.texture_stim = TextureStimulus(texture=self.texture,
+        contrast = self.parameters.contrast
+        self.texture = SurfaceTexture(contrast, self.surface)
+        self.texture_stim = SurfaceTextureStimulus(texture=self.texture,
                                        position=(size[0]/2, size[1]/2),
                                        anchor='center',
                                        mipmaps_enabled=0,
@@ -101,7 +208,6 @@ class Movie(Stimulus):
         self.stimuli = (self.background, self.texture_stim)
     
     def register_controllers(self):
-        self.logger = logging.getLogger('LightStim.Movie')
         self.controllers.append(MovieController(self))
         
 class TimingController(SweepSequeStimulusController):
