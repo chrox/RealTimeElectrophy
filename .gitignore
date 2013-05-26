@@ -2,6 +2,7 @@
 /dist
 /deb_dist
 /data
+MANIFEST
 *.pyc
 *.log
 *.pkl
