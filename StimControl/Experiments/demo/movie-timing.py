@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # Display movie on left and right viewport with arbitary inter-viewport delay.
 #
 # Copyright (C) 2010-2013 Huang Xin
@@ -15,7 +16,7 @@ from StimControl.LightStim.LightData import dictattr
 from StimControl.LightStim.SweepSeque import TimingSeque
 from StimControl.LightStim.FrameControl import FrameSweep
 from StimControl.LightStim.SweepController import SweepSequeStimulusController
-from StimControl.LightStim.Movie import TimingSetMovie
+from StimControl.LightStim.Movie import SurfaceTextureObject, TimingSetMovie
         
 DefaultScreen(['left','right'], bgcolor=(0.0,0.0,0.0))
 
@@ -52,6 +53,8 @@ width, height = movie.get_size()
 pygame_surface = pygame.surface.Surface((width,height))
 movie.set_display(pygame_surface)
 
+texture_object = SurfaceTextureObject(dimensions=2)
+
 p_left = dictattr()
 p_left.layout = layout
 p_left.bgbrightness = 0.0
@@ -71,9 +74,11 @@ sequence_right = TimingSeque(repeat=1, block=block_right, shuffle=True)
 
 if __name__ == '__main__':
     sweep = FrameSweep()
-    movie_left = TimingSetMovie(viewport='left', surface=pygame_surface, \
+    movie_left = TimingSetMovie(viewport='left', 
+                                surface=pygame_surface, texture_obj=texture_object,
                                 params=p_left, subject=subject, sweepseq=sequence_left)
-    movie_right = TimingSetMovie(viewport='right', surface=pygame_surface, \
+    movie_right = TimingSetMovie(viewport='right',
+                                 surface=pygame_surface, texture_obj=texture_object,
                                  params=p_right, subject=subject, sweepseq=sequence_right)
     sweep.add_stimulus(movie_left)
     sweep.add_stimulus(movie_right)

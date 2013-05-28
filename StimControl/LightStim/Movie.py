@@ -59,9 +59,14 @@ class SurfaceTexture(Texture):
         gl.glUniform1i(self.texture_loc, 0)
         gl.glUniform1f(self.contrast_loc, self.contrast)
 
-class SurfaceTextureObject(TextureObject):     
+class SurfaceTextureObject(TextureObject):
+    def __init__(self,*args,**kwargs):
+        super(SurfaceTextureObject, self).__init__(*args,**kwargs)
+        self.raw_data = None
+        
     def update_sub_surface( self,
                             texel_data,
+                            transfer_pixels,
                             sub_surface_size, # updated region size
                             unpack_offset = None, # crop offset 
                             update_offset = None, # update offset
@@ -81,16 +86,18 @@ class SurfaceTextureObject(TextureObject):
 
         data_type = gl.GL_UNSIGNED_BYTE
         target = gl.GL_TEXTURE_2D
+        
         if unpack_offset is None:
             unpack_offset = (0, 0)
         if update_offset is None:
             update_offset = (0, 0)
-        if isinstance(texel_data,pygame.surface.Surface):
-            width, _height = texel_data.get_size()
+            
+        width, _height = texel_data.get_size()
+        if transfer_pixels or self.raw_data is None:
             if texel_data.get_alpha():
-                raw_data = pygame.image.tostring(texel_data,'RGBA',1)
+                self.raw_data = pygame.image.tostring(texel_data,'RGBA',1)
             else:
-                raw_data = pygame.image.tostring(texel_data,'RGB',1)
+                self.raw_data = pygame.image.tostring(texel_data,'RGB',1)
         
         gl.glPixelStorei( gl.GL_UNPACK_ROW_LENGTH, width)
         gl.glPixelStorei( gl.GL_UNPACK_SKIP_PIXELS, unpack_offset[0])
@@ -103,16 +110,16 @@ class SurfaceTextureObject(TextureObject):
                            sub_surface_size[1],
                            data_format,
                            data_type,
-                           raw_data)
+                           self.raw_data)
         gl.glPixelStorei( gl.GL_UNPACK_ROW_LENGTH, 0)
         gl.glPixelStorei( gl.GL_UNPACK_SKIP_PIXELS, 0)
-        gl.glPixelStorei( gl.GL_UNPACK_SKIP_ROWS, 0)        
+        gl.glPixelStorei( gl.GL_UNPACK_SKIP_ROWS, 0)
 
 class SurfaceTextureStimulus(TextureStimulus):
-    def __init__(self,*args,**kwargs):
+    def __init__(self,shared_texture,*args,**kwargs):
         super(SurfaceTextureStimulus, self).__init__(*args,**kwargs)
         # Recreate an OpenGL texture object this instance "owns"
-        self.texture_object = SurfaceTextureObject(dimensions=2)
+        self.texture_object = shared_texture
         self.parameters.texture.load(self.texture_object,
                                      internal_format=gl.GL_RGB,
                                      build_mipmaps=False)
@@ -155,14 +162,16 @@ class MovieController(StimulusController):
             self.logger.error("Cannot support layout: %s" %self.p.layout)
         
     def during_go_eval(self):
+        transfer_pixels = True if self.viewport.get_name() == "left" else False
         self.texture.set_contrast(self.p.contrast)
         self.texture_obj.update_sub_surface(self.surface,
+                                            transfer_pixels=transfer_pixels,
                                             sub_surface_size=self.size,
                                             unpack_offset=self.crop_offset,
                                             update_offset=self.update_offset)
 
 class Movie(Stimulus):
-    def __init__(self, params, surface, subject=None, sweepseq=None, trigger=True, **kwargs):
+    def __init__(self, params, surface, texture_obj, subject=None, sweepseq=None, trigger=True, **kwargs):
         super(Movie, self).__init__(subject=subject, params=params, **kwargs)
         self.name = 'timingmovie'
         self.logger = logging.getLogger('LightStim.Movie')
@@ -180,6 +189,7 @@ class Movie(Stimulus):
         self.trigger = trigger
         
         self.surface = surface
+        self.texure_obj = texture_obj
         
         self.make_stimuli()
         self.register_controllers()
@@ -199,10 +209,11 @@ class Movie(Stimulus):
         contrast = self.parameters.contrast
         self.texture = SurfaceTexture(contrast, self.surface)
         self.texture_stim = SurfaceTextureStimulus(texture=self.texture,
-                                       position=(size[0]/2, size[1]/2),
-                                       anchor='center',
-                                       mipmaps_enabled=0,
-                                       texture_min_filter=gl.GL_LINEAR)
+                                                   shared_texture=self.texure_obj,
+                                                   position=(size[0]/2, size[1]/2),
+                                                   anchor='center',
+                                                   mipmaps_enabled=0,
+                                                   texture_min_filter=gl.GL_LINEAR)
         self.tp = self.texture_stim.parameters
         
         self.stimuli = (self.background, self.texture_stim)
