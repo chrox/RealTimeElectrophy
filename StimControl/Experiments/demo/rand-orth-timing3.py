@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # Generate arbitrary onset and offset timing gratings.
 #
 # Copyright (C) 2010-2011 Huang Xin

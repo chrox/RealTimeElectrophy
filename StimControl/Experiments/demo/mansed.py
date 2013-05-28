@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # Adjust SED gratings.
 #
 # Copyright (C) 2010-2011 Huang Xin

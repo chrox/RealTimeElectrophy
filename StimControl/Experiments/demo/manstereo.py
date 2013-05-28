@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # Demo program using Manstereo.
 #
 # Copyright (C) 2010-2013 Huang Xin
