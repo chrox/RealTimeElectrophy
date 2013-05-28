@@ -147,6 +147,16 @@ class Disparity(object):
     def get_cross_interval(self):
         return self.cross_interval
     
+    def demo(self):
+        self.update_disparity(cross=True)
+        self.sweep.add_stimulus(self.disc_left)
+        self.sweep.add_stimulus(self.disc_right)
+        self.sweep.add_stimulus(self.fixation_left)
+        self.sweep.add_stimulus(self.fixation_right)
+        self.sweep.add_controller(None, None, self.key_response)
+        self.sweep.add_controller(None, None, self.mouse_response)
+        self.sweep.go(duration=('forever',''))
+        
     def run(self):
         random.seed()
         self.cross_interval = random.choice([1,2])

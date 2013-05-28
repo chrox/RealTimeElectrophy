@@ -48,6 +48,9 @@ class Staircase(object):
         self.logger.write("="*36)
         self.logger.write("Staircase for Stereo Threshold measurement")
         self.logger.write("="*36)
+        # disc demo
+        disparity.set_disparity(0.1)
+        disparity.demo()
         for i, disp in enumerate(self.staircase_obj):
             disparity.set_disparity(disp)
             response = disparity.run()

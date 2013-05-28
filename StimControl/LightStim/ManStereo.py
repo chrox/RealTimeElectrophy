@@ -23,9 +23,9 @@ class PositionController(StimulusController):
         self.fp = self.stimulus.fp
 
     def during_go_eval(self):
-        self.p.discPosDeg += self.stimulus.SCROLL_UP * self.p.snapDeg
-        self.p.discPosDeg -= self.stimulus.SCROLL_DOWN * self.p.snapDeg
-        self.p.discPosDeg = self.p.discPosDeg % 360
+        self.p.posDeg += self.stimulus.SCROLL_UP * self.p.snapDeg
+        self.p.posDeg -= self.stimulus.SCROLL_DOWN * self.p.snapDeg
+        self.p.posDeg = self.p.posDeg % 360
         self.stimulus.SCROLL_UP = False
         self.stimulus.SCROLL_DOWN = False
         
@@ -33,8 +33,8 @@ class PositionController(StimulusController):
                            self.viewport.deg2pix(self.p.yorigDeg) + self.viewport.yorig
         self.rp.position = self.fp.position
         
-        posRad = (self.p.discPosDeg % 360)/180 * math.pi
-        radius = self.p.discDistDeg / 2
+        posRad = (self.p.posDeg % 360)/180 * math.pi
+        radius = self.p.radius
         
         self.dp.mask_position = math.cos(posRad) * self.viewport.deg2pix(radius), \
                                 math.sin(posRad) * self.viewport.deg2pix(radius)
@@ -60,11 +60,12 @@ class ManStereo(ManStimulus):
         super(ManStereo, self).__init__(params=params, disp_info=disp_info, **kwargs)
         self.name = 'manstereo'
         self.param_names += ['xorigDeg','yorigDeg',
-                             'dotSquareWidth','randomSeed','dotsNumber','discDistDeg',
-                             'discPosDeg','discDiameter','disparity']
+                             'dotSquareWidth','randomSeed','dotsNumber',
+                             'posDeg','radius','discDiameter','disparity']
         self.defalut_parameters.update({'xorigDeg':0.0,
                                         'yorigDeg':0.0,
-                                        'discPosDeg':0.0,})
+                                        'posDeg':0.0,
+                                        'radius':2.0})
         """ load parameters from stimulus_params file """
         self.load_params()
         """ override params from script """
