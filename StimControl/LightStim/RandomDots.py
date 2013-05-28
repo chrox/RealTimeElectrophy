@@ -77,8 +77,8 @@ class DiscPositionController(StimulusController):
         self.dp = self.stimulus.dp
 
     def during_go_eval(self):
-        posRad = (self.p.discPosDeg % 360)/180 * math.pi
-        radius = self.p.discDistDeg / 2
+        posRad = (self.p.posDeg % 360)/180 * math.pi
+        radius = self.p.radius
         
         self.dp.mask_position = math.cos(posRad) * self.viewport.deg2pix(radius), \
                                 math.sin(posRad) * self.viewport.deg2pix(radius)
@@ -101,10 +101,11 @@ class StereoDisc(Stimulus):
         self.name = 'stereodisc'
         self.param_names += ['xorigDeg','yorigDeg',
                              'dotSquareWidth','randomSeed','dotsNumber',
-                             'discDistDeg', 'discPosDeg','discDiameter','disparity']
+                             'posDeg','radius','discDiameter','disparity']
         self.defalut_parameters.update({'xorigDeg':0.0,
                                         'yorigDeg':0.0,
-                                        'discPosDeg':0.0,})
+                                        'posDeg':0.0,
+                                        'radius':2.0})
         """ load parameters from stimulus_params file """
         self.load_params()
         """ override params from script """
