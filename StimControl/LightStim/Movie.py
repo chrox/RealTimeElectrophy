@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Base class for grating stimulus.
 #
-# Copyright (C) 2010-2011 Huang Xin
+# Copyright (C) 2010-2013 Huang Xin
 #
 # See LICENSE.TXT that came with this file.
 
@@ -11,6 +11,7 @@ np.seterr(all='raise')
 import logging
 
 import pygame
+import multiprocessing.sharedctypes
 from OpenGL.GL.shaders import compileProgram, compileShader
 
 import VisionEgg.GL as gl
@@ -20,9 +21,9 @@ from VisionEgg.MoreStimuli import Target2D
 from Core import Stimulus
 from SweepController import StimulusController,SweepSequeStimulusController
 
-class SurfaceTexture(Texture):
+class ShaderTexture(Texture):
     def __init__(self,contrast=1.0,*args,**kwargs):
-        super(SurfaceTexture, self).__init__(*args,**kwargs)
+        super(ShaderTexture, self).__init__(*args,**kwargs)
         """
         This contrast program comes from atduskgreg's shader example.
         See https://github.com/atduskgreg/Processing-Shader-Examples/
@@ -98,7 +99,7 @@ class SurfaceTextureObject(TextureObject):
                 self.raw_data = pygame.image.tostring(texel_data,'RGBA',1)
             else:
                 self.raw_data = pygame.image.tostring(texel_data,'RGB',1)
-        
+
         gl.glPixelStorei( gl.GL_UNPACK_ROW_LENGTH, width)
         gl.glPixelStorei( gl.GL_UNPACK_SKIP_PIXELS, unpack_offset[0])
         gl.glPixelStorei( gl.GL_UNPACK_SKIP_ROWS, unpack_offset[1])
@@ -115,9 +116,54 @@ class SurfaceTextureObject(TextureObject):
         gl.glPixelStorei( gl.GL_UNPACK_SKIP_PIXELS, 0)
         gl.glPixelStorei( gl.GL_UNPACK_SKIP_ROWS, 0)
 
-class SurfaceTextureStimulus(TextureStimulus):
+class BufferedTextureObject(TextureObject):
+    def __init__(self,size,*args,**kwargs):
+        super(BufferedTextureObject, self).__init__(*args,**kwargs)
+        self.buffer_data = multiprocessing.sharedctypes.RawArray('B', size)
+        
+    def update_sub_surface( self,
+                            texel_data,
+                            transfer_pixels,
+                            sub_surface_size, # updated region size
+                            unpack_offset = None, # crop offset 
+                            update_offset = None, # update offset
+                            mipmap_level = 0,
+                            data_format = None, # automatic guess unless set explicitly
+                            data_type = None, # automatic guess unless set explicitly
+                            ):
+        # make myself the active texture
+        gl.glBindTexture(self.target, self.gl_id)
+        data_format = gl.GL_RGB
+        data_type = gl.GL_UNSIGNED_BYTE
+        target = gl.GL_TEXTURE_2D
+        
+        if unpack_offset is None:
+            unpack_offset = (0, 0)
+        if update_offset is None:
+            update_offset = (0, 0)
+            
+        width, _height = texel_data.get_size()
+        raw_data = np.frombuffer(self.buffer_data, 'B')
+
+        gl.glPixelStorei( gl.GL_UNPACK_ROW_LENGTH, width)
+        gl.glPixelStorei( gl.GL_UNPACK_SKIP_PIXELS, unpack_offset[0])
+        gl.glPixelStorei( gl.GL_UNPACK_SKIP_ROWS, unpack_offset[1])
+        gl.glTexSubImage2D(target,
+                           mipmap_level,
+                           update_offset[0],
+                           update_offset[1],
+                           sub_surface_size[0],
+                           sub_surface_size[1],
+                           data_format,
+                           data_type,
+                           raw_data)
+        gl.glPixelStorei( gl.GL_UNPACK_ROW_LENGTH, 0)
+        gl.glPixelStorei( gl.GL_UNPACK_SKIP_PIXELS, 0)
+        gl.glPixelStorei( gl.GL_UNPACK_SKIP_ROWS, 0)
+
+class ShaderTextureStimulus(TextureStimulus):
     def __init__(self,shared_texture,*args,**kwargs):
-        super(SurfaceTextureStimulus, self).__init__(*args,**kwargs)
+        super(ShaderTextureStimulus, self).__init__(*args,**kwargs)
         # Recreate an OpenGL texture object this instance "owns"
         self.texture_object = shared_texture
         self.parameters.texture.load(self.texture_object,
@@ -125,7 +171,7 @@ class SurfaceTextureStimulus(TextureStimulus):
                                      build_mipmaps=False)
         
     def draw(self):
-        super(SurfaceTextureStimulus, self).draw()
+        super(ShaderTextureStimulus, self).draw()
         # uninstall shader program
         gl.glUseProgram(0)
                 
@@ -207,8 +253,8 @@ class Movie(Stimulus):
         self.bgp.color = bgb, bgb, bgb, 1.0
         
         contrast = self.parameters.contrast
-        self.texture = SurfaceTexture(contrast, self.surface)
-        self.texture_stim = SurfaceTextureStimulus(texture=self.texture,
+        self.texture = ShaderTexture(contrast, self.surface)
+        self.texture_stim = ShaderTextureStimulus(texture=self.texture,
                                                    shared_texture=self.texure_obj,
                                                    position=(size[0]/2, size[1]/2),
                                                    anchor='center',
