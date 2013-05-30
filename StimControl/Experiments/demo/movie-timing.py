@@ -65,8 +65,8 @@ p_right.layout = layout
 p_right.bgbrightness = 0.0
 p_right.contrast = 0.5
 
-cycle_left = dictattr(duration=0.04, pre=pre_left, stimulus=0.016)
-cycle_right = dictattr(duration=0.04, pre=pre_right, stimulus=0.016)
+cycle_left = dictattr(duration=0.016, pre=pre_left, stimulus=0.016)
+cycle_right = dictattr(duration=0.016, pre=pre_right, stimulus=0.016)
 block_left = dictattr(repeat=None, cycle=cycle_left, interval=0.0)
 block_right = dictattr(repeat=None, cycle=cycle_right, interval=0.0)
 sequence_left = TimingSeque(repeat=1, block=block_left, shuffle=True)
