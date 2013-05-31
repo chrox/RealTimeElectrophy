@@ -6,25 +6,18 @@
 # See LICENSE.TXT that came with this file.
 
 from __future__ import division
+import os
 import sys
 import random
 import pygame
 import numpy as np
-
-import threading
-from threading import Thread 
-from multiprocessing import Process
-
-import time
-import alsaaudio
-from pyffmpeg import FFMpegReader, PixelFormats
 
 from StimControl.LightStim.Core import DefaultScreen
 from StimControl.LightStim.LightData import dictattr
 from StimControl.LightStim.SweepSeque import TimingSeque
 from StimControl.LightStim.FrameControl import FrameSweep
 from StimControl.LightStim.SweepController import SweepSequeStimulusController
-from StimControl.LightStim.Movie import BufferedTextureObject, TimingSetMovie
+from StimControl.LightStim.Movie import BufferedTextureObject, TimingSetMovie, MoviePlayer
         
 DefaultScreen(['left','right'], bgcolor=(0.0,0.0,0.0))
 
@@ -54,51 +47,12 @@ if len(argv) >= 4:
     layout = argv[3]
 if layout not in ("LR", "TB"):
     layout = "2D"
-
-filename = argv[-1]
-
-class AlsaSoundLazyPlayer:
-    def __init__(self,rate=44100,channels=2,fps=25):
-        self._rate=rate
-        self._channels=channels
-        self._d = alsaaudio.PCM()
-        self._d.setchannels(channels)
-        self._d.setformat(alsaaudio.PCM_FORMAT_S16_LE)
-        self._d.setperiodsize(int((rate*channels)//fps))
-        self._d.setrate(rate)
-    def push_nowait(self,stamped_buffer):
-        self._d.write(stamped_buffer[0].data)
-
-class Player(threading.Thread):
-    def run(self):
-        global mp
-        mp.run()
-    def stop(self):
-        global mp
-        mp.close()
-        
-def render_to_buffer(frame):
-    buffer = np.frombuffer(texture_object.buffer_data, 'B')
-    frame = np.flipud(frame)
-    frame = frame.reshape((1, -1))
-    buffer[:] = frame
-        
-TS_VIDEO_RGB24={ 'video1':(0, -1, {'pixel_format':PixelFormats.PIX_FMT_RGB24}), 'audio1':(1,-1,{})}
-## create the reader object
-mp = FFMpegReader()
-## open an audio-video file
-mp.open(filename,TS_VIDEO_RGB24 )
-tracks = mp.get_tracks()
-width, height = tracks[0].get_size()
-
-pygame_surface = pygame.surface.Surface((width,height))
-
-texture_object = BufferedTextureObject(size=width*height*3, dimensions=2)
-
-ap = AlsaSoundLazyPlayer(tracks[1].get_samplerate(),tracks[1].get_channels(),tracks[0].get_fps())
-
-tracks[1].set_observer(ap.push_nowait)
-tracks[0].set_observer(render_to_buffer)
+    
+seek = None
+try:
+    seek = int(argv[4])
+except:
+    pass
 
 p_left = dictattr()
 p_left.layout = layout
@@ -118,7 +72,13 @@ sequence_left = TimingSeque(repeat=1, block=block_left, shuffle=True)
 sequence_right = TimingSeque(repeat=1, block=block_right, shuffle=True)
 
 if __name__ == '__main__':
+    player = MoviePlayer(argv[-1])
+    width, height = player.get_size()
+    texture_object = BufferedTextureObject(size=width*height*3, dimensions=2)
+    player.set_texture(texture_object)
+    
     sweep = FrameSweep()
+    pygame_surface = pygame.surface.Surface((width,height))
     movie_left = TimingSetMovie(viewport='left', 
                                 surface=pygame_surface, texture_obj=texture_object,
                                 params=p_left, subject=subject, sweepseq=sequence_left)
@@ -127,8 +87,8 @@ if __name__ == '__main__':
                                  params=p_right, subject=subject, sweepseq=sequence_right)
     sweep.add_stimulus(movie_left)
     sweep.add_stimulus(movie_right)
-    player = Player()
     sweep.add_quit_callback(player.stop)
+    if seek is not None:
+        player.seek(seek)
     player.start()
     sweep.go()
-
