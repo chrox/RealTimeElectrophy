@@ -10,6 +10,12 @@ import numpy as np
 np.seterr(all='raise')
 import logging
 
+import os
+import signal
+import alsaaudio
+from multiprocessing import Process
+from pyffmpeg import FFMpegReader, PixelFormats
+
 import pygame
 import multiprocessing.sharedctypes
 from OpenGL.GL.shaders import compileProgram, compileShader
@@ -283,4 +289,55 @@ class TimingSetMovie(Movie):
         super(TimingSetMovie, self).register_controllers()
         self.logger.info('Register TimingController.')
         self.controllers.append(TimingController(self))
+        
+class AlsaSoundLazyPlayer:
+    def __init__(self,rate=44100,channels=2,fps=25):
+        self._rate=rate
+        self._channels=channels
+        self._d = alsaaudio.PCM()
+        self._d.setchannels(channels)
+        self._d.setformat(alsaaudio.PCM_FORMAT_S16_LE)
+        self._d.setperiodsize(int((rate*channels)//fps//2))
+        self._d.setrate(rate)
+    def push_nowait(self,stamped_buffer):
+        self._d.write(stamped_buffer[0].data)
+
+class MoviePlayer(Process):
+    def __init__(self, filename, *args,**kwargs):
+        super(MoviePlayer, self).__init__(*args,**kwargs)        
+        TS_VIDEO_RGB24={ 'video1':(0, -1, {'pixel_format':PixelFormats.PIX_FMT_RGB24}), 'audio1':(1,-1,{})}
+        ## create the reader object
+        self.mp = FFMpegReader(seek_before=0)
+        ## open an audio-video file
+        self.mp.open(filename,TS_VIDEO_RGB24,buf_size=4096)
+            
+    def get_size(self):
+        tracks = self.mp.get_tracks()
+        return tracks[0].get_size()
+    
+    def set_texture(self, texture_obj):
+        self.texture_obj = texture_obj
+        
+    def render_to_buffer(self, frame):
+        buffer_array = np.frombuffer(self.texture_obj.buffer_data, 'B')
+        frame = np.flipud(frame)
+        frame = frame.reshape((1, -1))
+        buffer_array[:] = frame
+        
+    def run(self):
+        tracks = self.mp.get_tracks()
+        tracks[0].set_observer(self.render_to_buffer)
+        rate = tracks[1].get_samplerate()
+        channels = tracks[1].get_channels()
+        fps = tracks[0].get_fps()
+        ap = AlsaSoundLazyPlayer(rate, channels, fps)
+        tracks[1].set_observer(ap.push_nowait)
+        self.mp.run()
+    
+    def seek(self, pos=0):
+        self.mp.seek_to_seconds(pos)
+    
+    def stop(self):
+        self.mp.close()
+        os.kill(self.pid, signal.SIGKILL)
         
