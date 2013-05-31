@@ -3,6 +3,7 @@
 /deb_dist
 /data
 MANIFEST
+core
 *.pyc
 *.log
 *.pkl
