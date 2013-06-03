@@ -11,6 +11,7 @@ import sys
 import random
 import pygame
 import numpy as np
+import multiprocessing.sharedctypes
 
 from StimControl.LightStim.Core import DefaultScreen
 from StimControl.LightStim.LightData import dictattr
@@ -45,7 +46,7 @@ pre_right = 0.0 if stim_interval <= 0 else stim_interval
 layout = None
 if len(argv) >= 4:
     layout = argv[3]
-if layout not in ("LR", "TB"):
+if layout not in ("LR","RL","TB","BT"):
     layout = "2D"
     
 seek = None
@@ -62,7 +63,7 @@ p_left.contrast = 1.0
 p_right = dictattr()
 p_right.layout = layout
 p_right.bgbrightness = 0.0
-p_right.contrast = 0.5
+p_right.contrast = 1.0
 
 cycle_left = dictattr(duration=0.016, pre=pre_left, stimulus=0.016)
 cycle_right = dictattr(duration=0.016, pre=pre_right, stimulus=0.016)
@@ -74,16 +75,18 @@ sequence_right = TimingSeque(repeat=1, block=block_right, shuffle=True)
 if __name__ == '__main__':
     player = MoviePlayer(argv[-1])
     width, height = player.get_size()
-    texture_object = BufferedTextureObject(size=width*height*3, dimensions=2)
-    player.set_texture(texture_object)
+    buffer_data = multiprocessing.sharedctypes.RawArray('B', width*height*3)
+    player.set_buffer(buffer_data)
     
     sweep = FrameSweep()
     pygame_surface = pygame.surface.Surface((width,height))
     movie_left = TimingSetMovie(viewport='left', 
-                                surface=pygame_surface, texture_obj=texture_object,
+                                surface=pygame_surface,
+                                texture_obj=BufferedTextureObject(buffer_data, dimensions=2),
                                 params=p_left, subject=subject, sweepseq=sequence_left)
     movie_right = TimingSetMovie(viewport='right',
-                                 surface=pygame_surface, texture_obj=texture_object,
+                                 surface=pygame_surface,
+                                 texture_obj=BufferedTextureObject(buffer_data, dimensions=2),
                                  params=p_right, subject=subject, sweepseq=sequence_right)
     sweep.add_stimulus(movie_left)
     sweep.add_stimulus(movie_right)
