@@ -17,7 +17,6 @@ from multiprocessing import Process
 from pyffmpeg import FFMpegReader, PixelFormats
 
 import pygame
-import multiprocessing.sharedctypes
 from OpenGL.GL.shaders import compileProgram, compileShader
 
 import VisionEgg.GL as gl
@@ -123,9 +122,9 @@ class SurfaceTextureObject(TextureObject):
         gl.glPixelStorei( gl.GL_UNPACK_SKIP_ROWS, 0)
 
 class BufferedTextureObject(TextureObject):
-    def __init__(self,size,*args,**kwargs):
+    def __init__(self,buffer_data,*args,**kwargs):
         super(BufferedTextureObject, self).__init__(*args,**kwargs)
-        self.buffer_data = multiprocessing.sharedctypes.RawArray('B', size)
+        self.buffer_data = buffer_data
         
     def update_sub_surface( self,
                             texel_data,
@@ -203,11 +202,25 @@ class MovieController(StimulusController):
                 self.crop_offset = (width//2, 0)
             self.size = (width//2, height)
             self.update_offset = (width//4, 0)
+        elif self.p.layout == "RL":
+            if viewport == "left":
+                self.crop_offset = (width//2, 0)
+            elif viewport == "right":
+                self.crop_offset = (0, 0)
+            self.size = (width//2, height)
+            self.update_offset = (width//4, 0)
         elif self.p.layout == "TB":
             if viewport == "left":
                 self.crop_offset = (0, 0)
             elif viewport == "right":
                 self.crop_offset = (0, height//2)
+            self.size = (width, height//2)
+            self.update_offset = (0, height//4)
+        elif self.p.layout == "BT":
+            if viewport == "left":
+                self.crop_offset = (0, height//2)
+            elif viewport == "right":
+                self.crop_offset = (0, 0)
             self.size = (width, height//2)
             self.update_offset = (0, height//4)
         else:
@@ -315,11 +328,11 @@ class MoviePlayer(Process):
         tracks = self.mp.get_tracks()
         return tracks[0].get_size()
     
-    def set_texture(self, texture_obj):
-        self.texture_obj = texture_obj
+    def set_buffer(self, buffer_data):
+        self.buffer_data = buffer_data
         
     def render_to_buffer(self, frame):
-        buffer_array = np.frombuffer(self.texture_obj.buffer_data, 'B')
+        buffer_array = np.frombuffer(self.buffer_data, 'B')
         frame = np.flipud(frame)
         frame = frame.reshape((1, -1))
         buffer_array[:] = frame
