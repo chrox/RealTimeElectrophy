@@ -47,6 +47,7 @@ for eye in np.random.permutation(['left','right']):
         right_latency = SpikeLatencyExp(eye='right', params=p_right).run()
 
 intrinsic_delay = left_latency - right_latency
+dominant_eye = None
 """
     Induction and binocular tests
 """
@@ -75,7 +76,10 @@ for index,interval in enumerate(intervals_rectified):
         # conditioning stimulus
         exp_postfix = interval_str + '-' + phase_str + '-' + str(times+1)
         StimTimingExp(left_phase=0, right_phase=0,
-                      interval=interval, duration=3.0, postfix=exp_postfix, rand_phase=True).run()
+                      interval=interval, duration=3.0, 
+                      postfix=exp_postfix, 
+                      rand_phase=True,
+                      orth_eye=dominant_eye).run()
         # short dsp tuning experiment
         if times < 2:
             exp_postfix = interval_str + '-' + phase_str + '-induction-' + str(times+1)

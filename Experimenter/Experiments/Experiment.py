@@ -162,14 +162,14 @@ class MangratingExp(Experiment):
         return (left_params,right_params)
 
 class StimTimingExp(Experiment):
-    def __init__(self,left_phase,right_phase,interval,duration,postfix,rand_phase=False,*args,**kwargs):
+    def __init__(self,left_phase,right_phase,interval,duration,postfix,rand_phase=False,orth_eye=None,*args,**kwargs):
         super(StimTimingExp, self).__init__(*args,**kwargs)
         self.stim_source = 'timesetgrating.py'
         self.exp_name = ExperimentConfig.CELLPREFIX + '-stim-timing-' + postfix
         self.eye = ['left','right']
         self.assignments = ['p_left.phase0 = %f' %left_phase, 'p_right.phase0 = %f' %right_phase, 
                             'stim_interval = %f' %interval, 'repeats = %d' %(duration*1600//3.55),
-                            'rand_phase = %r' %rand_phase]
+                            'rand_phase = %r' %rand_phase, 'orth_eye = "%s"' %orth_eye]
         
     def run(self):
         super(StimTimingExp, self).run()

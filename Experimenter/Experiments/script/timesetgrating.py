@@ -8,7 +8,7 @@ from __future__ import division
 from StimControl.LightStim.SweepSeque import TimingSeque
 from StimControl.LightStim.LightData import dictattr
 from StimControl.LightStim.FrameControl import FrameSweep
-from StimControl.LightStim.Grating import TimingSetGrating,RandPhaseTimingSetGrating
+from StimControl.LightStim.Grating import TimingSetGrating,RandPhaseTimingSetGrating,OrthOriTimingSetGrating
 
 p_left = dictattr()
 p_left.ml = 0.5
@@ -31,6 +31,7 @@ pre_right = 0.0 if stim_interval <= 0 else stim_interval
 
 repeats = 1600
 rand_phase = False
+orth_eye = 'left'
 
 cycle_left = dictattr(duration=0.132, pre=pre_left, stimulus=0.016)
 cycle_right = dictattr(duration=0.132, pre=pre_right, stimulus=0.016)
@@ -39,12 +40,19 @@ block_right = dictattr(repeat=repeats, cycle=cycle_right, interval=0.0)
 sequence_left = TimingSeque(repeat=1, block=block_left, shuffle=True)
 sequence_right = TimingSeque(repeat=1, block=block_right, shuffle=True)
 
-if not rand_phase:
+if rand_phase:
+    if orth_eye is None:
+        grating_left = RandPhaseTimingSetGrating(viewport='left', params=p_left, sweepseq=sequence_left)
+        grating_right = RandPhaseTimingSetGrating(viewport='right', params=p_right, sweepseq=sequence_right)
+    elif orth_eye == 'left':
+        grating_left = OrthOriTimingSetGrating(viewport='left', params=p_left, sweepseq=sequence_left)
+        grating_right = RandPhaseTimingSetGrating(viewport='right', params=p_right, sweepseq=sequence_right)
+    elif orth_eye == 'right':
+        grating_left = RandPhaseTimingSetGrating(viewport='left', params=p_left, sweepseq=sequence_left)
+        grating_right = OrthOriTimingSetGrating(viewport='right', params=p_right, sweepseq=sequence_right)
+else:
     grating_left = TimingSetGrating(viewport='left', params=p_left, sweepseq=sequence_left)
     grating_right = TimingSetGrating(viewport='right', params=p_right, sweepseq=sequence_right)
-else:
-    grating_left = RandPhaseTimingSetGrating(viewport='left', params=p_left, sweepseq=sequence_left)
-    grating_right = RandPhaseTimingSetGrating(viewport='right', params=p_right, sweepseq=sequence_right)
     
 sweep = FrameSweep()
 sweep.add_stimulus(grating_left)
