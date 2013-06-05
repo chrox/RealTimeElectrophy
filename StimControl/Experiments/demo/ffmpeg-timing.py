@@ -49,11 +49,10 @@ if len(argv) >= 4:
 if layout not in ("LR","RL","TB","BT"):
     layout = "2D"
     
-seek = None
 try:
     seek = int(argv[4])
 except:
-    pass
+    seek = None
 
 p_left = dictattr()
 p_left.layout = layout
@@ -91,7 +90,6 @@ if __name__ == '__main__':
     sweep.add_stimulus(movie_left)
     sweep.add_stimulus(movie_right)
     sweep.add_quit_callback(player.stop)
-    if seek is not None:
-        player.seek(seek)
+    player.seek(seek)
     player.start()
     sweep.go()

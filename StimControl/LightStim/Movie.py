@@ -348,7 +348,8 @@ class MoviePlayer(Process):
         self.mp.run()
     
     def seek(self, pos=0):
-        self.mp.seek_to_seconds(pos)
+        if pos is not None and pos > 0:
+            self.mp.seek_to_seconds(pos)
     
     def stop(self):
         self.mp.close()
