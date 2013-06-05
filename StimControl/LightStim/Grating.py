@@ -72,6 +72,24 @@ class RandOriController(SweepSequeStimulusController):
     def during_go_eval(self):
         self.gp.orientation = random.choice(self.ori)
 
+class SeedRandOriController(SweepSequeStimulusController):
+    def __init__(self,*args,**kwargs):
+        super(SeedRandOriController, self).__init__(*args,**kwargs)
+        self.gp = self.stimulus.gp
+        self.ori = np.linspace(0.0, 360.0, 16, endpoint=False)
+        self.index = 0
+    def during_go_eval(self):
+        self.index = self.index + 1
+        random.seed(self.index)
+        self.gp.orientation = random.choice(self.ori)
+
+class OrthOriController(SweepSequeStimulusController):
+    def __init__(self,*args,**kwargs):
+        super(OrthOriController, self).__init__(*args,**kwargs)
+        self.gp = self.stimulus.gp
+    def during_go_eval(self):
+        self.gp.orientation = self.gp.orientation + 90
+
 class TimingStampController(SweepSequeTriggerController):
     def __init__(self,*args,**kwargs):
         super(TimingStampController, self).__init__(*args,**kwargs)
@@ -275,6 +293,14 @@ class RandPhaseTimingSetGrating(Grating):
         self.controllers.append(TimingController(self))
         self.controllers.append(RandPhaseController(self))
         self.controllers.append(TimingStampController(self))
+        
+class OrthOriTimingSetGrating(Grating):
+    def register_controllers(self):
+        super(OrthOriTimingSetGrating, self).register_controllers()
+        self.logger.info('Register TimingController.')
+        self.controllers.append(TimingController(self))
+        self.controllers.append(RandPhaseController(self))
+        self.controllers.append(OrthOriController(self))
 
 class ParamMapGrating(Grating):
     def register_controllers(self):
