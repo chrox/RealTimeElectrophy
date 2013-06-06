@@ -24,4 +24,7 @@ class Logger(object):
     def write_filestamp(self):
         self.write("Writen into file: " + self.file_name + "\n")
         
-        
+class ModLogger(Logger):
+    def __init__(self, filename, postfix='mod'):
+        self.file_name = filename[:-4] + '_' + postfix
+    
