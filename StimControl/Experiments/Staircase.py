@@ -191,7 +191,7 @@ class StaircaseObject:
             self.reversalPoints.append(self.thisTrialN)
             self.reversalIntensities.append(self.intensities[-1])
         #test if we're done
-        if len(self.reversalIntensities)>=self.nReversals and \
+        if len(self.reversalIntensities)>=self.nReversals or \
             len(self.intensities)>=self.nTrials:
                 self.finished=True
         #new step size if necessary
