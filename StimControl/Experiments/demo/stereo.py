@@ -18,13 +18,13 @@ class Staircase(object):
         self.trialsDesired = 50
         startVal = 0.5
         nReversals = 10
-        stepSizes = [0.1, 0.1, 0.1, 0.05, 0.05, 0.02]
+        stepSizes = [0.03, 0.01, 0.01, 0.005, 0.005, 0.002, 0.001]
         nTrials = 50
         nUp = 1
         nDown = 3
         stepType = "lin"
         minVal = 0
-        maxVal = 1
+        maxVal = 0.5
         
         self.staircase_obj = StaircaseObject(
                 startVal, nReversals, stepSizes,
