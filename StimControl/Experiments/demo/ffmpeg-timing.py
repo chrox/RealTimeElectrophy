@@ -46,7 +46,7 @@ pre_right = 0.0 if stim_interval <= 0 else stim_interval
 layout = None
 if len(argv) >= 4:
     layout = argv[3]
-if layout not in ("LR","RL","TB","BT"):
+if layout not in ("LR","RL","TB","BT","LRH","RLH","TBH","BTH"):
     layout = "2D"
     
 try:

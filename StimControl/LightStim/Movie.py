@@ -19,6 +19,7 @@ from pyffmpeg import FFMpegReader, PixelFormats
 import pygame
 from OpenGL.GL.shaders import compileProgram, compileShader
 
+import VisionEgg
 import VisionEgg.GL as gl
 from VisionEgg.Textures import Texture, TextureObject, TextureStimulus
 from VisionEgg.MoreStimuli import Target2D
@@ -191,32 +192,40 @@ class MovieController(StimulusController):
         
         width, height = self.surface.get_size()
         viewport = self.viewport.get_name()
+        half_width_projection = VisionEgg.Core.OrthographicProjectionNoZClip(
+                            left=0.0, right=self.viewport.width_pix,
+                            bottom=-self.viewport.height_pix*0.5,
+                            top=self.viewport.height_pix*1.5)
+        half_height_projection = VisionEgg.Core.OrthographicProjectionNoZClip(
+                            left=-self.viewport.width_pix*0.5,
+                            right=self.viewport.width_pix*1.5,
+                            bottom=0, top=self.viewport.height_pix)
         if self.p.layout == "2D":
             self.crop_offset = (0, 0)
             self.size = (width, height)
             self.update_offset = (0, 0)
-        elif self.p.layout == "LR":
+        elif self.p.layout in ("LR", "LRH"):
             if viewport == "left":
                 self.crop_offset = (0, 0)
             elif viewport == "right":
                 self.crop_offset = (width//2, 0)
             self.size = (width//2, height)
             self.update_offset = (width//4, 0)
-        elif self.p.layout == "RL":
+        elif self.p.layout in ("RL", "RLH"):
             if viewport == "left":
                 self.crop_offset = (width//2, 0)
             elif viewport == "right":
                 self.crop_offset = (0, 0)
             self.size = (width//2, height)
             self.update_offset = (width//4, 0)
-        elif self.p.layout == "TB":
+        elif self.p.layout in ("TB", "TBH"):
             if viewport == "left":
                 self.crop_offset = (0, 0)
             elif viewport == "right":
                 self.crop_offset = (0, height//2)
             self.size = (width, height//2)
             self.update_offset = (0, height//4)
-        elif self.p.layout == "BT":
+        elif self.p.layout in ("BT", "BTH"):
             if viewport == "left":
                 self.crop_offset = (0, height//2)
             elif viewport == "right":
@@ -225,6 +234,11 @@ class MovieController(StimulusController):
             self.update_offset = (0, height//4)
         else:
             self.logger.error("Cannot support layout: %s" %self.p.layout)
+            
+        if self.p.layout in ("LRH", "RLH"):
+            self.viewport.parameters.projection = half_width_projection
+        elif self.p.layout in ("TBH", "BTH"):
+            self.viewport.parameters.projection = half_height_projection
         
     def during_go_eval(self):
         transfer_pixels = True if self.viewport.get_name() == "left" else False
