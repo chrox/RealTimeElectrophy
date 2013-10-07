@@ -77,10 +77,6 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
                                (pygame.locals.KEYDOWN, self.keydown_callback),
                                (pygame.locals.KEYUP, self.keyup_callback)]
         
-        self.add_controller(None, None, EventHandlerController(self))
-        self.add_controller(None, None, RemoveViewportController(self))
-        self.add_controller(None, None, QuitSweepController(self))
-        
     def add_stimulus(self, stimulus):
         """ The main maniputate interface of framesweep.
             Update the stimulus in viewport and viewport in framesweep.
@@ -114,7 +110,10 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
     def add_controllers(self):
         """ Update the controllers in framesweep. The controller of each stimulus should be delayed to add into the sweep.
             In case we have pre stimulus delay.
-        """ 
+        """
+        self.add_controller(None, None, EventHandlerController(self))
+        self.add_controller(None, None, RemoveViewportController(self))
+        self.add_controller(None, None, QuitSweepController(self))
         for stimulus in self.stimulus_pool:
             if hasattr(stimulus,'controllers'):
                 for controller in stimulus.controllers:
@@ -142,7 +141,6 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         self.parameters.go_duration = (0,'frames')
 
     def go(self,duration=None,prestim=None,poststim=None,RSTART=False):
-        orig_go_duration = self.parameters.go_duration
         # pre stimulation go
         if prestim is not None:
             if RSTART:
@@ -157,7 +155,7 @@ class FrameSweep(VisionEgg.FlowControl.Presentation):
         if duration is not None:
             self.parameters.go_duration = duration
         else:
-            self.parameters.go_duration = orig_go_duration
+            self.parameters.go_duration = ('forever','')
         self.add_controllers()
         # use VisionEgg timing function which handles platform specific problems
         sweep_begin = VisionEgg.true_time_func()
