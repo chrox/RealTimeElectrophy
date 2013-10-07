@@ -2,23 +2,11 @@ Welcome to the RealTimeElectrophy!
 
 OVERVIEW
 
-The RealTimeElectrophy is a collection of useful programs designed to simplify visual 
-neurophysiology research. The Experimenter package lies in the central position of 
-the routines. An experimenter controls the visual stimulator via StimControl and 
-receives spikes data from SpikeRecord.  Precise frame timing is done by StimControl 
-which sends a sweepstamp trigger to the acquisition system for each screen sweep. 
-Once the visual stimuli is synchronized with the spikes via Experimenter, preliminary 
-data analysis can be performed in real time.
+The RealTimeElectrophy is a collection of useful programs designed to simplify visual neurophysiology research. The Experimenter package lies in the central position of the routines. An experimenter controls the visual stimulator via StimControl and receives spikes data from SpikeRecord.  Precise frame timing is done by StimControl which sends a sweepstamp trigger to the acquisition system for each screen sweep. Once the visual stimuli is synchronized with the spikes via Experimenter, preliminary data analysis can be performed in real time.
 
 HARDWARE REQUIREMENTS
 
-A recent stand-alone graphics card is required to draw stimuli fast enough for real 
-time control. In our lab, we use an nVIDIA Quadro NVS 440 card in MultiView mode to 
-horizontally span the screen over three or four monitors. And each monitor works at
-a refresh rate of 120Hz. Any recent nVIDIA GeForce card should be able to run 
-smoothly in DualView mode on two monitors. And we use a Data Translation Digital I/O
-board to trigger the acquisition device in Windows platform. Compatible Comedi 
-devices should work in Linux platform. But currently only Data Translation DT340
+A recent stand-alone graphics card is required to draw stimuli fast enough for real time control. In our lab, we use an nVIDIA Quadro NVS 440 card in MultiView mode to horizontally span the screen over three or four monitors. And each monitor works at a refresh rate of 120Hz. Any recent nVIDIA GeForce card should be able to run smoothly in DualView mode on two monitors. And we use a Data Translation Digital I/O board to trigger the acquisition device in Windows platform. Compatible Comedi devices should work in Linux platform. But currently only Data Translation DT340
 is tested.
 
 INSTALLATION
@@ -37,38 +25,25 @@ First, download and install these dependencies:
 	- setuptools (version >= 0.6)
 	- pycomedi (version >= 0.5, Linux only)
 
-To install RealTimeElectrophy from source, download the latest source code packages,
-and extract the files into your home directory. Type this from a command line from 
-the RealTimeElectrophy base directory:
+To install RealTimeElectrophy from source, download the latest source code packages, and extract the files into your home directory. Type this from a command line from the RealTimeElectrophy base directory:
 
 >>>python setup.py install
 
 For windows users binary installers are also provided.
 
-In either case you need a copy of source code to run the demo execuable programs 
-located at each subdirectory with all lowercase letters in their names.
+In either case you need a copy of source code to run the demo execuable programs located at each subdirectory with all lowercase letters in their names.
 
 CONFIGURATION
 
-You can edit the configuration file LightStim.cfg with your favorite text editor 
-and make necessary changes to configurable entities including whether the 
-triggering device is installed, dimensional measurements and refresh rates and gamma 
-corrections of each monitor, etc.
+You can edit the configuration file LightStim.cfg with your favorite text editor and make necessary changes to configurable entities including whether the triggering device is installed, dimensional measurements and refresh rates and gamma corrections of each monitor, etc.
 
 LICENSE
 
-The RealTimeElectrophy is Copyright (c) 2010-2011 by the RealTimeElectrophy
-Authors. It is distributed under the terms of BSD license. See LICENSE.txt 
-for more information. This software is provided "as is" without any warranty 
-of any kind, either expressed or implied.
+The RealTimeElectrophy is Copyright (c) 2010-2011 by the RealTimeElectrophy Authors. It is distributed under the terms of BSD license. See LICENSE.txt for more information. This software is provided "as is" without any warranty of any kind, either expressed or implied.
 
 CREDITS
 
-Much of the behaviour and many of the features of LightStim package are based on 
-Dimstim, a python visual stimulation package written by Martin Spacek and released 
-under BSD license. The Dimstim project page can be found at http://swindale.ecc.ubc.ca/dimstim .
-StimServer is modified from PyroApps, a demo VisionEgg application shipped with 
-VisonEgg source code. For more information please refer to http://www.visionegg.org .
+Much of the behaviour and many of the features of LightStim package are based on Dimstim, a python visual stimulation package written by Martin Spacek and released under BSD license. The Dimstim project page can be found at http://swindale.ecc.ubc.ca/dimstim. StimServer is modified from PyroApps, a demo VisionEgg application shipped with VisonEgg source code. For more information please refer to http://www.visionegg.org .
 
 MISC
 
