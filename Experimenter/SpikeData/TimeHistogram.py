@@ -94,12 +94,16 @@ class PSTHTuning(PlexSpikeData):
         off_indices = np.nonzero(self.param_indices == -1)
         while np.any(off_indices[0]):     # have any stimulus on segment
             if self.param_indices[0] < 0: # remove the beginning off segment
-                index = self.param_indices[0]
+                on_indices = np.nonzero(self.param_indices > -1)
+                param_index = self.param_indices[0]
                 off_begin = self.timestamps[off_indices[0][0]]
-                off_end = self.timestamps[off_indices[0][-1]]
+                if np.any(on_indices[0]):
+                    off_end = self.timestamps[on_indices[0][0]-1]
+                else:
+                    off_end = self.timestamps[off_indices[0][-1]]
                 if off_end > off_begin:
                     logger.info('Processing background activity at duration %.2f:%.2f' %(off_begin, off_end))
-                    self._process_psth_data(off_begin, off_end, index)
+                    self._process_psth_data(off_begin, off_end, param_index)
                 on_indices = np.nonzero(self.param_indices >= 0)
                 if any(on_indices[0]):
                     self.param_indices = self.param_indices[on_indices[0][0]:]
@@ -112,13 +116,13 @@ class PSTHTuning(PlexSpikeData):
                     logger.warning('Bad stimulation trigger: stimulus parameter are not the same between two off segments.')
                 on_begin = self.timestamps[0]
                 on_end = self.timestamps[off_indices[0][0]-1]
-                index = self.param_indices[0]
-                if index not in range(18):
+                param_index = self.param_indices[0]
+                if param_index not in range(18):
                     logger.warning('Bad stimulation trigger: stimulus parameter index exceeded defined range [0,17].')
-                if on_end > on_begin and index in range(18):
+                if on_end > on_begin and param_index in range(18):
                     logger.info('Processing psth data for %s index: %d at duration %.2f:%.2f'
-                                %(self.parameter,index, on_begin, on_end))
-                    self._process_psth_data(on_begin, on_end, index) # psth processing of on segment
+                                %(self.parameter, param_index, on_begin, on_end))
+                    self._process_psth_data(on_begin, on_end, param_index) # psth processing of on segment
                 self.param_indices = self.param_indices[off_indices[0][0]:] # remove processed on segment
                 self.timestamps = self.timestamps[off_indices[0][0]:]
             off_indices = np.nonzero(self.param_indices == -1)
