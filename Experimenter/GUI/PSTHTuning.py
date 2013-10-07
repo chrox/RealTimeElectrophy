@@ -39,7 +39,8 @@ class PSTHTuningDataPanel(DataPanel):
         self.results.AppendText(mod_ratio)
         self.data['F1/F0'] = ratio
         
-    def gen_curve_data(self, x, means, stds, fittings, model_fitting, model_xdata, label):
+    def gen_curve_data(self, x, means, stds, bg_noise, mono_dom, mono_nod, 
+                       fittings, model_fitting, model_xdata, label):
         if label[0] == 'orientation':
             label[0] = 'ori'
             x = x*180/np.pi
@@ -53,9 +54,9 @@ class PSTHTuningDataPanel(DataPanel):
         self.data['param'] = label[0]
         ###########################
         ##### data
-        data = '-'*18 + '\nData:\n' + "\t".join(str(label)) + '\n'
+        data = '-'*18 + '\nData:\n' + "\t".join(label) + '\n'
         for line in zip(x,means,stds):
-            dataline = '\t'.join('%.2f' %value for value in line)
+            dataline = '\t'.join('%6.2f' %value for value in line)
             data += dataline + '\n'
         self.data['data'] = data
         self.data['x'] = x
@@ -93,6 +94,9 @@ class PSTHTuningDataPanel(DataPanel):
         ##### BII/S2N
         BII = ''
         S2N = ''
+        BGN = ''
+        DOM = ''
+        NOD = ''
         if any(model_fitting) and label[0] == 'dsp':
             bii_ratio = 2.0*(max(model_fitting)-min(model_fitting))/(max(model_fitting)+min(model_fitting))
             BII += '-'*18 + '\nBII :\n'
@@ -101,11 +105,24 @@ class PSTHTuningDataPanel(DataPanel):
             s2n_ratio = (max(model_fitting)-min(model_fitting))/noise
             S2N += '-'*18 + '\nS/N :\n'
             S2N += '%.2f\n' %s2n_ratio
+            if bg_noise is not None:
+                BGN += '-'*18 + '\nBGN :\n'
+                BGN += '%.2f\n' %bg_noise
+            if mono_dom is not None:
+                DOM += '-'*18 + '\nDOM :\n'
+                DOM += '%.2f\n' %mono_dom
+            if mono_nod is not None:
+                NOD += '-'*18 + '\nNOD :\n'
+                NOD += '%.2f\n' %mono_nod
+            
             self.data['BII'] = bii_ratio
             self.data['S/N'] = s2n_ratio
+            self.data['BGN'] = bg_noise
+            self.data['DOM'] = mono_dom
+            self.data['NOD'] = mono_nod
         ############################
         
-        form = data + extremes + BII + S2N
+        form = data + extremes + BII + S2N + BGN + DOM + NOD
         self.results.SetValue(form)
 
 class PSTHTuningPanel(wx.Panel):
@@ -149,6 +166,13 @@ class PSTHTuningPanel(wx.Panel):
         self.x = None
         self.means = None
         self.stds = None
+        self.mono_left_mean = None
+        self.mono_left_std = None
+        self.mono_right_mean = None
+        self.mono_right_std = None
+        self.bg_noise_mean = None
+        self.mono_dom_mean = None
+        self.mono_nod_mean = None
         
         self.update_data_thread = None
         
@@ -189,11 +213,6 @@ class PSTHTuningPanel(wx.Panel):
         self.x = np.arange(17)
         self.means = np.zeros(self.x.size)
         self.stds = np.zeros(self.x.size)
-        self.mono_left_mean = None
-        self.mono_left_std = None
-        self.mono_right_mean = None
-        self.mono_right_std = None
-        self.bg_noise_mean = None
         
         self.fitting_x = np.linspace(self.x[0], self.x[-1], 100, endpoint=True)
         self.fitting_y = np.zeros(self.fitting_x.size)
@@ -328,20 +347,18 @@ class PSTHTuningPanel(wx.Panel):
                         rect.set_height(h)
                 self.means[-1] = self.means[0]
                 self.stds[-1] = self.stds[0]
-                if self.mono_left_mean is not None:
+                if self.mono_left_mean is not None and self.mono_right_mean is not None:
                     #annotate dominant eye activity
-                    dom_mean = max(self.mono_left_mean, self.mono_right_mean)
-                    self.curve_axes.annotate('', xy=(360, dom_mean), xytext=(370, dom_mean),
+                    self.mono_dom_mean = max(self.mono_left_mean, self.mono_right_mean)
+                    self.curve_axes.annotate('', xy=(360, self.mono_dom_mean), xytext=(370, self.mono_dom_mean),
                                             arrowprops=dict(facecolor='black', frac=1.0, headwidth=10, shrink=0.05))
-                if self.mono_right_mean is not None:
                     #annotate non-dominant eye activity
-                    nod_mean = min(self.mono_left_mean, self.mono_right_mean)
-                    self.curve_axes.annotate('', xy=(360, nod_mean), xytext=(370, nod_mean),
+                    self.mono_nod_mean = min(self.mono_left_mean, self.mono_right_mean)
+                    self.curve_axes.annotate('', xy=(360, self.mono_nod_mean), xytext=(370, self.mono_nod_mean),
                                             arrowprops=dict(facecolor='gray', frac=1.0, headwidth=10, shrink=0.05))
                 if self.bg_noise_mean is not None:
                     #annotate background activity
-                    bgn_mean = self.bg_noise_mean
-                    self.curve_axes.annotate('', xy=(360, bgn_mean), xytext=(370, bgn_mean),
+                    self.curve_axes.annotate('', xy=(360, self.bg_noise_mean), xytext=(370, self.bg_noise_mean),
                                             arrowprops=dict(facecolor='white', frac=1.0, headwidth=10, shrink=0.05))
                     
                 adjust_spines(self.curve_axes,spines=['left','bottom','right'],spine_outward=['left','right','bottom'],xoutward=10,youtward=30,\
@@ -365,15 +382,16 @@ class PSTHTuningPanel(wx.Panel):
             
             model_fitting = np.zeros(self.fitting_x.size)
             model_xdata = np.zeros(self.x.size)
+            nonzero = np.nonzero(self.means)[0]
             if self.curve_fitting == 'gauss':
                 if self.log_fitting:
-                    model_xdata,model_fitting = self.curve_fitter.loggaussfit1d(self.x, self.means, self.fitting_x)
+                    model_xdata,model_fitting = self.curve_fitter.loggaussfit1d(self.x[nonzero], self.means[nonzero], self.fitting_x)
                 else:
-                    model_xdata,model_fitting = self.curve_fitter.gaussfit1d(self.x, self.means, self.fitting_x)
+                    model_xdata,model_fitting = self.curve_fitter.gaussfit1d(self.x[nonzero], self.means[nonzero], self.fitting_x)
             elif self.curve_fitting == 'sin':
-                model_xdata,model_fitting = self.curve_fitter.sinusoid1d(self.x, self.means, self.fitting_x)
+                model_xdata,model_fitting = self.curve_fitter.sinusoid1d(self.x[nonzero], self.means[nonzero], self.fitting_x)
             elif self.curve_fitting == 'gabor':
-                model_xdata,model_fitting = self.curve_fitter.gaborfit1d(self.x, self.means, self.fitting_x)
+                model_xdata,model_fitting = self.curve_fitter.gaborfit1d(self.x[nonzero], self.means[nonzero], self.fitting_x)
                 
             if self.append_data_curve:
                 self.curve_axes.plot(self.fitting_x, model_fitting, self.fitting_curve_styles[self.data_curves-1])
@@ -382,14 +400,16 @@ class PSTHTuningPanel(wx.Panel):
                 self.fitting_data.set_ydata(model_fitting)
                 
             label = [self.parameter, 'rate', 'std']
-            self.data_form.gen_curve_data(self.x, self.means, self.stds, self.fitting_x, model_fitting, model_xdata, label)
+            self.data_form.gen_curve_data(self.x, self.means, self.stds,
+                                          self.bg_noise_mean, self.mono_dom_mean, self.mono_nod_mean,
+                                          self.fitting_x, model_fitting, model_xdata, label)
             if self.parameter == 'orientation':
                 self.data_form.gen_psth_data(data[channel][unit])
             self.curve_axes.set_xlim(min(self.x),max(self.x))
-            self.curve_axes.set_ylim(auto=True)
-            #self.curve_axes.set_ylim(0,100)
+            self.curve_axes.set_ylim(min(0, min(self.means)), (max(self.means)*1.2)//10*10)
+            #self.curve_axes.set_ylim(auto=True)
             self.curve_axes.relim()
-            self.curve_axes.autoscale_view(scalex=False, scaley=True)
+            self.curve_axes.autoscale_view(scalex=False, scaley=False)
                 
         self.fig.canvas.draw()
     
