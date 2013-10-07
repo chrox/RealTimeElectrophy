@@ -206,6 +206,30 @@ class PhaTunStamp(ParamStampController):
             pha_tun_type = 1
             post_val += pha_tun_type << 13
         return post_val
+
+class MonocularStampController(ParamStampController):
+    def get_post_val(self):
+        next_param = self.next_param()
+        # 16-bits stimulus representation code will be posted to DT port
+        #  00 11 0000 1111 1111
+        #   |  |   |   |    |
+        #   |  |   |   |    +-----------------left viewport
+        #   |  |   |   +----------------------right viewport
+        #   |  |   +--------------------------reserved
+        #   |  +------------------------------monocular stimulus onset
+        #   +---------------------------------reserved
+        if next_param is not None and not any(num != num for num in next_param):
+            onset = 0x3<<12
+        else:
+            onset = 0
+        if self.viewport.get_name() == 'left':
+            viewport = 0xF
+        elif self.viewport.get_name() == 'right':
+            viewport = 0xF<<4
+        else:
+            self.logger.error('Currently TimingStamp can only support left and right viewport.')
+        post_val = onset + viewport
+        return post_val
         
 class Grating(Stimulus):
     def __init__(self, params, subject=None, sweepseq=None, trigger=True, **kwargs):
@@ -315,6 +339,13 @@ class ParamsGrating(Grating):
         self.logger.info('Register ParamController.')
         self.controllers.append(ParamController(self))
         self.controllers.append(ParamStampController(self))
+
+class MonocularGrating(Grating):
+    def register_controllers(self):
+        super(MonocularGrating, self).register_controllers()
+        self.logger.info('Register ParamController.')
+        self.controllers.append(ParamController(self))
+        self.controllers.append(MonocularStampController(self))
         
 class PhaseGrating(Grating):
     def register_controllers(self):
