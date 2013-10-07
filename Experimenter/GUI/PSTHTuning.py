@@ -189,6 +189,11 @@ class PSTHTuningPanel(wx.Panel):
         self.x = np.arange(17)
         self.means = np.zeros(self.x.size)
         self.stds = np.zeros(self.x.size)
+        self.mono_left_mean = None
+        self.mono_left_std = None
+        self.mono_right_mean = None
+        self.mono_right_std = None
+        self.bg_noise_mean = None
         
         self.fitting_x = np.linspace(self.x[0], self.x[-1], 100, endpoint=True)
         self.fitting_y = np.zeros(self.fitting_x.size)
@@ -258,7 +263,7 @@ class PSTHTuningPanel(wx.Panel):
             else:
                 polar_chart = self.polar_chart
             # histogram
-            for index in [i for i in data[channel][unit].iterkeys() if not i&1]:
+            for index in [i for i in data[channel][unit].iterkeys() if (not i&1 and i<16)]:
                 patch_index = index // 2
                 spike_times = data[channel][unit][index]['spikes']
                 bins = data[channel][unit][index]['bins']
@@ -278,8 +283,18 @@ class PSTHTuningPanel(wx.Panel):
             for index in data[channel][unit].iterkeys():
                 mean = data[channel][unit][index]['mean']
                 std = data[channel][unit][index]['std']
-                self.means[index] = mean
-                self.stds[index] = std
+                if index == -1:
+                    self.bg_noise_mean = mean
+                    self.bg_noise_std = std
+                elif index <= 15:
+                    self.means[index] = mean
+                    self.stds[index] = std
+                elif index == 16:
+                    self.mono_left_mean = mean
+                    self.mono_left_std = std
+                elif index == 17:
+                    self.mono_right_mean = mean
+                    self.mono_right_std = std
             
             self.curve_axes.set_xscale('linear')
             
@@ -313,6 +328,22 @@ class PSTHTuningPanel(wx.Panel):
                         rect.set_height(h)
                 self.means[-1] = self.means[0]
                 self.stds[-1] = self.stds[0]
+                if self.mono_left_mean is not None:
+                    #annotate dominant eye activity
+                    dom_mean = max(self.mono_left_mean, self.mono_right_mean)
+                    self.curve_axes.annotate('', xy=(360, dom_mean), xytext=(370, dom_mean),
+                                            arrowprops=dict(facecolor='black', frac=1.0, headwidth=10, shrink=0.05))
+                if self.mono_right_mean is not None:
+                    #annotate non-dominant eye activity
+                    nod_mean = min(self.mono_left_mean, self.mono_right_mean)
+                    self.curve_axes.annotate('', xy=(360, nod_mean), xytext=(370, nod_mean),
+                                            arrowprops=dict(facecolor='gray', frac=1.0, headwidth=10, shrink=0.05))
+                if self.bg_noise_mean is not None:
+                    #annotate background activity
+                    bgn_mean = self.bg_noise_mean
+                    self.curve_axes.annotate('', xy=(360, bgn_mean), xytext=(370, bgn_mean),
+                                            arrowprops=dict(facecolor='white', frac=1.0, headwidth=10, shrink=0.05))
+                    
                 adjust_spines(self.curve_axes,spines=['left','bottom','right'],spine_outward=['left','right','bottom'],xoutward=10,youtward=30,\
                               xticks='bottom',yticks='both',tick_label=['x','y'],xaxis_loc=5,xminor_auto_loc=2,yminor_auto_loc=2)
             
