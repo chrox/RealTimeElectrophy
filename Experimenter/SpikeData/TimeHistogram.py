@@ -14,7 +14,9 @@ class PSTHTuning(PlexSpikeData):
     SPF_MASK = 0xF<<4
     PHA_MASK = 0xF<<8
     ONSET_MASK = 1<<12
-    #PHA_TUN_TYPE = 1<<13
+    MONO_MASK = 3<<12
+    MONO_LEFT_MASK = 3<<12 | ORI_MASK
+    MONO_RIGHT_MASK = 3<<12 | SPF_MASK
     def __init__(self, *args,**kwargs):
         super(PSTHTuning, self).__init__(*args,**kwargs)
         self.data_type = 'psth_tuning'
@@ -43,25 +45,35 @@ class PSTHTuning(PlexSpikeData):
             new_triggers = self.pu.GetExtEvents(self.data, event='unstrobed_word', online=self.online)
         trigger_values = new_triggers['value']
         
+        take_mono = trigger_values & PSTHTuning.MONO_MASK == PSTHTuning.MONO_MASK
+        take_mono_left  = trigger_values & PSTHTuning.MONO_LEFT_MASK == PSTHTuning.MONO_LEFT_MASK
+        take_mono_right  = trigger_values & PSTHTuning.MONO_RIGHT_MASK == PSTHTuning.MONO_RIGHT_MASK
+        
         ori_index = trigger_values & PSTHTuning.ORI_MASK
+        ori_index[take_mono] = 0
         spf_index = (trigger_values & PSTHTuning.SPF_MASK)>>4
+        spf_index[take_mono] = 0
         pha_index = (trigger_values & PSTHTuning.PHA_MASK)>>8
-        #pha_type  = (trigger_values & PHA_TUN_TYPE)>>13
-        # only one of the three parameters was used in the stimuli. 
-        assert np.any(ori_index) + np.any(spf_index) + np.any(pha_index) < 2
+        pha_index[take_mono] = 0
+        
         if np.any(ori_index):
             self.parameter = 'orientation'
         elif np.any(spf_index):
             self.parameter = 'spatial_frequency'
-        #elif np.any(pha_index) and np.any(pha_type):
-            #self.parameter = 'phase'
-        #elif np.any(pha_index) and not np.any(pha_type):
         elif np.any(pha_index):
             self.parameter = 'disparity'
         param_indices = np.array((ori_index + spf_index + pha_index), np.int)
-        offset_trigger = (trigger_values & PSTHTuning.ONSET_MASK) == 0
-        param_indices[offset_trigger] = -1
-        # param_index_que typically has values in the range of [-1,15]. That's enough to describe the stimuli, isn't it?
+        take_offset = (trigger_values & PSTHTuning.ONSET_MASK) == 0
+        param_indices[take_offset] = -1
+        param_indices[take_mono_left] = 16
+        param_indices[take_mono_right] = 17
+        
+        # param_index_que typically has values in the range of [-1,17]
+        # That's enough to describe the stimuli, isn't it?
+        # -1 for stimulus off
+        # [0, 15] for tuning stimulus parameters
+        # 16 for monocular right stimulus
+        # 17 for monocular right stimulus
         self.param_indices = np.append(self.param_indices, param_indices)
         self.timestamps = np.append(self.timestamps, new_triggers['timestamp'])
         
@@ -79,30 +91,37 @@ class PSTHTuning(PlexSpikeData):
     def _get_psth_data(self):
         logger = logging.getLogger('Experimenter.TimeHistogram')
         # process all on segments before the off segments in the timestamp queue
-        off_begin = np.nonzero(self.param_indices < 0)
-        while np.any(off_begin[0]):     # have any stimulus on segment
+        off_indices = np.nonzero(self.param_indices == -1)
+        while np.any(off_indices[0]):     # have any stimulus on segment
             if self.param_indices[0] < 0: # remove the beginning off segment
-                on_begin = np.nonzero(self.param_indices >= 0)
-                if any(on_begin[0]):
-                    self.param_indices = self.param_indices[on_begin[0][0]:]
-                    self.timestamps = self.timestamps[on_begin[0][0]:]
+                index = self.param_indices[0]
+                off_begin = self.timestamps[off_indices[0][0]]
+                off_end = self.timestamps[off_indices[0][-1]]
+                if off_end > off_begin:
+                    logger.info('Processing background activity at duration %.2f:%.2f' %(off_begin, off_end))
+                    self._process_psth_data(off_begin, off_end, index)
+                on_indices = np.nonzero(self.param_indices >= 0)
+                if any(on_indices[0]):
+                    self.param_indices = self.param_indices[on_indices[0][0]:]
+                    self.timestamps = self.timestamps[on_indices[0][0]:]
                 else:
                     self.param_indices = np.empty(0,dtype=np.int16)
                     self.timestamps = np.empty(0)
             else:
-                if np.any(self.param_indices[1:off_begin[0][0]] != self.param_indices[:off_begin[0][0]-1]):
+                if np.any(self.param_indices[1:off_indices[0][0]] != self.param_indices[:off_indices[0][0]-1]):
                     logger.warning('Bad stimulation trigger: stimulus parameter are not the same between two off segments.')
                 on_begin = self.timestamps[0]
-                on_end = self.timestamps[off_begin[0][0]-1]
+                on_end = self.timestamps[off_indices[0][0]-1]
                 index = self.param_indices[0]
-                if index not in range(16):
-                    logger.warning('Bad stimulation trigger: stimulus parameter index exceeded defined range [0,16].')
-                if on_end > on_begin and index in range(16):
-                    #logger.info('Processing psth data for %s index: %d' %(self.parameter,index))
+                if index not in range(18):
+                    logger.warning('Bad stimulation trigger: stimulus parameter index exceeded defined range [0,17].')
+                if on_end > on_begin and index in range(18):
+                    logger.info('Processing psth data for %s index: %d at duration %.2f:%.2f'
+                                %(self.parameter,index, on_begin, on_end))
                     self._process_psth_data(on_begin, on_end, index) # psth processing of on segment
-                self.param_indices = self.param_indices[off_begin[0][0]:] # remove processed on segment
-                self.timestamps = self.timestamps[off_begin[0][0]:]
-            off_begin = np.nonzero(self.param_indices < 0)
+                self.param_indices = self.param_indices[off_indices[0][0]:] # remove processed on segment
+                self.timestamps = self.timestamps[off_indices[0][0]:]
+            off_indices = np.nonzero(self.param_indices == -1)
                 
     def _process_psth_data(self,begin,end,param_index):
         duration = 2.0
@@ -204,6 +223,7 @@ class PSTHAverage(PlexSpikeData):
             trial_spikes = unit_train[take] - begin
             spikes = np.append(spikes, trial_spikes)
             trials = trials + 1
+        print trials
         psth_data = np.array(np.histogram(spikes, bins=bins)[0],dtype='float') / (binsize*trials)
         smoothed_psth = nd.gaussian_filter1d(psth_data, sigma=10)
         maxima_indices = (np.diff(np.sign(np.diff(smoothed_psth))) < 0).nonzero()[0] + 1
