@@ -7,7 +7,7 @@
 from __future__ import division
 from StimControl.LightStim.SweepSeque import ParamSeque
 from StimControl.LightStim.FrameControl import FrameSweep
-from StimControl.LightStim.Grating import ParamsGrating
+from StimControl.LightStim.Grating import ParamsGrating, MonocularGrating
 from StimControl.LightStim.LightData import dictattr,IndexedParam
 
 p = dictattr()
@@ -19,6 +19,13 @@ p.contrast = 1
 
 repeats = 4
 
+#Monocular stimuli
+phase_at_t0 = [0]
+monocular_param_left = ParamSeque(repeat=1, phase_at_t0=phase_at_t0, frame_duration=2.0, blank_duration=1.0)
+monocular_param_right = ParamSeque(repeat=1, phase_at_t0=phase_at_t0, frame_duration=2.0, blank_duration=1.0)
+monocular_grating_left = MonocularGrating(viewport='left', params=p, sweepseq=monocular_param_left)
+monocular_grating_right = MonocularGrating(viewport='right', params=p, sweepseq=monocular_param_right)
+
 phase_at_t0 = [0]*16
 param_left = ParamSeque(repeat=repeats, phase_at_t0=phase_at_t0, frame_duration=2.0, blank_duration=1.0)
 
@@ -29,6 +36,10 @@ grating_left = ParamsGrating(viewport='left', params=p, sweepseq=param_left, tri
 grating_right = ParamsGrating(viewport='right', params=p, sweepseq=param_right)
 
 sweep = FrameSweep()
+sweep.add_stimulus(monocular_grating_left)
+sweep.go()
+sweep.add_stimulus(monocular_grating_right)
+sweep.go()
 sweep.add_stimulus(grating_left)
 sweep.add_stimulus(grating_right)
 sweep.go(prestim=5.0,poststim=5.0,RSTART=True)
